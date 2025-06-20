@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, supabase } from '@/lib/supabaseClient'; // Assuming supabase (public) might be used as fallback
 import { ServicePageData } from '@/types';
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"; 
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth"; 
 import type { Session } from 'next-auth'; // For explicit typing
 import { v4 as uuidv4 } from 'uuid';
 

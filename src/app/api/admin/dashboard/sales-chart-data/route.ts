@@ -2,7 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 import type { Session } from 'next-auth';
 
 const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';

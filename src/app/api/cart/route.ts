@@ -2,7 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getServerSession } from "next-auth/next";
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 import { Product as AppProductType, CartItem as AppCartItemType } from '@/types';
 import type { Session } from 'next-auth';
 
