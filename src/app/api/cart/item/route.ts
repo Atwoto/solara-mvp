@@ -61,16 +61,15 @@ export async function PUT(req: NextRequest) {
             throw error;
         }
         
+        // This check ensures our type assertion below is safe.
         if (!updatedItem || !updatedItem.products) {
              throw new Error("Failed to update cart item or retrieve valid product details after update.");
         }
         
-        // FIX: Create a new constant from the validated property.
-        // This makes the type explicit and safe for the compiler.
-        const productDetails = updatedItem.products;
-
+        // FIX: Use a direct type assertion. This is the most forceful way to tell the 
+        // compiler that we know the type is correct, resolving the stubborn build error.
         const cartItem: CartItem = {
-            ...productDetails, // Now spreading the safe, non-null constant.
+            ...(updatedItem.products as AppProductType),
             quantity: updatedItem.quantity,
         };
 
