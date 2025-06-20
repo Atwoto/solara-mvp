@@ -7,6 +7,11 @@ import type { Session } from 'next-auth';
 
 const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
 
+// Define the type for order data
+interface OrderData {
+  total_price: number;
+}
+
 console.log("STATS API Module Loaded - Supabase URL from env:", process.env.NEXT_PUBLIC_SUPABASE_URL);
 console.log("STATS API Module Loaded - Supabase Service Key is defined:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -39,7 +44,13 @@ export async function GET(request: NextRequest) {
       // We will return a general error later if any part fails.
       // throw revenueQueryError; // This would jump to the outer catch
     }
-    const totalRevenue = revenueOrders?.reduce((sum, order) => sum + order.total_price, 0) || 0;
+    
+    // Fix the TypeScript error by using type guards
+    const totalRevenue = revenueOrders?.reduce((sum, order) => {
+      const price = typeof order.total_price === 'number' ? order.total_price : 0;
+      return sum + price;
+    }, 0) || 0;
+    
     console.log("API STATS: Total revenue calculated:", totalRevenue);
 
 
