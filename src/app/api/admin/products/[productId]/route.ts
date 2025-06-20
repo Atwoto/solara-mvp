@@ -141,7 +141,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       newImageUrl = null;
       
       const { data: productBeforeUpdate } = await supabaseAdmin.from('products').select('imageUrl').eq('id', productId).single();
-      if (productBeforeUpdate?.imageUrl) {
+      if (productBeforeUpdate?.imageUrl && typeof productBeforeUpdate.imageUrl === 'string') {
         try {
           const oldFileNameWithFolder = new URL(productBeforeUpdate.imageUrl).pathname.split('/').slice(4).join('/');
           if (oldFileNameWithFolder) {
