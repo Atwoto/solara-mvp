@@ -5,10 +5,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { CartItem, Product as AppProductType } from '@/types';
 
-// Helper to check if an object is a valid Product
-function isProduct(obj: any): obj is AppProductType {
-    return obj && typeof obj.id === 'string' && typeof obj.name === 'string';
-}
+// The isProduct helper is no longer needed, we'll use a more direct check.
 
 // Helper to get user's cart ID
 async function getUserCartId(userId: string): Promise<string | null> {
@@ -18,11 +15,10 @@ async function getUserCartId(userId: string): Promise<string | null> {
         .select('id')
         .eq('user_id', userId)
         .single();
-    if (error && error.code !== 'PGRST116') { // PGRST116 = not found, which is fine if we create it later
+    if (error && error.code !== 'PGRST116') { 
         console.error("Error fetching user's cart ID:", error);
-        return null; // Or throw error
+        return null;
     }
-    // FIX 1: Use a strict type check to ensure the return type is correct.
     return typeof cart?.id === 'string' ? cart.id : null;
 }
 
@@ -62,19 +58,21 @@ export async function PUT(req: NextRequest) {
 
         if (error) {
             console.error("Error updating cart item quantity:", error);
-            if (error.code === 'PGRST116') {
+            if (error.code === 'PGRST116') { 
                 return NextResponse.json({ error: "Item not found in cart to update." }, { status: 404 });
             }
             throw error;
         }
         
-        // FIX 2: Use a type guard for robust checking before creating the final object.
-        if (!updatedItem || !isProduct(updatedItem.products)) {
-             throw new Error("Failed to update cart item or retrieve product details after update.");
+        // FIX: Use a direct check for the existence of `updatedItem` and its `products` property.
+        // This is the clearest way to tell TypeScript that `products` is not null.
+        if (!updatedItem || !updatedItem.products) {
+             throw new Error("Failed to update cart item or retrieve valid product details after update.");
         }
         
+        // After the check above, TypeScript knows `updatedItem.products` is a valid object.
         const cartItem: CartItem = {
-            ...updatedItem.products, // No unsafe 'as' cast needed here anymore
+            ...updatedItem.products,
             quantity: updatedItem.quantity,
         };
 
