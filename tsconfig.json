@@ -1,14 +1,16 @@
+// tsconfig.json
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
+    "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "bundler", // Or "node" if that was your original setting
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
@@ -18,9 +20,14 @@
         "name": "next"
       }
     ],
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    // --- FIX IS HERE ---
+    "baseUrl": ".",
+"paths": {
+  "@/lib/supabaseClient": ["./src/lib/supabaseClient.ts"], // Be very specific for one
+  "@/types": ["./src/types.ts"],                         // And the other
+  "@/*": ["./src/*"]                                     // Keep the general one last
+}
+    // -------------------
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
