@@ -223,69 +223,70 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 // --- DELETE Handler: Delete a service by ID ---
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  const { serviceId } = params;
-  console.log(`API: DELETE /api/admin/services/${serviceId} hit`);
+  const { serviceId } = params;
+  console.log(`API: DELETE /api/admin/services/${serviceId} hit`);
 
-  const session = await getServerSession(authOptions) as Session | null;
-  if (!session || !session.user || session.user.email !== ADMIN_EMAIL) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
-  }
-  
-  if (!supabaseAdmin) {
-    return NextResponse.json({ message: 'Server configuration error' }, { status: 500 });
-  }
-  
-  if (!serviceId) {
-    return NextResponse.json({ message: 'Service ID is required for deletion' }, { status: 400 });
-  }
+  const session = await getServerSession(authOptions) as Session | null;
+  if (!session || !session.user || session.user.email !== ADMIN_EMAIL) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
+  }
+  
+  if (!supabaseAdmin) {
+    return NextResponse.json({ message: 'Server configuration error' }, { status: 500 });
+  }
+  
+  if (!serviceId) {
+    return NextResponse.json({ message: 'Service ID is required for deletion' }, { status: 400 });
+  }
 
-  try {
-    // Fetch service to get image URL before deleting DB record
-    const { data: serviceToDelete, error: fetchErr } = await supabaseAdmin
-      .from('service_pages')
-      .select('hero_image_url')
-      .eq('id', serviceId)
-      .single();
+  try {
+    // Fetch service to get image URL before deleting DB record
+    const { data: serviceToDelete, error: fetchErr } = await supabaseAdmin
+      .from('service_pages')
+      .select('hero_image_url')
+      .eq('id', serviceId)
+      .single();
 
-    if (fetchErr && fetchErr.code !== 'PGRST116') {
-      console.error('API: Error fetching service for deletion:', JSON.stringify(fetchErr, null, 2));
-      return NextResponse.json({ message: 'Database error', error: fetchErr.message }, { status: 500 });
-    }
+    if (fetchErr && fetchErr.code !== 'PGRST116') {
+      console.error('API: Error fetching service for deletion:', JSON.stringify(fetchErr, null, 2));
+      return NextResponse.json({ message: 'Database error', error: fetchErr.message }, { status: 500 });
+    }
 
-    // Delete record from database
-    const { error: deleteError } = await supabaseAdmin
-      .from('service_pages')
-      .delete()
-      .eq('id', serviceId);
+    // Delete record from database
+    const { error: deleteError } = await supabaseAdmin
+      .from('service_pages')
+      .delete()
+      .eq('id', serviceId);
 
-    if (deleteError) {
-      console.error('API: Supabase error deleting service record:', JSON.stringify(deleteError, null, 2));
-      return NextResponse.json({ message: 'Failed to delete service record.', error: deleteError.message }, { status: 500 });
-    }
+    if (deleteError) {
+      console.error('API: Supabase error deleting service record:', JSON.stringify(deleteError, null, 2));
+      return NextResponse.json({ message: 'Failed to delete service record.', error: deleteError.message }, { status: 500 });
+    }
 
-    // If DB record deleted successfully, try to delete image from storage
-    if (serviceToDelete?.hero_image_url) {
-      try {
-        const fileName = serviceToDelete.hero_image_url.split('/').pop();
-        if (fileName) {
-          const { error: storageError } = await supabaseAdmin.storage
-            .from(SUPABASE_SERVICES_IMAGE_BUCKET)
-            .remove([`public/${fileName}`]);
-            
-          if (storageError) {
-            console.warn('API: Failed to delete image from storage, but DB record deleted:', JSON.stringify(storageError, null, 2));
-          } else {
-            console.log("API: Successfully deleted image from storage:", serviceToDelete.hero_image_url);
-          }
-        }
-      } catch (e) {
-        console.warn('API: Error during image deletion from storage:', e);
-      }
-    }
-    
-    return NextResponse.json({ message: 'Service deleted successfully.' });
-  } catch (error: any) {
-    console.error('API: Unhandled error deleting service:', error.message, error.stack);
-    return NextResponse.json({ message: 'Unexpected server error during deletion.', error: error.message }, { status: 500 });
-  }
+    // If DB record deleted successfully, try to delete image from storage
+    // FIX: Replaced truthiness check with an explicit typeof check for robust type safety.
+    if (serviceToDelete && typeof serviceToDelete.hero_image_url === 'string') {
+      try {
+        const fileName = serviceToDelete.hero_image_url.split('/').pop();
+        if (fileName) {
+          const { error: storageError } = await supabaseAdmin.storage
+            .from(SUPABASE_SERVICES_IMAGE_BUCKET)
+            .remove([`public/${fileName}`]);
+            
+          if (storageError) {
+            console.warn('API: Failed to delete image from storage, but DB record deleted:', JSON.stringify(storageError, null, 2));
+          } else {
+            console.log("API: Successfully deleted image from storage:", serviceToDelete.hero_image_url);
+          }
+        }
+      } catch (e) {
+        console.warn('API: Error during image deletion from storage:', e);
+      }
+    }
+    
+    return NextResponse.json({ message: 'Service deleted successfully.' });
+  } catch (error: any) {
+    console.error('API: Unhandled error deleting service:', error.message, error.stack);
+    return NextResponse.json({ message: 'Unexpected server error during deletion.', error: error.message }, { status: 500 });
+  }
 }
