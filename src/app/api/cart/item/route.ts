@@ -41,6 +41,7 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ error: "User cart not found. Add an item first." }, { status: 404 });
         }
 
+        // This query requires a foreign key from 'cart_items.product_id' to 'products.id'
         const { data: updatedItem, error } = await supabaseAdmin
             .from('cart_items')
             .update({ quantity: newQuantity })
@@ -61,14 +62,13 @@ export async function PUT(req: NextRequest) {
             throw error;
         }
         
-        // This check ensures our type assertion below is safe.
+        // This check ensures the product was successfully fetched along with the cart item.
         if (!updatedItem || !updatedItem.products) {
              throw new Error("Failed to update cart item or retrieve valid product details after update.");
         }
         
-        // FIX: Use a direct type assertion. This is the most forceful way to tell the 
-        // compiler that we know the type is correct, resolving the stubborn build error.
         const cartItem: CartItem = {
+            // The type assertion is safe because of the check above.
             ...(updatedItem.products as AppProductType),
             quantity: updatedItem.quantity,
         };
