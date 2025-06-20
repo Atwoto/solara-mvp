@@ -14,9 +14,7 @@ interface AppUser extends NextAuthUser {
   email: string;
 }
 
-// --- START OF FIX: Remove the 'export' keyword from authOptions ---
 const authOptions: NextAuthOptions = {
-// --- END OF FIX ---
   adapter: SupabaseAdapter({
     url: process.env.SUPABASE_URL!,
     secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -94,8 +92,7 @@ const authOptions: NextAuthOptions = {
   debug: process.env.NODE_ENV === 'development',
 };
 
-// This part is correct. It creates the handlers...
 const handler = NextAuth(authOptions);
 
-// ...and this part correctly exports them for Next.js to use.
+// Only export the handlers - do NOT export authOptions
 export { handler as GET, handler as POST };
