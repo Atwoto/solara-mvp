@@ -17,7 +17,9 @@ async function getUserCartId(userId: string): Promise<string | null> {
         console.error("Error fetching user's cart ID:", error);
         return null; // Or throw error
     }
-    return cart?.id || null; // Return null if cart not found, POST handler in main cart route creates it
+    // FIX: Use a strict type check instead of a truthiness check.
+    // This ensures we only return a string, preventing an empty object {} from being returned.
+    return typeof cart?.id === 'string' ? cart.id : null;
 }
 
 
