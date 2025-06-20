@@ -1,159 +1,274 @@
-// src/app/api/admin/services/route.ts
+// src/app/api/admin/services/[serviceId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { ServicePageData } from '@/types';
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth"; 
+import { authOptions } from "@/lib/auth";
 import type { Session } from 'next-auth';
 import { v4 as uuidv4 } from 'uuid';
 
 const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
 const SUPABASE_SERVICES_IMAGE_BUCKET = 'service-images';
 
-// --- POST HANDLER (ensure all paths return) ---
-export async function POST(request: NextRequest) {
-  console.log("API: POST /api/admin/services hit");
-
-  const session = await getServerSession(authOptions) as Session | null; 
-  if (!session || !session.user || session.user.email !== ADMIN_EMAIL) { 
-    console.error("API: Unauthorized access attempt to POST /api/admin/services");
-    return NextResponse.json({ message: 'Unauthorized: Access Denied' }, { status: 403 });
-  }
-  console.log("API: Admin user authenticated for POST:", session.user.email);
-
-  if (!supabaseAdmin) {
-    console.error("API: Supabase admin client is not initialized for POST.");
-    return NextResponse.json({ message: 'Server configuration error: Admin database client not available.' }, { status: 500 });
-  }
-
-  try {
-    const formData = await request.formData();
-    console.log("API: Received FormData keys for POST:", Array.from(formData.keys()));
-
-    const title = formData.get('title') as string | null;
-    const slug = formData.get('slug') as string | null;
-    const content_html = formData.get('content_html') as string | null;
-    const status = (formData.get('status') as ServicePageData['status'] | null) || 'draft';
-    const parent_service_slug_from_form = formData.get('parent_service_slug') as string | null;
-    const excerpt = formData.get('excerpt') as string | null;
-    const icon_svg = formData.get('icon_svg') as string | null;
-    const meta_title = formData.get('meta_title') as string | null;
-    const meta_description = formData.get('meta_description') as string | null;
-    const featuresJsonString = formData.get('featuresJson') as string | null;
-    const call_to_action_label = formData.get('call_to_action_label') as string | null;
-    const call_to_action_link = formData.get('call_to_action_link') as string | null;
-    const display_order_string = formData.get('display_order') as string | null;
-    const imageFile = formData.get('imageFile') as File | null;
-
-    if (!title || !slug || !content_html) {
-      console.error("API: Missing required fields in POST.");
-      return NextResponse.json({ message: 'Missing required fields: title, slug, and content are required.' }, { status: 400 });
-    }
-    
-    let features = null;
-    if (featuresJsonString) {
-        try { features = JSON.parse(featuresJsonString); } 
-        catch (e: any) { 
-            console.error("API: Invalid JSON for features in POST:", e.message);
-            return NextResponse.json({ message: 'Invalid JSON format for features. Error: ' + e.message }, { status: 400 });
-        }
-    }
-
-    const { data: existingSlug, error: slugError } = await supabaseAdmin
-      .from('service_pages').select('slug').eq('slug', slug).maybeSingle();
-    if (slugError && slugError.code !== 'PGRST116') { 
-        console.error('API: Supabase error checking slug in POST:', JSON.stringify(slugError, null, 2));
-        return NextResponse.json({ message: 'Error checking slug uniqueness', error: slugError.message }, { status: 500 });
-    }
-    if (existingSlug) { 
-        console.warn("API: Slug already exists in POST:", slug);
-        return NextResponse.json({ message: `Slug "${slug}" already exists.` }, { status: 409 });
-    }
-
-    let uploadedHeroImageUrl: string | null = null;
-    if (imageFile) {
-        const fileExtension = imageFile.name.split('.').pop();
-        const fileName = `${uuidv4()}.${fileExtension}`;
-        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-            .from(SUPABASE_SERVICES_IMAGE_BUCKET).upload(`public/${fileName}`, imageFile, { 
-                cacheControl: '3600', upsert: false, contentType: imageFile.type,
-            });
-        if (uploadError) {
-            console.error('API: Supabase storage upload error in POST:', JSON.stringify(uploadError, null, 2));
-            return NextResponse.json({ message: 'Failed to upload hero image.', error: uploadError.message, details: uploadError }, { status: 500 });
-        }
-        const { data: publicUrlData } = supabaseAdmin.storage.from(SUPABASE_SERVICES_IMAGE_BUCKET).getPublicUrl(uploadData.path); 
-        uploadedHeroImageUrl = publicUrlData.publicUrl;
-    }
-
-    const newServiceData = {
-      title, slug, content_html, status,
-      parent_service_slug: parent_service_slug_from_form && parent_service_slug_from_form.trim() !== '' ? parent_service_slug_from_form.trim() : null,
-      excerpt: excerpt || null, hero_image_url: uploadedHeroImageUrl, icon_svg: icon_svg || null,
-      meta_title: meta_title || null, meta_description: meta_description || null,
-      features: features, call_to_action_label: call_to_action_label || null,
-      call_to_action_link: call_to_action_link || null,
-      display_order: display_order_string ? Number(display_order_string) : 0,
-    };
-
-    const { data: insertedData, error: insertError } = await supabaseAdmin
-        .from('service_pages').insert([newServiceData]).select().single();
-    if (insertError) {
-      console.error('API: Supabase error inserting service into DB (POST):', JSON.stringify(insertError, null, 2));
-      if (insertError.code === '23503' && insertError.message.includes('service_pages_parent_service_slug_fkey')) {
-        return NextResponse.json({ message: `Parent service slug "${parent_service_slug_from_form}" does not exist.`, details: insertError.details }, { status: 400 });
-      }
-      if (insertError.code === '23505') { 
-        return NextResponse.json({ message: 'Unique constraint violated (e.g., slug already exists).', details: insertError.details }, { status: 409 });
-      }
-      return NextResponse.json({ message: 'Failed to create service due to database error.', error: insertError.message, details: insertError.details }, { status: 500 });
-    }
-    console.log("API: Service created successfully in DB (POST):", insertedData);
-    return NextResponse.json({ message: "Service created successfully!", service: insertedData }, { status: 201 });
-  } catch (error: any) {
-    console.error('API: Unhandled top-level error in POST /api/admin/services:', error.message, error.stack);
-    return NextResponse.json({ message: 'An unexpected server error occurred in POST.', error: error.message }, { status: 500 });
-  }
+interface RouteParams {
+  params: {
+    serviceId: string;
+  };
 }
 
-// --- GET HANDLER ---
-export async function GET(request: NextRequest) {
-  console.log("API: GET /api/admin/services hit");
-  const session = await getServerSession(authOptions) as Session | null;
+// Type guard function for better type safety
+function isServicePageData(data: any): data is ServicePageData {
+  return data && 
+         typeof data.id === 'string' &&
+         typeof data.title === 'string' &&
+         typeof data.slug === 'string' &&
+         typeof data.content_html === 'string';
+}
 
+// --- GET Handler: Fetch a single service by ID ---
+export async function GET(request: NextRequest, { params }: RouteParams) {
+  const { serviceId } = params;
+  console.log(`API: GET /api/admin/services/${serviceId} hit`);
+
+  const session = await getServerSession(authOptions) as Session | null;
   if (!session || !session.user || session.user.email !== ADMIN_EMAIL) {
-    console.error("API: Unauthorized access attempt to GET /api/admin/services");
-    return NextResponse.json({ message: 'Unauthorized: Access Denied', services: [] }, { status: 403 });
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
   }
-  console.log("API: Admin user authenticated for GET:", session.user.email);
 
   if (!supabaseAdmin) {
-    console.error("API: Supabase admin client is not initialized for GET /api/admin/services.");
-    return NextResponse.json({ message: 'Server configuration error: Database client not available.', services: [] }, { status: 500 });
+    return NextResponse.json({ message: 'Server configuration error' }, { status: 500 });
+  }
+
+  if (!serviceId) {
+    return NextResponse.json({ message: 'Service ID is required' }, { status: 400 });
   }
 
   try {
-    console.log("API: Attempting to fetch services from Supabase (GET)...");
-    
-    // FIX: Provide the ServicePageData type as a generic to .from()
-    // This correctly types the 'data' variable returned by Supabase.
     const { data, error } = await supabaseAdmin
-      .from<ServicePageData>('service_pages')
+      .from('service_pages')
       .select('*')
-      .order('display_order', { ascending: true }) 
-      .order('created_at', { ascending: false }); 
+      .eq('id', serviceId)
+      .single();
 
     if (error) {
-        console.error('API: Supabase error fetching services for admin (GET):', JSON.stringify(error, null, 2));
-        return NextResponse.json({ message: 'Database error fetching services.', error: error.message, services: [] }, { status: 500 });
+      if (error.code === 'PGRST116') {
+        return NextResponse.json({ message: 'Service not found' }, { status: 404 });
+      }
+      console.error('API: Supabase error fetching service by ID:', JSON.stringify(error, null, 2));
+      return NextResponse.json({ message: 'Database error fetching service', error: error.message }, { status: 500 });
+    }
+
+    if (!data) {
+      return NextResponse.json({ message: 'Service not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(data as ServicePageData);
+  } catch (error: any) {
+    console.error('API: Unhandled error fetching service by ID:', error.message, error.stack);
+    return NextResponse.json({ message: 'Unexpected server error', error: error.message }, { status: 500 });
+  }
+}
+
+// --- PUT Handler: Update an existing service ---
+export async function PUT(request: NextRequest, { params }: RouteParams) {
+  const { serviceId } = params;
+  console.log(`API: PUT /api/admin/services/${serviceId} hit`);
+
+  const session = await getServerSession(authOptions) as Session | null;
+  if (!session || !session.user || session.user.email !== ADMIN_EMAIL) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
+  }
+  
+  if (!supabaseAdmin) {
+    return NextResponse.json({ message: 'Server configuration error' }, { status: 500 });
+  }
+  
+  if (!serviceId) {
+    return NextResponse.json({ message: 'Service ID is required for update' }, { status: 400 });
+  }
+
+  try {
+    const formData = await request.formData();
+    
+    const title = formData.get('title') as string | null;
+    const slug = formData.get('slug') as string | null;
+    const content_html = formData.get('content_html') as string | null;
+    const status = (formData.get('status') as ServicePageData['status'] | null);
+    const parent_service_slug_from_form = formData.get('parent_service_slug') as string | null;
+    const excerpt = formData.get('excerpt') as string | null;
+    const icon_svg = formData.get('icon_svg') as string | null;
+    const meta_title = formData.get('meta_title') as string | null;
+    const meta_description = formData.get('meta_description') as string | null;
+    const featuresJsonString = formData.get('featuresJson') as string | null;
+    const call_to_action_label = formData.get('call_to_action_label') as string | null;
+    const call_to_action_link = formData.get('call_to_action_link') as string | null;
+    const display_order_string = formData.get('display_order') as string | null;
+    const imageFile = formData.get('imageFile') as File | null;
+    const currentImageUrl = formData.get('currentImageUrl') as string | null;
+
+    if (!title || !slug || !content_html) {
+      return NextResponse.json({ message: 'Missing required fields: title, slug, and content_html are required.' }, { status: 400 });
     }
     
-    console.log("API: Successfully fetched services for admin (GET). Count:", data?.length);
-    
-    // FIX: The 'as' cast is no longer needed because 'data' is already correctly typed.
-    return NextResponse.json(data || []);
+    let features = null;
+    if (featuresJsonString) {
+      try {
+        features = JSON.parse(featuresJsonString);
+      } catch (e) {
+        return NextResponse.json({ message: 'Invalid JSON format for features.' }, { status: 400 });
+      }
+    }
+
+    if (slug) {
+      const { data: existingSlug, error: slugCheckError } = await supabaseAdmin
+        .from('service_pages')
+        .select('id')
+        .eq('slug', slug)
+        .neq('id', serviceId)
+        .maybeSingle();
+        
+      if (slugCheckError) {
+        console.error('API: Error checking slug uniqueness:', JSON.stringify(slugCheckError, null, 2));
+        return NextResponse.json({ message: 'Database error checking slug uniqueness', error: slugCheckError.message }, { status: 500 });
+      }
+      
+      if (existingSlug) {
+        return NextResponse.json({ message: `Slug "${slug}" is already in use by another service.` }, { status: 409 });
+      }
+    }
+
+    let newHeroImageUrl: string | undefined | null = currentImageUrl || null;
+    
+    if (imageFile) {
+      if (currentImageUrl) {
+        try {
+          const oldFileName = currentImageUrl.split('/').pop();
+          if (oldFileName) {
+            await supabaseAdmin.storage.from(SUPABASE_SERVICES_IMAGE_BUCKET).remove([`public/${oldFileName}`]);
+            console.log("API: Deleted old image:", currentImageUrl);
+          }
+        } catch (e) {
+          console.error("API: Failed to delete old image, continuing update:", e);
+        }
+      }
+      
+      const fileExtension = imageFile.name.split('.').pop();
+      const fileName = `${uuidv4()}.${fileExtension}`;
+      const filePath = `public/${fileName}`;
+      
+      const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+        .from(SUPABASE_SERVICES_IMAGE_BUCKET)
+        .upload(filePath, imageFile, { cacheControl: '3600', upsert: false, contentType: imageFile.type });
+        
+      if (uploadError) {
+        console.error('API: Supabase storage upload error:', JSON.stringify(uploadError, null, 2));
+        return NextResponse.json({ message: 'Failed to upload new service image.', error: uploadError.message }, { status: 500 });
+      }
+      
+      newHeroImageUrl = supabaseAdmin.storage.from(SUPABASE_SERVICES_IMAGE_BUCKET).getPublicUrl(uploadData.path).data.publicUrl;
+    } else if (imageFile === null && formData.has('currentImageUrl') && !currentImageUrl) {
+      newHeroImageUrl = null;
+    }
+
+    const dataToUpdate: Partial<ServicePageData> = {};
+    if (title) dataToUpdate.title = title;
+    if (slug) dataToUpdate.slug = slug;
+    if (content_html) dataToUpdate.content_html = content_html;
+    if (status) dataToUpdate.status = status;
+    dataToUpdate.parent_service_slug = parent_service_slug_from_form && parent_service_slug_from_form.trim() !== '' ? parent_service_slug_from_form.trim() : null;
+    if (excerpt !== null) dataToUpdate.excerpt = excerpt;
+    if (newHeroImageUrl !== undefined) dataToUpdate.hero_image_url = newHeroImageUrl;
+    if (icon_svg !== null) dataToUpdate.icon_svg = icon_svg;
+    if (meta_title !== null) dataToUpdate.meta_title = meta_title;
+    if (meta_description !== null) dataToUpdate.meta_description = meta_description;
+    if (features !== null) dataToUpdate.features = features;
+    if (call_to_action_label !== null) dataToUpdate.call_to_action_label = call_to_action_label;
+    if (call_to_action_link !== null) dataToUpdate.call_to_action_link = call_to_action_link;
+    if (display_order_string !== null) dataToUpdate.display_order = Number(display_order_string);
+    dataToUpdate.updated_at = new Date().toISOString();
+
+    const { data: updatedData, error: updateError } = await supabaseAdmin
+      .from('service_pages')
+      .update(dataToUpdate)
+      .eq('id', serviceId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('API: Supabase error updating service:', JSON.stringify(updateError, null, 2));
+      return NextResponse.json({ message: 'Failed to update service.', error: updateError.message, details: updateError.details }, { status: 500 });
+    }
+
+    return NextResponse.json({ message: 'Service updated successfully!', service: updatedData });
   } catch (error: any) {
-    console.error('API: Unhandled error in GET /api/admin/services:', error.message, error.stack);
-    return NextResponse.json({ message: 'Failed to fetch services due to an unexpected server error.', error: error.message, services: [] }, { status: 500 });
+    console.error('API: Unhandled error updating service:', error.message, error.stack);
+    return NextResponse.json({ message: 'Unexpected server error during service update.', error: error.message }, { status: 500 });
+  }
+}
+
+// --- DELETE Handler: Delete a service by ID ---
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  const { serviceId } = params;
+  console.log(`API: DELETE /api/admin/services/${serviceId} hit`);
+
+  const session = await getServerSession(authOptions) as Session | null;
+  if (!session || !session.user || session.user.email !== ADMIN_EMAIL) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
+  }
+  
+  if (!supabaseAdmin) {
+    return NextResponse.json({ message: 'Server configuration error' }, { status: 500 });
+  }
+  
+  if (!serviceId) {
+    return NextResponse.json({ message: 'Service ID is required for deletion' }, { status: 400 });
+  }
+
+  try {
+    const { data: serviceToDelete, error: fetchErr } = await supabaseAdmin
+      .from('service_pages')
+      .select('hero_image_url')
+      .eq('id', serviceId)
+      .single();
+
+    if (fetchErr && fetchErr.code !== 'PGRST116') {
+      console.error('API: Error fetching service for deletion:', JSON.stringify(fetchErr, null, 2));
+      return NextResponse.json({ message: 'Database error', error: fetchErr.message }, { status: 500 });
+    }
+
+    const { error: deleteError } = await supabaseAdmin
+      .from('service_pages')
+      .delete()
+      .eq('id', serviceId);
+
+    if (deleteError) {
+      console.error('API: Supabase error deleting service record:', JSON.stringify(deleteError, null, 2));
+      return NextResponse.json({ message: 'Failed to delete service record.', error: deleteError.message }, { status: 500 });
+    }
+
+    // FIX: Use explicit typeof check to ensure hero_image_url is a string before calling .split().
+    if (serviceToDelete && typeof serviceToDelete.hero_image_url === 'string') {
+      try {
+        const fileName = serviceToDelete.hero_image_url.split('/').pop();
+        if (fileName) {
+          const { error: storageError } = await supabaseAdmin.storage
+            .from(SUPABASE_SERVICES_IMAGE_BUCKET)
+            .remove([`public/${fileName}`]);
+            
+          if (storageError) {
+            console.warn('API: Failed to delete image from storage, but DB record deleted:', JSON.stringify(storageError, null, 2));
+          } else {
+            console.log("API: Successfully deleted image from storage:", serviceToDelete.hero_image_url);
+          }
+        }
+      } catch (e) {
+        console.warn('API: Error during image deletion from storage:', e);
+      }
+    }
+    
+    return NextResponse.json({ message: 'Service deleted successfully.' });
+  } catch (error: any) {
+    console.error('API: Unhandled error deleting service:', error.message, error.stack);
+    return NextResponse.json({ message: 'Unexpected server error during deletion.', error: error.message }, { status: 500 });
   }
 }
