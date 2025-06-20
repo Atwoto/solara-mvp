@@ -16,6 +16,33 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Define types for the data structures
+interface Product {
+  id: string;
+  name: string;
+  category?: string;
+  description?: string;
+  price: number;
+  wattage?: number;
+}
+
+interface Service {
+  id: string;
+  title: string;
+  excerpt?: string;
+  content_html: string;
+  slug: string;
+}
+
+interface Article {
+  id: string;
+  title: string;
+  category?: string;
+  excerpt?: string;
+  content: string;
+  slug: string;
+}
+
 // Helper to generate an embedding for a chunk of text
 async function generateEmbedding(text: string): Promise<number[] | null> {
   // OpenAI recommends replacing newlines with spaces for better performance
@@ -32,6 +59,15 @@ async function generateEmbedding(text: string): Promise<number[] | null> {
   }
 }
 
+// Helper function to safely get string value
+function getStringValue(value: unknown, fallback: string = ''): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+// Helper function to safely get number value
+function getNumberValue(value: unknown, fallback: number = 0): number {
+  return typeof value === 'number' ? value : fallback;
+}
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions) as Session | null;
@@ -48,57 +84,83 @@ export async function POST(request: NextRequest) {
     // 1. Process Products
     const { data: products, error: productsError } = await supabaseAdmin.from('products').select('*');
     if (productsError) throw productsError;
-    for (const product of products) {
-      const content = `Product Name: ${product.name}. Category: ${product.category}. Description: ${product.description}. Price: Ksh ${product.price}. Wattage: ${product.wattage || 'N/A'}W.`;
-      const embedding = await generateEmbedding(content);
-      if (embedding) {
-        await supabaseAdmin.from('knowledge_base').upsert({
-          source_type: 'product',
-          source_id: product.id,
-          content: content,
-          embedding: embedding,
-          metadata: { title: product.name, url: `/products/${product.id}` }
-        });
-        upsertedCount++;
+    
+    if (products) {
+      for (const product of products) {
+        const name = getStringValue(product.name);
+        const category = getStringValue(product.category, 'N/A');
+        const description = getStringValue(product.description, 'No description available');
+        const price = getNumberValue(product.price);
+        const wattage = getNumberValue(product.wattage);
+        
+        const content = `Product Name: ${name}. Category: ${category}. Description: ${description}. Price: Ksh ${price}. Wattage: ${wattage || 'N/A'}W.`;
+        const embedding = await generateEmbedding(content);
+        if (embedding) {
+          await supabaseAdmin.from('knowledge_base').upsert({
+            source_type: 'product',
+            source_id: product.id,
+            content: content,
+            embedding: embedding,
+            metadata: { title: name, url: `/products/${product.id}` }
+          });
+          upsertedCount++;
+        }
       }
     }
 
     // 2. Process Services
     const { data: services, error: servicesError } = await supabaseAdmin.from('service_pages').select('*').eq('status', 'published');
     if (servicesError) throw servicesError;
-    for (const service of services) {
-      // For services with long HTML, you might want to strip HTML tags for a cleaner embedding content
-      const cleanContent = service.content_html.replace(/<[^>]*>?/gm, ' '); // Simple HTML strip
-      const content = `Service Title: ${service.title}. Summary: ${service.excerpt}. Details: ${cleanContent}`;
-      const embedding = await generateEmbedding(content);
-      if (embedding) {
-        await supabaseAdmin.from('knowledge_base').upsert({
-          source_type: 'service',
-          source_id: service.id,
-          content: content,
-          embedding: embedding,
-          metadata: { title: service.title, url: `/services/${service.slug}` }
-        });
-        upsertedCount++;
+    
+    if (services) {
+      for (const service of services) {
+        // For services with long HTML, you might want to strip HTML tags for a cleaner embedding content
+        const contentHtml = getStringValue(service.content_html);
+        const cleanContent = contentHtml.replace(/<[^>]*>?/gm, ' '); // Simple HTML strip
+        const title = getStringValue(service.title);
+        const excerpt = getStringValue(service.excerpt, '');
+        const slug = getStringValue(service.slug);
+        
+        const content = `Service Title: ${title}. Summary: ${excerpt}. Details: ${cleanContent}`;
+        const embedding = await generateEmbedding(content);
+        if (embedding) {
+          await supabaseAdmin.from('knowledge_base').upsert({
+            source_type: 'service',
+            source_id: service.id,
+            content: content,
+            embedding: embedding,
+            metadata: { title: title, url: `/services/${slug}` }
+          });
+          upsertedCount++;
+        }
       }
     }
 
     // 3. Process Articles
     const { data: articles, error: articlesError } = await supabaseAdmin.from('articles').select('*').filter('published_at', 'lte', new Date().toISOString());
     if (articlesError) throw articlesError;
-    for (const article of articles) {
-      const cleanContent = article.content.replace(/<[^>]*>?/gm, ' ');
-      const content = `Article Title: ${article.title}. Category: ${article.category}. Excerpt: ${article.excerpt}. Content: ${cleanContent}`;
-      const embedding = await generateEmbedding(content);
-      if (embedding) {
-        await supabaseAdmin.from('knowledge_base').upsert({
-          source_type: 'article',
-          source_id: article.id,
-          content: content,
-          embedding: embedding,
-          metadata: { title: article.title, url: `/blog/${article.slug}` }
-        });
-        upsertedCount++;
+    
+    if (articles) {
+      for (const article of articles) {
+        const articleContent = getStringValue(article.content);
+        const cleanContent = articleContent.replace(/<[^>]*>?/gm, ' ');
+        const title = getStringValue(article.title);
+        const category = getStringValue(article.category, 'Uncategorized');
+        const excerpt = getStringValue(article.excerpt, '');
+        const slug = getStringValue(article.slug);
+        
+        const content = `Article Title: ${title}. Category: ${category}. Excerpt: ${excerpt}. Content: ${cleanContent}`;
+        const embedding = await generateEmbedding(content);
+        if (embedding) {
+          await supabaseAdmin.from('knowledge_base').upsert({
+            source_type: 'article',
+            source_id: article.id,
+            content: content,
+            embedding: embedding,
+            metadata: { title: title, url: `/blog/${slug}` }
+          });
+          upsertedCount++;
+        }
       }
     }
 
