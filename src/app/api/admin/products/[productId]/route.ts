@@ -225,7 +225,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ message: 'Failed to delete product from database.', error: deleteDbError.message }, { status: 500 });
     }
 
-    if (productToDelete?.imageUrl) {
+    // Fixed: Added proper type checking and validation
+    if (productToDelete?.imageUrl && typeof productToDelete.imageUrl === 'string' && productToDelete.imageUrl.trim() !== '') {
       try {
         const imageUrlPath = new URL(productToDelete.imageUrl).pathname;
         const pathParts = imageUrlPath.split('/');
