@@ -5,6 +5,11 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { CartItem, Product as AppProductType } from '@/types';
 
+// Helper to check if an object is a valid Product
+function isProduct(obj: any): obj is AppProductType {
+    return obj && typeof obj.id === 'string' && typeof obj.name === 'string';
+}
+
 // Helper to get user's cart ID
 async function getUserCartId(userId: string): Promise<string | null> {
     if (!supabaseAdmin) return null;
@@ -17,8 +22,7 @@ async function getUserCartId(userId: string): Promise<string | null> {
         console.error("Error fetching user's cart ID:", error);
         return null; // Or throw error
     }
-    // FIX: Use a strict type check instead of a truthiness check.
-    // This ensures we only return a string, preventing an empty object {} from being returned.
+    // FIX 1: Use a strict type check to ensure the return type is correct.
     return typeof cart?.id === 'string' ? cart.id : null;
 }
 
@@ -36,8 +40,6 @@ export async function PUT(req: NextRequest) {
         const { productId, newQuantity } = await req.json();
 
         if (!productId || typeof newQuantity !== 'number' || newQuantity <= 0) {
-            // If quantity is 0 or less, it should be a DELETE operation ideally
-            // Or the client should call the DELETE endpoint for this item
             return NextResponse.json({ error: "Invalid request: productId and a positive newQuantity are required." }, { status: 400 });
         }
 
@@ -55,22 +57,24 @@ export async function PUT(req: NextRequest) {
                 quantity, 
                 product_id, 
                 products (id, name, price, imageUrl, wattage, category, description, created_at)
-            `) // Select updated item details with product info
+            `)
             .single();
 
         if (error) {
             console.error("Error updating cart item quantity:", error);
-            if (error.code === 'PGRST116') { // Item not found in cart to update
+            if (error.code === 'PGRST116') {
                 return NextResponse.json({ error: "Item not found in cart to update." }, { status: 404 });
             }
             throw error;
         }
-        if (!updatedItem || !updatedItem.products) {
+        
+        // FIX 2: Use a type guard for robust checking before creating the final object.
+        if (!updatedItem || !isProduct(updatedItem.products)) {
              throw new Error("Failed to update cart item or retrieve product details after update.");
         }
         
         const cartItem: CartItem = {
-            ...(updatedItem.products as AppProductType),
+            ...updatedItem.products, // No unsafe 'as' cast needed here anymore
             quantity: updatedItem.quantity,
         };
 
@@ -92,7 +96,6 @@ export async function DELETE(req: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Product ID to remove should be passed as a query parameter
     const { searchParams } = new URL(req.url);
     const productId = searchParams.get('productId');
 
@@ -103,7 +106,6 @@ export async function DELETE(req: NextRequest) {
     try {
         const cartId = await getUserCartId(session.user.id);
         if (!cartId) {
-            // No cart means nothing to delete from, consider this a success or a specific status
             return NextResponse.json({ message: "User cart not found, nothing to delete." }, { status: 200 });
         }
 
