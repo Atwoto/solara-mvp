@@ -1,129 +1,117 @@
 // src/app/api/admin/blog/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { BlogPost, BlogPostCategory } from '@/types'; // Ensure BlogPostCategory is imported if used
+import { getServerSession } from "next-auth/next";
+import { authOptions } from '@/lib/auth'; // Import from the central auth lib
+import type { Session } from 'next-auth';
 import { v4 as uuidv4 } from 'uuid';
+import { BlogPost, BlogPostCategory } from '@/types'; // Ensure BlogPost and its category type are imported
 
-// Optional: For backend session/role validation
-// import { getToken } from 'next-auth/jwt';
-// const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
+// Use a dedicated bucket for article images for better organization
+const SUPABASE_ARTICLES_IMAGE_BUCKET = 'article-images'; 
 
+// POST: Create a new blog article
 export async function POST(req: NextRequest) {
-  // Optional: Backend authorization check
-  // const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  // if (!token || token.email !== ADMIN_EMAIL) {
-  //   return NextResponse.json({ message: 'Unauthorized: Admin access required.' }, { status: 401 });
-  // }
+  console.log("API: POST /api/admin/blog hit");
+  const session = await getServerSession(authOptions) as Session | null;
 
+  if (!session || !session.user || session.user.email !== ADMIN_EMAIL) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
+  }
   if (!supabaseAdmin) {
-    console.error("Supabase admin client is not initialized. Check server logs and SUPABASE_SERVICE_ROLE_KEY environment variable.");
-    return NextResponse.json({ message: 'Server configuration error: Supabase admin client not available.' }, { status: 500 });
+    return NextResponse.json({ message: 'Server configuration error' }, { status: 500 });
   }
 
   let uploadedImagePathInStorage: string | null = null;
 
   try {
     const formData = await req.formData();
-
-    const title = formData.get('title') as string;
-    const slug = formData.get('slug') as string;
-    const category = formData.get('category') as BlogPostCategory | null; // Allow null if category can be optional
+    
+    // Extract fields from FormData
+    const title = formData.get('title') as string | null;
+    const slug = formData.get('slug') as string | null;
+    const content = formData.get('content') as string | null;
+    const category = formData.get('category') as BlogPostCategory | null;
     const excerpt = formData.get('excerpt') as string | null;
-    const content = formData.get('content') as string;
     const author_name = formData.get('author_name') as string | null;
-    const published_at_string = formData.get('published_at') as string | null; // From combined date & time
+    const published_at_string = formData.get('published_at') as string | null;
     const imageFile = formData.get('imageFile') as File | null;
 
-    // --- Validation ---
     if (!title || !slug || !content) {
-      return NextResponse.json({ message: 'Missing required fields: title, slug, and content are required.' }, { status: 400 });
+      return NextResponse.json({ message: 'Title, slug, and content are required.' }, { status: 400 });
     }
-    // Add more validation as needed (e.g., for slug format, content length)
-    // --- End Validation ---
 
-    let imageUrl: string | null = null;
+    let uploadedImageUrl: string | null = null;
 
     if (imageFile && imageFile.size > 0) {
-      const fileExt = imageFile.name.split('.').pop();
-      const uniqueFileName = `article_${slug}_${uuidv4().slice(0,8)}.${fileExt}`; // More descriptive name
-      const filePath = `public/articles/${uniqueFileName}`; // Store in 'public/articles' folder within bucket
-      uploadedImagePathInStorage = filePath;
+        const fileExtension = imageFile.name.split('.').pop();
+        const fileName = `${uuidv4()}.${fileExtension}`;
+        const filePath = `public/${fileName}`;
+        uploadedImagePathInStorage = filePath; // Save path for potential rollback
 
-      const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-        .from('product-images') // <<--- YOUR BUCKET NAME (can be same as products or a new one like 'blog-assets')
-        .upload(filePath, imageFile, {
-          cacheControl: '3600',
-          upsert: false,
-        });
+        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+            .from(SUPABASE_ARTICLES_IMAGE_BUCKET)
+            .upload(filePath, imageFile, { cacheControl: '3600', upsert: false, contentType: imageFile.type });
 
-      if (uploadError) {
-        console.error('Supabase Storage upload error for article image:', uploadError);
-        throw new Error(`Failed to upload article image: ${uploadError.message}`);
-      }
-      if (!uploadData?.path) {
-        throw new Error('Article image upload succeeded but no path was returned from storage.');
-      }
-      
-      const { data: publicUrlData } = supabaseAdmin.storage
-        .from('product-images') // <<--- YOUR BUCKET NAME
-        .getPublicUrl(uploadData.path);
-
-      if (!publicUrlData?.publicUrl) {
-        await supabaseAdmin.storage.from('product-images').remove([uploadData.path]);
-        uploadedImagePathInStorage = null;
-        throw new Error('Failed to get public URL for the uploaded article image.');
-      }
-      imageUrl = publicUrlData.publicUrl;
+        if (uploadError) {
+            console.error('API BLOG POST: Supabase storage upload error:', uploadError);
+            throw new Error(`Failed to upload article image: ${uploadError.message}`);
+        }
+        
+        const { data: publicUrlData } = supabaseAdmin.storage.from(SUPABASE_ARTICLES_IMAGE_BUCKET).getPublicUrl(uploadedImagePathInStorage);
+        uploadedImageUrl = publicUrlData.publicUrl;
     }
-
-    // Prepare data for Supabase 'articles' table
-    // Supabase generates 'id' and 'created_at'
+    
+    // Prepare data for the 'articles' table, using camelCase for properties
+    // This now matches your BlogPost type from src/types.ts
     const articleToInsert: Omit<BlogPost, 'id' | 'created_at'> = {
       title,
       slug,
       content,
       category: category || null,
       excerpt: excerpt || null,
-      author_name: author_name || null,
-      image_url: imageUrl, // This will be null if no image was uploaded
-      published_at: published_at_string ? new Date(published_at_string).toISOString() : null, // Store as ISO string or null
-      // date field from your original static data is not here, assuming published_at replaces it
+      author_name: author_name || (session.user.name || 'Admin'), // Default to session user's name
+      // --- FIX IS HERE: Changed image_url to imageUrl ---
+      imageUrl: uploadedImageUrl,
+      published_at: published_at_string ? new Date(published_at_string).toISOString() : null,
     };
 
     const { data: insertedArticleData, error: insertError } = await supabaseAdmin
-      .from('articles') // Your database table name for articles
+      .from('articles')
       .insert([articleToInsert])
       .select()
       .single();
 
     if (insertError) {
-      console.error('Supabase DB insert error for article:', insertError);
+      console.error('API BLOG POST: Supabase DB insert error:', insertError);
+      // If DB insert fails, try to clean up the uploaded image from storage
       if (uploadedImagePathInStorage) {
-         await supabaseAdmin.storage.from('product-images').remove([uploadedImagePathInStorage]);
+        await supabaseAdmin.storage.from(SUPABASE_ARTICLES_IMAGE_BUCKET).remove([uploadedImagePathInStorage]);
+        console.log("Rolled back image upload due to DB insert failure.");
       }
-      throw new Error(`Failed to add article to database: ${insertError.message}`);
+      // Check for specific unique constraint violation on slug
+      if (insertError.code === '23505' && insertError.message.includes('slug')) {
+         return NextResponse.json({ message: `Failed to create article: The slug "${slug}" already exists.` }, { status: 409 });
+      }
+      return NextResponse.json({ message: 'Failed to add article to database.', error: insertError.message }, { status: 500 });
     }
     
-    if (!insertedArticleData) {
-        if (uploadedImagePathInStorage) {
-             await supabaseAdmin.storage.from('product-images').remove([uploadedImagePathInStorage]);
-        }
-        throw new Error("Article data was not returned after insert into database.");
-    }
-
-    const newArticle = insertedArticleData as unknown as BlogPost;
-
-    return NextResponse.json({ message: 'Article added successfully!', article: newArticle }, { status: 201 });
+    return NextResponse.json({ message: 'Article created successfully!', article: insertedArticleData }, { status: 201 });
 
   } catch (error: any) {
-    console.error("Failed to add article (API Global Catch):", error);
-    if (uploadedImagePathInStorage && error.message.indexOf('upload article image') === -1 && error.message.indexOf('public URL for the uploaded article image') === -1) {
+    console.error("API BLOG POST: Unhandled error:", error.message, error.stack);
+    // This outer catch handles errors from formData parsing, image upload, etc.
+    // Clean up uploaded image if it exists and the error happened *after* upload
+    if (uploadedImagePathInStorage) {
         try {
-            await supabaseAdmin.storage.from('product-images').remove([uploadedImagePathInStorage]);
+            await supabaseAdmin.storage.from(SUPABASE_ARTICLES_IMAGE_BUCKET).remove([uploadedImagePathInStorage]);
+            console.log("Rolled back image upload due to unhandled error.");
         } catch (cleanupError: any) {
             console.error("Failed to rollback article image storage upload:", cleanupError.message);
         }
     }
-    return NextResponse.json({ message: error.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ message: error.message || 'An unexpected server error occurred.' }, { status: 500 });
   }
 }
