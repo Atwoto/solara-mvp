@@ -4,7 +4,7 @@ import Paystack from 'paystack-node';
 import { useSession } from 'next-auth/react'; // This hook can't be used in API routes directly
                                          // We'd get session info from the request if needed or pass it from client
 import { getServerSession } from "next-auth/next" // For getting session server-side
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'; // Your NextAuth options
+import { authOptions } from "@/lib/auth"; // Your NextAuth options
 
 const environment = process.env.NODE_ENV || 'development';
 const paystack = new Paystack(process.env.PAYSTACK_SECRET_KEY!, environment); // Add '!' if you're sure it's set

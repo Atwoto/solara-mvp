@@ -7,6 +7,11 @@ import type { Session } from 'next-auth';
 
 const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
 
+// Define the type for order data
+interface OrderData {
+  total_price: number;
+}
+
 export async function GET(request: NextRequest) {
   console.log("API: GET /api/admin/dashboard/sales-chart-data hit");
   const session = await getServerSession(authOptions) as Session | null;
@@ -52,7 +57,11 @@ export async function GET(request: NextRequest) {
         continue;
       }
       
-      const dailyTotal = dailyOrders?.reduce((sum, order) => sum + order.total_price, 0) || 0;
+      // Alternative: Using type guards for safer type checking
+      const dailyTotal = dailyOrders?.reduce((sum, order) => {
+        const price = typeof order.total_price === 'number' ? order.total_price : 0;
+        return sum + price;
+      }, 0) || 0;
       dataPoints.push(dailyTotal);
     }
 
