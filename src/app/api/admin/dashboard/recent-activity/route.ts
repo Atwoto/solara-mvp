@@ -17,6 +17,47 @@ export interface ActivityItem {
   link?: string;
 }
 
+// Type definitions for Supabase data
+interface OrderData {
+  id: string;
+  created_at: string;
+  total_price: number;
+  user_id: string;
+  status: string;
+  shipping_address?: {
+    fullName?: string;
+  };
+}
+
+interface UserData {
+  id: string;
+  email: string;
+  created_at: string;
+  display_name?: string;
+}
+
+interface ProductData {
+  id: string;
+  name: string;
+  created_at: string;
+  category: string;
+}
+
+interface ArticleData {
+  id: string;
+  title: string;
+  created_at: string;
+  category: string;
+  published_at?: string;
+}
+
+interface TestimonialData {
+  id: string;
+  client_name: string;
+  created_at: string;
+  approved: boolean;
+}
+
 // You must have this RPC function in your Supabase SQL Editor for this to work
 /*
 CREATE OR REPLACE FUNCTION get_recent_users(limit_count INT)
@@ -54,11 +95,11 @@ export async function GET(request: NextRequest) {
     // Process recent orders
     if (ordersRes.error) console.error("Error fetching recent orders:", ordersRes.error.message);
     if (ordersRes.data) {
-      allActivities.push(...ordersRes.data.map(order => ({
-        id: order.id,
+      allActivities.push(...(ordersRes.data as OrderData[]).map(order => ({
+        id: String(order.id),
         type: 'order' as const,
-        timestamp: order.created_at,
-        title: `Order #${order.id.substring(0,8)} placed`,
+        timestamp: String(order.created_at),
+        title: `Order #${String(order.id).substring(0,8)} placed`,
         description: `Status: ${order.status}, Total: Ksh ${order.total_price.toLocaleString()}. By: ${order.shipping_address?.fullName || 'Guest'}`,
         link: `/admin/orders/${order.id}`,
       })));
@@ -67,10 +108,10 @@ export async function GET(request: NextRequest) {
     // Process recent new users
     if (usersRes.error) console.error("Error fetching recent users:", usersRes.error.message);
     if (usersRes.data) {
-      allActivities.push(...usersRes.data.map((user: any) => ({
-        id: user.id,
+      allActivities.push(...(usersRes.data as UserData[]).map((user) => ({
+        id: String(user.id),
         type: 'newUser' as const,
-        timestamp: user.created_at,
+        timestamp: String(user.created_at),
         title: `New user registered`,
         description: `${user.display_name || user.email}`,
         link: `/admin/users/${user.id}`, // If you have a user management page
@@ -80,10 +121,10 @@ export async function GET(request: NextRequest) {
     // Process recent products
     if (productsRes.error) console.error("Error fetching recent products:", productsRes.error.message);
     if (productsRes.data) {
-      allActivities.push(...productsRes.data.map(product => ({
-        id: product.id,
+      allActivities.push(...(productsRes.data as ProductData[]).map(product => ({
+        id: String(product.id),
         type: 'newProduct' as const,
-        timestamp: product.created_at,
+        timestamp: String(product.created_at),
         title: `Product added: ${product.name}`,
         description: `Category: ${product.category}`,
         link: `/admin/products/edit/${product.id}`,
@@ -93,10 +134,10 @@ export async function GET(request: NextRequest) {
     // Process recent articles
     if (articlesRes.error) console.error("Error fetching recent articles:", articlesRes.error.message);
     if (articlesRes.data) {
-      allActivities.push(...articlesRes.data.map(article => ({
-        id: article.id,
+      allActivities.push(...(articlesRes.data as ArticleData[]).map(article => ({
+        id: String(article.id),
         type: 'newArticle' as const,
-        timestamp: article.created_at,
+        timestamp: String(article.created_at),
         title: `Article created: ${article.title}`,
         description: `Category: ${article.category}, Status: ${article.published_at ? 'Published/Scheduled' : 'Draft'}`,
         link: `/admin/blog/edit/${article.id}`,
@@ -106,10 +147,10 @@ export async function GET(request: NextRequest) {
     // Process recent testimonials
     if (testimonialsRes.error) console.error("Error fetching recent testimonials:", testimonialsRes.error.message);
     if (testimonialsRes.data) {
-      allActivities.push(...testimonialsRes.data.map(testimonial => ({
-        id: testimonial.id,
+      allActivities.push(...(testimonialsRes.data as TestimonialData[]).map(testimonial => ({
+        id: String(testimonial.id),
         type: 'newTestimonial' as const,
-        timestamp: testimonial.created_at,
+        timestamp: String(testimonial.created_at),
         title: `Testimonial from: ${testimonial.client_name}`,
         description: `Status: ${testimonial.approved ? 'Approved' : 'Pending Approval'}`,
         link: `/admin/testimonials`,
