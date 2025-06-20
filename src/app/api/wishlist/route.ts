@@ -3,7 +3,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { getServerSession } from 'next-auth/next';
 import { NextRequest, NextResponse } from 'next/server';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from '@/lib/supabaseClient'; // Import the admin client for consistency and permissions
 
 // NOTE: You don't need to create a new client here if you import supabaseAdmin from your lib
