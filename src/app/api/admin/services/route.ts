@@ -118,37 +118,42 @@ export async function POST(request: NextRequest) {
 
 // --- GET HANDLER ---
 export async function GET(request: NextRequest) {
-  console.log("API: GET /api/admin/services hit");
-  const session = await getServerSession(authOptions) as Session | null;
+  console.log("API: GET /api/admin/services hit");
+  const session = await getServerSession(authOptions) as Session | null;
 
-  if (!session || !session.user || session.user.email !== ADMIN_EMAIL) {
-    console.error("API: Unauthorized access attempt to GET /api/admin/services");
-    return NextResponse.json({ message: 'Unauthorized: Access Denied', services: [] }, { status: 403 });
-  }
-  console.log("API: Admin user authenticated for GET:", session.user.email);
+  if (!session || !session.user || session.user.email !== ADMIN_EMAIL) {
+    console.error("API: Unauthorized access attempt to GET /api/admin/services");
+    return NextResponse.json({ message: 'Unauthorized: Access Denied', services: [] }, { status: 403 });
+  }
+  console.log("API: Admin user authenticated for GET:", session.user.email);
 
-  if (!supabaseAdmin) {
-    console.error("API: Supabase admin client is not initialized for GET /api/admin/services.");
-    return NextResponse.json({ message: 'Server configuration error: Database client not available.', services: [] }, { status: 500 });
-  }
+  if (!supabaseAdmin) {
+    console.error("API: Supabase admin client is not initialized for GET /api/admin/services.");
+    return NextResponse.json({ message: 'Server configuration error: Database client not available.', services: [] }, { status: 500 });
+  }
 
-  try {
-    console.log("API: Attempting to fetch services from Supabase (GET)...");
-    const { data, error } = await supabaseAdmin
-      .from('service_pages')
-      .select('*')
-      .order('display_order', { ascending: true }) 
-      .order('created_at', { ascending: false }); 
-
-    if (error) {
-        console.error('API: Supabase error fetching services for admin (GET):', JSON.stringify(error, null, 2));
-        return NextResponse.json({ message: 'Database error fetching services.', error: error.message, services: [] }, { status: 500 });
-    }
+  try {
+    console.log("API: Attempting to fetch services from Supabase (GET)...");
     
-    console.log("API: Successfully fetched services for admin (GET). Count:", data?.length);
-    return NextResponse.json(data as ServicePageData[] || []);
-  } catch (error: any) {
-    console.error('API: Unhandled error in GET /api/admin/services:', error.message, error.stack);
-    return NextResponse.json({ message: 'Failed to fetch services due to an unexpected server error.', error: error.message, services: [] }, { status: 500 });
-  }
+    // FIX: Provide the ServicePageData type as a generic to .from()
+    // This correctly types the 'data' variable returned by Supabase.
+    const { data, error } = await supabaseAdmin
+      .from<ServicePageData>('service_pages')
+      .select('*')
+      .order('display_order', { ascending: true }) 
+      .order('created_at', { ascending: false }); 
+
+    if (error) {
+        console.error('API: Supabase error fetching services for admin (GET):', JSON.stringify(error, null, 2));
+        return NextResponse.json({ message: 'Database error fetching services.', error: error.message, services: [] }, { status: 500 });
+    }
+    
+    console.log("API: Successfully fetched services for admin (GET). Count:", data?.length);
+    
+    // FIX: The 'as' cast is no longer needed because 'data' is already correctly typed.
+    return NextResponse.json(data || []);
+  } catch (error: any) {
+    console.error('API: Unhandled error in GET /api/admin/services:', error.message, error.stack);
+    return NextResponse.json({ message: 'Failed to fetch services due to an unexpected server error.', error: error.message, services: [] }, { status: 500 });
+  }
 }
