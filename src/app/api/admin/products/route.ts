@@ -1,8 +1,13 @@
 // src/app/api/admin/products/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient'; // Use the admin client
-import { Product, ProductCategory } from '@/types'; // Import ProductCategory
+import { Product } from '@/types'; // Import only Product for now
 import { v4 as uuidv4 } from 'uuid'; // For unique file names
+
+// Define ProductCategory inline if it's not available in types
+type ProductCategory = string; // or whatever your category type should be
+// Alternative: you could use a union type like:
+// type ProductCategory = 'solar-panels' | 'inverters' | 'batteries' | 'accessories';
 
 // Optional: For more robust backend session/role validation for admin actions
 // import { getToken } from 'next-auth/jwt';
