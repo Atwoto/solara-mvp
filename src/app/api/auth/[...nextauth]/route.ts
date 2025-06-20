@@ -1,27 +1,12 @@
 // src/app/api/auth/[...nextauth]/route.ts
 
 import NextAuth from 'next-auth/next';
-import type { 
-    NextAuthOptions, 
-    User as NextAuthUser, 
-    Account,          
-    Profile,          
-    Session as NextAuthSession 
-} from 'next-auth';       
+import type { NextAuthOptions, User as NextAuthUser, Session } from 'next-auth';       
 import { SupabaseAdapter } from '@next-auth/supabase-adapter';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
-import { createClient, User as SupabaseUser } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import type { JWT } from 'next-auth/jwt'; 
-
-// --- START OF FIX: Read environment variables into constants BEFORE they are used ---
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const googleClientId = process.env.GOOGLE_CLIENT_ID;
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-// --- END OF FIX ---
-
 
 // Local AppUser interface
 interface AppUser extends NextAuthUser {
@@ -29,23 +14,19 @@ interface AppUser extends NextAuthUser {
   email: string;
 }
 
-export const authOptions: NextAuthOptions = {
-  // Pass the constants directly to the adapter.
-  // We also add a check to ensure the adapter is only configured if the keys exist.
+// --- START OF FIX: Remove the 'export' keyword from authOptions ---
+const authOptions: NextAuthOptions = {
+// --- END OF FIX ---
   adapter: SupabaseAdapter({
-    url: supabaseUrl!, // Pass the constant, the '!' asserts it's not undefined
-    secret: supabaseServiceRoleKey!,
+    url: process.env.SUPABASE_URL!,
+    secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
   }),
 
   providers: [
-    // Add a check to only include the provider if its keys are defined
-    ...(googleClientId && googleClientSecret ? [
-      GoogleProvider({
-        clientId: googleClientId,
-        clientSecret: googleClientSecret,
-      })
-    ] : []),
-    
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
@@ -56,7 +37,6 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Email and password are required.");
         }
-        // Use the public URL key for the client-side sign-in method
         const supabase = createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -114,16 +94,8 @@ export const authOptions: NextAuthOptions = {
   debug: process.env.NODE_ENV === 'development',
 };
 
-// Add a check before initializing NextAuth
-if (!supabaseUrl || !supabaseServiceRoleKey) {
-    console.error("CRITICAL: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not defined in the environment. NextAuth adapter will fail.");
-    // In a real build, you might want this to throw an error to fail the build.
-    // throw new Error("Missing Supabase configuration for NextAuth Adapter.");
-}
-if (!googleClientId || !googleClientSecret) {
-    console.warn("WARN: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is not defined. Google provider will be disabled.");
-}
-
+// This part is correct. It creates the handlers...
 const handler = NextAuth(authOptions);
 
+// ...and this part correctly exports them for Next.js to use.
 export { handler as GET, handler as POST };
