@@ -5,6 +5,13 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { CartItem, Product as AppProductType } from '@/types';
 
+// Define the expected shape of the database response
+interface CartItemWithProduct {
+    quantity: number;
+    product_id: string;
+    products: AppProductType | null;
+}
+
 // Helper to get user's cart ID
 async function getUserCartId(userId: string): Promise<string | null> {
     if (!supabaseAdmin) return null;
@@ -18,6 +25,15 @@ async function getUserCartId(userId: string): Promise<string | null> {
         return null;
     }
     return typeof cart?.id === 'string' ? cart.id : null;
+}
+
+// Helper to validate product data
+function isValidProduct(product: any): product is AppProductType {
+    return product && 
+           typeof product.id === 'string' &&
+           typeof product.name === 'string' &&
+           typeof product.price === 'number' &&
+           product.created_at !== undefined;
 }
 
 // --- PUT (Update Item Quantity) ---
@@ -41,7 +57,18 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ error: "User cart not found. Add an item first." }, { status: 404 });
         }
 
-        // This query requires a foreign key from 'cart_items.product_id' to 'products.id'
+        // First, verify the product exists
+        const { data: productExists, error: productError } = await supabaseAdmin
+            .from('products')
+            .select('id')
+            .eq('id', productId)
+            .single();
+
+        if (productError || !productExists) {
+            return NextResponse.json({ error: "Product not found." }, { status: 404 });
+        }
+
+        // Update the cart item quantity
         const { data: updatedItem, error } = await supabaseAdmin
             .from('cart_items')
             .update({ quantity: newQuantity })
@@ -49,8 +76,17 @@ export async function PUT(req: NextRequest) {
             .eq('product_id', productId)
             .select(`
                 quantity, 
-                product_id, 
-                products (id, name, price, imageUrl, wattage, category, description, created_at)
+                product_id,
+                products!inner (
+                    id, 
+                    name, 
+                    price, 
+                    imageUrl, 
+                    wattage, 
+                    category, 
+                    description, 
+                    created_at
+                )
             `)
             .single();
 
@@ -62,15 +98,17 @@ export async function PUT(req: NextRequest) {
             throw error;
         }
         
-        // This check ensures the product was successfully fetched along with the cart item.
-        if (!updatedItem || !updatedItem.products) {
-             throw new Error("Failed to update cart item or retrieve valid product details after update.");
+        // Type-safe validation of the response
+        const typedUpdatedItem = updatedItem as CartItemWithProduct;
+        
+        if (!typedUpdatedItem || !typedUpdatedItem.products || !isValidProduct(typedUpdatedItem.products)) {
+            console.error("Invalid product data received:", typedUpdatedItem);
+            return NextResponse.json({ error: "Failed to retrieve valid product details." }, { status: 500 });
         }
         
         const cartItem: CartItem = {
-            // The type assertion is safe because of the check above.
-            ...(updatedItem.products as AppProductType),
-            quantity: updatedItem.quantity,
+            ...typedUpdatedItem.products,
+            quantity: typedUpdatedItem.quantity,
         };
 
         return NextResponse.json({ message: "Item quantity updated", item: cartItem });
