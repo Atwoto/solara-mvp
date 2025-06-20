@@ -1,10 +1,10 @@
 // src/app/api/admin/services/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, supabase } from '@/lib/supabaseClient'; // Assuming supabase (public) might be used as fallback
+import { supabaseAdmin } from '@/lib/supabaseClient';
 import { ServicePageData } from '@/types';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth"; 
-import type { Session } from 'next-auth'; // For explicit typing
+import type { Session } from 'next-auth';
 import { v4 as uuidv4 } from 'uuid';
 
 const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// --- GET HANDLER (Focus of the fix) ---
+// --- GET HANDLER ---
 export async function GET(request: NextRequest) {
   console.log("API: GET /api/admin/services hit");
   const session = await getServerSession(authOptions) as Session | null;
@@ -127,15 +127,14 @@ export async function GET(request: NextRequest) {
   }
   console.log("API: Admin user authenticated for GET:", session.user.email);
 
-  const clientToUse = supabaseAdmin || supabase; 
-  if (!clientToUse) {
-    console.error("API: Supabase client is not initialized for GET /api/admin/services.");
+  if (!supabaseAdmin) {
+    console.error("API: Supabase admin client is not initialized for GET /api/admin/services.");
     return NextResponse.json({ message: 'Server configuration error: Database client not available.', services: [] }, { status: 500 });
   }
 
   try {
     console.log("API: Attempting to fetch services from Supabase (GET)...");
-    const { data, error } = await clientToUse
+    const { data, error } = await supabaseAdmin
       .from('service_pages')
       .select('*')
       .order('display_order', { ascending: true }) 
@@ -147,16 +146,9 @@ export async function GET(request: NextRequest) {
     }
     
     console.log("API: Successfully fetched services for admin (GET). Count:", data?.length);
-    return NextResponse.json(data as ServicePageData[] || []); // Ensure it returns an array
+    return NextResponse.json(data as ServicePageData[] || []);
   } catch (error: any) {
     console.error('API: Unhandled error in GET /api/admin/services:', error.message, error.stack);
     return NextResponse.json({ message: 'Failed to fetch services due to an unexpected server error.', error: error.message, services: [] }, { status: 500 });
   }
-  // Although it seems all paths are covered by try/catch,
-  // adding a fallback return here can sometimes satisfy stricter linting or runtime checks,
-  // though ideally the catch block should always be hit if something goes wrong before a successful return.
-  // However, if the try block completes without hitting `if (error)` or `return NextResponse.json(data...)`,
-  // then this explicit fallback is needed. But this should not happen with the current logic.
-  // console.error("API: GET /api/admin/services reached end of function without returning a response. This should not happen.");
-  // return NextResponse.json({ message: 'Internal server error: No response generated.', services: [] }, { status: 500 });
 }
