@@ -5,13 +5,6 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { CartItem, Product as AppProductType } from '@/types';
 
-// Define the expected shape of the database response
-interface CartItemWithProduct {
-    quantity: number;
-    product_id: string;
-    products: AppProductType | null;
-}
-
 // Helper to get user's cart ID
 async function getUserCartId(userId: string): Promise<string | null> {
     if (!supabaseAdmin) return null;
@@ -27,13 +20,22 @@ async function getUserCartId(userId: string): Promise<string | null> {
     return typeof cart?.id === 'string' ? cart.id : null;
 }
 
-// Helper to validate product data
-function isValidProduct(product: any): product is AppProductType {
-    return product && 
-           typeof product.id === 'string' &&
-           typeof product.name === 'string' &&
-           typeof product.price === 'number' &&
-           product.created_at !== undefined;
+// Helper to get product details
+async function getProductDetails(productId: string): Promise<AppProductType | null> {
+    if (!supabaseAdmin) return null;
+    
+    const { data: product, error } = await supabaseAdmin
+        .from('products')
+        .select('id, name, price, imageUrl, wattage, category, description, created_at')
+        .eq('id', productId)
+        .single();
+    
+    if (error) {
+        console.error("Error fetching product details:", error);
+        return null;
+    }
+    
+    return product as AppProductType;
 }
 
 // --- PUT (Update Item Quantity) ---
@@ -57,58 +59,37 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ error: "User cart not found. Add an item first." }, { status: 404 });
         }
 
-        // First, verify the product exists
-        const { data: productExists, error: productError } = await supabaseAdmin
-            .from('products')
-            .select('id')
-            .eq('id', productId)
-            .single();
-
-        if (productError || !productExists) {
+        // First, get the product details to ensure it exists
+        const product = await getProductDetails(productId);
+        if (!product) {
             return NextResponse.json({ error: "Product not found." }, { status: 404 });
         }
 
         // Update the cart item quantity
-        const { data: updatedItem, error } = await supabaseAdmin
+        const { data: updatedCartItem, error: updateError } = await supabaseAdmin
             .from('cart_items')
             .update({ quantity: newQuantity })
             .eq('cart_id', cartId)
             .eq('product_id', productId)
-            .select(`
-                quantity, 
-                product_id,
-                products!inner (
-                    id, 
-                    name, 
-                    price, 
-                    imageUrl, 
-                    wattage, 
-                    category, 
-                    description, 
-                    created_at
-                )
-            `)
+            .select('quantity, product_id')
             .single();
 
-        if (error) {
-            console.error("Error updating cart item quantity:", error);
-            if (error.code === 'PGRST116') { 
+        if (updateError) {
+            console.error("Error updating cart item quantity:", updateError);
+            if (updateError.code === 'PGRST116') { 
                 return NextResponse.json({ error: "Item not found in cart to update." }, { status: 404 });
             }
-            throw error;
+            throw updateError;
         }
-        
-        // Type-safe validation of the response
-        const typedUpdatedItem = updatedItem as CartItemWithProduct;
-        
-        if (!typedUpdatedItem || !typedUpdatedItem.products || !isValidProduct(typedUpdatedItem.products)) {
-            console.error("Invalid product data received:", typedUpdatedItem);
-            return NextResponse.json({ error: "Failed to retrieve valid product details." }, { status: 500 });
+
+        if (!updatedCartItem) {
+            return NextResponse.json({ error: "Failed to update cart item." }, { status: 500 });
         }
-        
+
+        // Combine the product details with the updated quantity
         const cartItem: CartItem = {
-            ...typedUpdatedItem.products,
-            quantity: typedUpdatedItem.quantity,
+            ...product,
+            quantity: updatedCartItem.quantity,
         };
 
         return NextResponse.json({ message: "Item quantity updated", item: cartItem });
@@ -141,15 +122,33 @@ export async function DELETE(req: NextRequest) {
             return NextResponse.json({ message: "User cart not found, nothing to delete." }, { status: 200 });
         }
 
-        const { error } = await supabaseAdmin
+        // Check if the item exists in the cart before trying to delete
+        const { data: existingItem, error: checkError } = await supabaseAdmin
+            .from('cart_items')
+            .select('product_id')
+            .eq('cart_id', cartId)
+            .eq('product_id', productId)
+            .single();
+
+        if (checkError && checkError.code === 'PGRST116') {
+            return NextResponse.json({ message: "Item not found in cart." }, { status: 404 });
+        }
+
+        if (checkError) {
+            console.error("Error checking cart item existence:", checkError);
+            throw checkError;
+        }
+
+        // Delete the item
+        const { error: deleteError } = await supabaseAdmin
             .from('cart_items')
             .delete()
             .eq('cart_id', cartId)
             .eq('product_id', productId);
 
-        if (error) {
-            console.error("Error deleting item from cart_items:", error);
-            throw error;
+        if (deleteError) {
+            console.error("Error deleting item from cart_items:", deleteError);
+            throw deleteError;
         }
 
         return NextResponse.json({ message: "Item removed from cart successfully" });
