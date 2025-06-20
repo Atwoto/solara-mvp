@@ -5,8 +5,6 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { CartItem, Product as AppProductType } from '@/types';
 
-// The isProduct helper is no longer needed, we'll use a more direct check.
-
 // Helper to get user's cart ID
 async function getUserCartId(userId: string): Promise<string | null> {
     if (!supabaseAdmin) return null;
@@ -21,7 +19,6 @@ async function getUserCartId(userId: string): Promise<string | null> {
     }
     return typeof cart?.id === 'string' ? cart.id : null;
 }
-
 
 // --- PUT (Update Item Quantity) ---
 export async function PUT(req: NextRequest) {
@@ -64,15 +61,16 @@ export async function PUT(req: NextRequest) {
             throw error;
         }
         
-        // FIX: Use a direct check for the existence of `updatedItem` and its `products` property.
-        // This is the clearest way to tell TypeScript that `products` is not null.
         if (!updatedItem || !updatedItem.products) {
              throw new Error("Failed to update cart item or retrieve valid product details after update.");
         }
         
-        // After the check above, TypeScript knows `updatedItem.products` is a valid object.
+        // FIX: Create a new constant from the validated property.
+        // This makes the type explicit and safe for the compiler.
+        const productDetails = updatedItem.products;
+
         const cartItem: CartItem = {
-            ...updatedItem.products,
+            ...productDetails, // Now spreading the safe, non-null constant.
             quantity: updatedItem.quantity,
         };
 
@@ -83,7 +81,6 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: "Failed to update item quantity.", details: error.message }, { status: 500 });
     }
 }
-
 
 // --- DELETE (Remove Specific Item from Cart) ---
 export async function DELETE(req: NextRequest) {
