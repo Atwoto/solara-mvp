@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient'; // Use admin client for DB writes
 import { getServerSession } from "next-auth/next";
-import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth"; // Your NextAuth options
 import { CartItem } from '@/context/CartContext'; // Assuming this type is defined
 import { Product } from '@/types'; // Or your specific type for what's in cartItems
