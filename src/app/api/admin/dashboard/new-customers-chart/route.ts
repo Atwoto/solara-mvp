@@ -1,5 +1,4 @@
 // src/app/api/admin/dashboard/new-customers-chart/route.ts
-
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getServerSession } from "next-auth/next";
@@ -8,15 +7,14 @@ import type { Session } from 'next-auth';
 
 const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
 
-// Your SQL Function (for reference, this needs to be in your Supabase DB)
 /*
-CREATE OR REPLACE FUNCTION count_new_users_per_day_in_range(start_date TIMESTAMPTZ, end_date TIMESTAMPTZ)
-RETURNS TABLE(day DATE, new_user_count BIGINT) ...
+  SQL Function this route depends on:
+  CREATE OR REPLACE FUNCTION count_new_users_per_day_in_range(start_date TIMESTAMPTZ, end_date TIMESTAMPTZ)
+  RETURNS TABLE(day DATE, new_user_count BIGINT) ...
 */
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions) as Session | null;
-
   if (!session || !session.user || session.user.email !== ADMIN_EMAIL) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
   }
