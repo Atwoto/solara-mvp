@@ -1,4 +1,4 @@
-// lib/auth.ts (or src/lib/auth.ts depending on your structure)
+// lib/auth.ts (or src/lib/auth.ts)
 
 import type { NextAuthOptions, User as NextAuthUser } from 'next-auth';       
 import { SupabaseAdapter } from '@next-auth/supabase-adapter';
@@ -67,7 +67,10 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.email = user.email;
+        // *** THE FIX IS HERE ***
+        // Use the logical OR operator to default null/undefined values to undefined.
+        // This ensures the type assigned to token.email is `string | undefined`.
+        token.email = user.email || undefined;
         token.name = user.name;
         token.picture = user.image;
       }
