@@ -24,17 +24,16 @@ const textContainerVariants = {
   visible: { opacity: 1, transition: { staggerChildren: 0.2, delayChildren: 0.3 } },
 };
 
-// *** FIX #1: Removed the 'transition' property from the 'visible' variant. ***
 const textItemVariants = {
   hidden: { y: 60, opacity: 0 },
   visible: { y: 0, opacity: 1 },
 };
 
-// *** FIX #2: Created a reusable transition object. ***
+// *** THE FIX IS HERE: Added 'as const' to the end of the object. ***
 const textItemTransition = {
   duration: 0.7,
-  ease: "easeOut"
-};
+  ease: "easeOut",
+} as const;
 
 const Hero = () => {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -84,7 +83,6 @@ const Hero = () => {
               exit="hidden"
               className="flex flex-col items-center max-w-3xl"
             >
-              {/* *** FIX #3: Added the 'transition' prop to each motion component. *** */}
               <motion.div variants={textItemVariants} transition={textItemTransition}>
                 {(() => {
                   const currentSlide = slideData[activeIndex];
