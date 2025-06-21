@@ -119,7 +119,7 @@ const WishlistClientPage = () => {
               <Link href={`/products/${product.id}`} className="block relative w-full h-64 overflow-hidden bg-gray-100 group/image">
                   {product.imageUrl ? (
                     <NextImage 
-                      src={product.imageUrl} 
+                      src={product.image_url} 
                       alt={product.name || 'Product image'} 
                       fill
                       style={{ objectFit: 'cover' }}
