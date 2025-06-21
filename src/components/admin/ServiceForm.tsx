@@ -42,7 +42,7 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
   });
 
   const [formData, setFormData] = useState<ServiceFormState>(getInitialFormState());
-  const [isSubmitting, setIsSubmitting] = useState(false); // Correct state variable
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(initialData?.hero_image_url || null);
@@ -72,7 +72,13 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
      if (name === 'slug') {
         setFormData(prev => ({ ...prev, slug: titleToSlug(value) }));
     } else {
-        setFormData(prev => ({ ...prev, [name]: value }));
+        // Handle number inputs specifically
+        if (name === 'display_order') {
+            const numValue = parseInt(value, 10);
+            setFormData(prev => ({ ...prev, [name]: isNaN(numValue) ? 0 : numValue }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
     }
   };
 
@@ -93,19 +99,19 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
       reader.readAsDataURL(file);
     } else {
       setFormData(prev => ({ ...prev, imageFile: null }));
-      setImagePreview(formData.currentImageUrl || null); // Use formData.currentImageUrl
+      setImagePreview(formData.currentImageUrl || null);
     }
   };
   
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setIsSubmitting(true); // Use setIsSubmitting
+    setIsSubmitting(true);
     setError(null);
     setSuccessMessage(null);
 
     if (!formData.title.trim() || !formData.slug.trim() || !formData.content_html.trim() || formData.content_html === '<p></p>') {
         setError("Title, Slug, and Content are required."); 
-        setIsSubmitting(false); // Use setIsSubmitting
+        setIsSubmitting(false);
         return;
     }
     try {
@@ -113,14 +119,9 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
         if (!Array.isArray(features)) throw new Error();
     } catch (e) {
         setError("Features must be a valid JSON array."); 
-        setIsSubmitting(false); // Use setIsSubmitting
+        setIsSubmitting(false);
         return;
     }
-    // Optional: image validation for new services
-    // if (!initialData && !formData.imageFile) {
-    //     setError("Please select a hero image for the new service.");
-    //     setIsSubmitting(false); return;
-    // }
 
     const dataToSubmit = new FormData(); 
     dataToSubmit.append('title', formData.title.trim());
@@ -135,7 +136,13 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
     dataToSubmit.append('featuresJson', formData.featuresJson);
     if (formData.call_to_action_label) dataToSubmit.append('call_to_action_label', formData.call_to_action_label.trim());
     if (formData.call_to_action_link) dataToSubmit.append('call_to_action_link', formData.call_to_action_link.trim());
-    dataToSubmit.append('display_order', formData.display_order.toString());
+    
+    // *** THE FIX IS HERE ***
+    // Only append display_order if it's a valid number.
+    if (typeof formData.display_order === 'number' && !isNaN(formData.display_order)) {
+        dataToSubmit.append('display_order', formData.display_order.toString());
+    }
+    
     if (formData.imageFile) {
       dataToSubmit.append('imageFile', formData.imageFile);
     }
@@ -158,6 +165,9 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
         throw new Error(result.message || `Failed to ${initialData?.id ? 'update' : 'create'} service`);
       }
       setSuccessMessage(result.message || `Service ${initialData?.id ? 'updated' : 'created'} successfully!`);
+      if (onSubmitSuccess) {
+          onSubmitSuccess();
+      }
       if (!initialData) {
           setFormData(getInitialFormState()); 
           setImagePreview(null);
@@ -165,24 +175,11 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
           if (fileInput) fileInput.value = "";
       } else {
           if (result.service) {
-              const updatedService = result.service as ServicePageData; // Make sure ServicePageData includes hero_image_url
+              const updatedService = result.service as ServicePageData;
               setFormData(prev => ({
-                  ...getInitialFormState(), // Reset to initial structure
-                  ...prev!, 
-                  title: updatedService.title || prev!.title, // Use updated or previous
-                  slug: updatedService.slug || prev!.slug,
-                  content_html: updatedService.content_html || prev!.content_html,
-                  status: updatedService.status || prev!.status,
-                  // ... map all other fields similarly ...
-                  parent_service_slug: updatedService.parent_service_slug || prev!.parent_service_slug,
-                  excerpt: updatedService.excerpt || prev!.excerpt,
-                  icon_svg: updatedService.icon_svg || prev!.icon_svg,
-                  meta_title: updatedService.meta_title || prev!.meta_title,
-                  meta_description: updatedService.meta_description || prev!.meta_description,
-                  featuresJson: updatedService.features ? JSON.stringify(updatedService.features, null, 2) : prev!.featuresJson,
-                  call_to_action_label: updatedService.call_to_action_label || prev!.call_to_action_label,
-                  call_to_action_link: updatedService.call_to_action_link || prev!.call_to_action_link,
-                  display_order: updatedService.display_order !== undefined ? updatedService.display_order : prev!.display_order,
+                  ...prev,
+                  ...updatedService, // This will update all fields from the returned service
+                  featuresJson: updatedService.features ? JSON.stringify(updatedService.features, null, 2) : '[]',
                   currentImageUrl: updatedService.hero_image_url || null,
                   imageFile: null, 
               }));
@@ -192,7 +189,7 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.');
     } finally {
-      setIsSubmitting(false); // Use setIsSubmitting
+      setIsSubmitting(false);
     }
   };
 
@@ -230,13 +227,13 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div><label htmlFor="status" className="block text-sm font-medium text-gray-700">Status</label><select id="status" name="status" value={formData.status} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm">{statusOptions.map(option => <option key={option} value={option}>{option.charAt(0).toUpperCase() + option.slice(1)}</option>)}</select></div>
-        <div><label htmlFor="display_order" className="block text-sm font-medium text-gray-700">Display Order</label><input type="number" name="display_order" id="display_order" value={formData.display_order} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" /></div>
+        <div><label htmlFor="display_order" className="block text-sm font-medium text-gray-700">Display Order</label><input type="number" name="display_order" id="display_order" value={formData.display_order || ''} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" /></div>
       </div>
-      <div><label htmlFor="excerpt" className="block text-sm font-medium text-gray-700">Excerpt</label><textarea id="excerpt" name="excerpt" rows={3} value={formData.excerpt} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" /></div>
+      <div><label htmlFor="excerpt" className="block text-sm font-medium text-gray-700">Excerpt</label><textarea id="excerpt" name="excerpt" rows={3} value={formData.excerpt || ''} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" /></div>
       <div><label htmlFor="parent_service_slug" className="block text-sm font-medium text-gray-700">Parent Service Slug (Optional)</label><input type="text" name="parent_service_slug" id="parent_service_slug" value={formData.parent_service_slug || ''} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" placeholder="e.g., residential-services" /></div>
       <div><label htmlFor="featuresJson" className="block text-sm font-medium text-gray-700">Features (JSON Array)</label><textarea id="featuresJson" name="featuresJson" rows={5} value={formData.featuresJson} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm font-mono" placeholder='e.g., ["Detail 1", "Detail 2"]' /><p className="mt-1 text-xs text-gray-500">Enter a valid JSON array. For simple lists: `["Item 1", "Item 2"]`.</p></div>
-      <fieldset className="mt-6 border-t border-gray-200 pt-6"><legend className="text-base font-medium text-gray-900">SEO & Meta Data</legend><div className="mt-4 space-y-4"><div><label htmlFor="meta_title" className="block text-sm font-medium text-gray-700">Meta Title</label><input type="text" name="meta_title" id="meta_title" value={formData.meta_title} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" /></div><div><label htmlFor="meta_description" className="block text-sm font-medium text-gray-700">Meta Description</label><textarea id="meta_description" name="meta_description" rows={3} value={formData.meta_description} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" /></div></div></fieldset>
-      <fieldset className="mt-6 border-t border-gray-200 pt-6"><legend className="text-base font-medium text-gray-900">Call To Action</legend><div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6"><div><label htmlFor="call_to_action_label" className="block text-sm font-medium text-gray-700">CTA Button Label</label><input type="text" name="call_to_action_label" id="call_to_action_label" value={formData.call_to_action_label} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" placeholder="e.g., Get Started" /></div><div><label htmlFor="call_to_action_link" className="block text-sm font-medium text-gray-700">CTA Button Link</label><input type="text" name="call_to_action_link" id="call_to_action_link" value={formData.call_to_action_link} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" placeholder="e.g., /contact-us" /></div></div></fieldset>
+      <fieldset className="mt-6 border-t border-gray-200 pt-6"><legend className="text-base font-medium text-gray-900">SEO & Meta Data</legend><div className="mt-4 space-y-4"><div><label htmlFor="meta_title" className="block text-sm font-medium text-gray-700">Meta Title</label><input type="text" name="meta_title" id="meta_title" value={formData.meta_title || ''} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" /></div><div><label htmlFor="meta_description" className="block text-sm font-medium text-gray-700">Meta Description</label><textarea id="meta_description" name="meta_description" rows={3} value={formData.meta_description || ''} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" /></div></div></fieldset>
+      <fieldset className="mt-6 border-t border-gray-200 pt-6"><legend className="text-base font-medium text-gray-900">Call To Action</legend><div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6"><div><label htmlFor="call_to_action_label" className="block text-sm font-medium text-gray-700">CTA Button Label</label><input type="text" name="call_to_action_label" id="call_to_action_label" value={formData.call_to_action_label || ''} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" placeholder="e.g., Get Started" /></div><div><label htmlFor="call_to_action_link" className="block text-sm font-medium text-gray-700">CTA Button Link</label><input type="text" name="call_to_action_link" id="call_to_action_link" value={formData.call_to_action_link || ''} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" placeholder="e.g., /contact-us" /></div></div></fieldset>
       <div className="pt-6"><button type="submit" disabled={isSubmitting} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-solar-flare-start hover:bg-solar-flare-end focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-solar-flare-start disabled:opacity-70 transition-colors">{isSubmitting ? 'Saving...' : (initialData?.id ? 'Update Service' : 'Create Service')}</button></div>
     </form>
   );
