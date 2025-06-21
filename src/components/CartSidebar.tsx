@@ -3,7 +3,7 @@
 
 import { useCart } from '@/context/CartContext';
 import NextImage from 'next/image';
-import { XMarkIcon, ShoppingBagIcon, PlusIcon, MinusIcon, TrashIcon } from '@heroicons/react/24/outline'; // Ensure XMarkIcon is here
+import { XMarkIcon, ShoppingBagIcon, PlusIcon, MinusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -14,8 +14,8 @@ const CartSidebar = () => {
     clearCart, 
     updateItemQuantity, 
     getCartTotal,
-    isCartOpen, // Get visibility state from context
-    closeCart   // Get close function from context
+    isCartOpen,
+    closeCart
   } = useCart(); 
   
   const subtotal = getCartTotal();
@@ -25,9 +25,10 @@ const CartSidebar = () => {
     visible: { opacity: 1, transition: { duration: 0.3 } },
   };
 
+  // *** FIX #1: Removed the 'transition' properties from the variants. ***
   const sidebarVariants = {
-    hidden: { x: '100%', transition: { type: 'tween', duration: 0.3, ease: "easeIn" } },
-    visible: { x: '0%', transition: { type: 'spring', stiffness: 300, damping: 30 } },
+    hidden: { x: '100%' },
+    visible: { x: '0%' },
   };
 
   return (
@@ -50,8 +51,10 @@ const CartSidebar = () => {
             initial="hidden"
             animate="visible"
             exit="hidden"
+            // *** FIX #2: Added the 'transition' prop directly to the component. ***
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className="fixed top-0 right-0 h-full w-full max-w-sm sm:max-w-md bg-white shadow-2xl flex flex-col"
-            onClick={(e) => e.stopPropagation()} // Prevent closing when clicking on the sidebar itself
+            onClick={(e) => e.stopPropagation()}
             aria-modal="true"
             role="dialog"
           >
@@ -62,7 +65,6 @@ const CartSidebar = () => {
                   <ShoppingBagIcon className="h-6 w-6 mr-2.5 text-solar-flare-start"/>
                   Your Cart
                 </h2>
-                {/* --- PROMINENT CLOSE BUTTON --- */}
                 <button 
                   onClick={closeCart}
                   className="px-4 py-2 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-lg shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-300"
@@ -71,7 +73,6 @@ const CartSidebar = () => {
                   ✕ Close
                 </button>
               </div>
-              {/* --- ADDITIONAL CLOSE OPTION --- */}
               <div className="mt-3 text-center">
                 <button 
                   onClick={closeCart}
@@ -99,13 +100,14 @@ const CartSidebar = () => {
                   </Link>
                 </div>
               ) : (
-                <ul className="divide-y divide-gray-200 -mt-5"> {/* Negative margin to align with padding */}
+                <ul className="divide-y divide-gray-200 -mt-5">
                   {cartItems.map((item) => (
                     <li key={item.id} className="flex items-start sm:items-center py-5">
                       <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-md overflow-hidden border border-gray-200 bg-gray-50 flex-shrink-0">
-                        {item.imageUrl ? (
+                        {/* *** FIX #3: Changed item.imageUrl to item.image_url for consistency. *** */}
+                        {item.image_url ? (
                           <NextImage 
-                            src={item.imageUrl} 
+                            src={item.image_url} 
                             alt={item.name} 
                             fill
                             style={{ objectFit: 'cover' }}
