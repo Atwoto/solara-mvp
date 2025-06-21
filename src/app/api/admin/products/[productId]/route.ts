@@ -141,9 +141,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       newImageUrl = null;
       
       const { data: productBeforeUpdate } = await supabaseAdmin.from('products').select('imageUrl').eq('id', productId).single();
-      if (productBeforeUpdate?.imageUrl && typeof productBeforeUpdate.imageUrl === 'string') {
+      if (productBeforeUpdate?.image_url && typeof productBeforeUpdate.image_url === 'string') {
         try {
-          const oldFileNameWithFolder = new URL(productBeforeUpdate.imageUrl).pathname.split('/').slice(4).join('/');
+          const oldFileNameWithFolder = new URL(productBeforeUpdate.image_url).pathname.split('/').slice(4).join('/');
           if (oldFileNameWithFolder) {
             await supabaseAdmin.storage.from(SUPABASE_PRODUCTS_IMAGE_BUCKET).remove([oldFileNameWithFolder]);
             console.log("API: Explicitly removed product image from storage.");
@@ -162,7 +162,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (description !== null) productToUpdate.description = description;
     
     if (newImageUrl !== undefined) { 
-      productToUpdate.imageUrl = newImageUrl;
+      productToUpdate.image_url = newImageUrl;
     }
 
     console.log("API: Data to update product in Supabase:", JSON.stringify(productToUpdate, null, 2));
@@ -206,7 +206,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { data: productToDelete, error: fetchErr } = await supabaseAdmin
       .from('products')
-      .select('imageUrl')
+      .select('image_url')
       .eq('id', productId)
       .single();
     
@@ -226,9 +226,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Fixed: Added proper type checking and validation
-    if (productToDelete?.imageUrl && typeof productToDelete.imageUrl === 'string' && productToDelete.imageUrl.trim() !== '') {
+    if (productToDelete?.image_url && typeof productToDelete.image_url === 'string' && productToDelete.image_url.trim() !== '') {
       try {
-        const imageUrlPath = new URL(productToDelete.imageUrl).pathname;
+        const imageUrlPath = new URL(productToDelete.image_url).pathname;
         const pathParts = imageUrlPath.split('/');
         const filePathInBucket = pathParts.slice(pathParts.indexOf(SUPABASE_PRODUCTS_IMAGE_BUCKET) + 1).join('/');
         
