@@ -1,23 +1,26 @@
-// src/app/order-confirmation/page.tsx
-'use client';
+import { Suspense } from 'react';
+import OrderConfirmationClientPage from './OrderConfirmationClientPage';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
 
-import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+// A simple loading skeleton to display while the dynamic content is loading.
+function LoadingSkeleton() {
+    return (
+        <>
+            <ArrowPathIcon className="h-20 w-20 text-gray-300 mx-auto mb-6 animate-spin" />
+            <div className="h-10 bg-gray-200 rounded w-1/2 mx-auto animate-pulse"></div>
+            <div className="h-6 bg-gray-200 rounded w-2/3 mx-auto mt-4 animate-pulse"></div>
+            <div className="h-6 bg-gray-200 rounded w-3/4 mx-auto mt-2 animate-pulse"></div>
+            <div className="h-12 bg-gray-300 rounded-lg w-48 mx-auto mt-8 animate-pulse"></div>
+        </>
+    );
+}
 
-const OrderConfirmationPage = () => {
-  const searchParams = useSearchParams();
-  const orderId = searchParams.get('orderId');
-
+export default function OrderConfirmationPage() {
   return (
     <main className="container mx-auto px-4 py-24 text-center">
-      <h1 className="text-4xl font-bold text-green-600">Thank You!</h1>
-      <p className="mt-4 text-lg">Your order has been placed successfully.</p>
-      <p className="mt-2 text-gray-600">Your Order ID is: <span className="font-mono bg-gray-100 p-1 rounded">{orderId}</span></p>
-      <Link href="/products" className="mt-8 inline-block bg-deep-night text-white px-6 py-3 rounded-lg">
-        Continue Shopping
-      </Link>
+      <Suspense fallback={<LoadingSkeleton />}>
+        <OrderConfirmationClientPage />
+      </Suspense>
     </main>
   );
-};
-
-export default OrderConfirmationPage;
+}
