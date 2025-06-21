@@ -11,15 +11,19 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Chatbot from '@/components/Chatbot';
 import ScrollProgress from '@/components/ScrollProgress';
+import ScrollToTopButton from '@/components/ScrollToTopButton'; // <<--- IMPORT IT
 import AuthProvider from '@/components/AuthProvider'; 
 import './globals.css';
 
 // <<--- NEW: Define paths that should NOT have top padding ---
 // These are pages that have their own full-width colored header backgrounds.
 const NO_PADDING_PATHS = [
+  '/products',
   '/services',
   '/about',
   '/contact',
+  '/projects',
+  '/blog',
   // Add any other paths here, e.g., '/projects' if it uses PageHeader
 ];
 
@@ -57,6 +61,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     {children} 
                   </main>
                   <Chatbot />
+                   <ScrollToTopButton /> {/* <<--- ADD IT HERE */}
                   <Footer /> 
                   <ScrollProgress />
                 </ComparisonProvider>
