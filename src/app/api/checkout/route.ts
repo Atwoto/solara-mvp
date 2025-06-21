@@ -1,38 +1,45 @@
 // src/app/api/checkout/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseClient'; // Use admin client for DB writes
+import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth"; // Your NextAuth options
-import { CartItem } from '@/context/CartContext'; // Assuming this type is defined
-import { Product } from '@/types'; // Or your specific type for what's in cartItems
+import { authOptions } from "@/lib/auth";
+import { CartItem } from '@/types'; // Import CartItem from your central types file
+import type { Session } from 'next-auth';
+
+// Define the shape of the data returned by the Supabase insert query for a new order
+interface NewOrderResponse {
+    id: string;
+    // Add other fields that your .select() might return
+    created_at: string;
+    user_id: string;
+}
 
 interface ShippingDetails {
   fullName: string;
-  email?: string; // Email from session
+  email?: string;
   phone: string;
   address: string;
 }
 
 interface OrderDetailsRequestBody {
-  cartItems: CartItem[]; // Or Product[] if that's what you store in cart
+  cartItems: CartItem[];
   shippingDetails: ShippingDetails;
-  subtotal: number;
-  shippingCost: number;
   total: number;
-  paymentReference: string; // Paystack reference from client-side callback
-  paymentStatus?: string; // Initial status from client-side, e.g., 'pending_webhook_verification'
+  paymentReference: string;
+  paymentStatus?: string;
 }
 
 export async function POST(req: NextRequest) {
   if (!supabaseAdmin) {
-    console.error("Supabase admin client not initialized for checkout.");
     return NextResponse.json({ error: "Server configuration error." }, { status: 500 });
   }
 
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user || !session.user.id) { // Check for user.id if you use it as foreign key
+  const session = await getServerSession(authOptions) as Session | null;
+  if (!session || !session.user || !session.user.id) {
     return NextResponse.json({ error: "User not authenticated." }, { status: 401 });
   }
+
+  let orderIdToDeleteOnError: string | null = null;
 
   try {
     const body = await req.json() as OrderDetailsRequestBody;
@@ -40,11 +47,9 @@ export async function POST(req: NextRequest) {
     const { 
       cartItems, 
       shippingDetails, 
-      subtotal, 
-      shippingCost, 
       total, 
       paymentReference,
-      paymentStatus = 'pending_verification' // Default status
+      paymentStatus = 'pending_verification'
     } = body;
 
     if (!cartItems || cartItems.length === 0 || !shippingDetails || !total || !paymentReference) {
@@ -52,55 +57,54 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Create the main order record
-    // Ensure your 'orders' table has columns for user_id, total_price, status, shipping_address, paystack_reference etc.
     const { data: newOrder, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert({
-        user_id: session.user.id, // Foreign key to your users table
+        user_id: session.user.id,
         total_price: total,
-        status: paymentStatus, // e.g., 'pending_verification', 'processing'
-        shipping_address: shippingDetails, // Assuming shipping_address is a JSONB column
+        status: paymentStatus,
+        shipping_address: shippingDetails,
         paystack_reference: paymentReference,
-        // You might also store subtotal, shipping_cost if needed
       })
-      .select() // Select the newly created order
-      .single();
+      .select()
+      .single<NewOrderResponse>(); // <<--- FIX: Add type hint for the response
 
     if (orderError || !newOrder) {
       console.error("Error creating order in DB:", orderError);
       throw new Error(orderError?.message || "Failed to save order details.");
     }
 
-    const orderId = newOrder.id;
+    const orderId = newOrder.id; // Now TypeScript knows newOrder.id is a string
+    orderIdToDeleteOnError = orderId; // Store it for potential rollback
 
     // 2. Create order items records
     const orderItemsToInsert = cartItems.map(item => ({
       order_id: orderId,
-      product_id: item.id, // Foreign key to your products table
+      product_id: item.id,
       quantity: item.quantity,
-      price_at_purchase: item.price, // Store price at time of purchase
-      product_name: item.name // Store name for easier display in order summaries
+      price_at_purchase: item.price,
+      product_name: item.name 
     }));
 
     const { error: itemsError } = await supabaseAdmin
-      .from('order_items') // Your order items table name
+      .from('order_items')
       .insert(orderItemsToInsert);
 
     if (itemsError) {
       console.error(`Error creating order items for order ${orderId}:`, itemsError);
-      // CRITICAL: Order created but items failed. Need rollback or manual fix.
-      // For simplicity, we'll throw, but a real app needs robust transaction/rollback.
-      // You might try to delete the order created in step 1 if items fail.
-      await supabaseAdmin.from('orders').delete().eq('id', orderId);
+      // The `catch` block will now handle the rollback.
       throw new Error(itemsError.message || "Failed to save order items.");
     }
-
-    // 3. Optionally, clear user's server-side cart if you manage one (localStorage cart is cleared client-side)
 
     return NextResponse.json({ message: 'Order received, awaiting payment confirmation.', orderId: orderId });
 
   } catch (error: any) {
     console.error('Checkout API error:', error);
+    // CRITICAL: Rollback logic if an error occurred after the order was created
+    if (orderIdToDeleteOnError) {
+        console.log(`Attempting to roll back failed order: ${orderIdToDeleteOnError}`);
+        await supabaseAdmin.from('orders').delete().eq('id', orderIdToDeleteOnError);
+    }
     return NextResponse.json({ error: error.message || 'Failed to process checkout.' }, { status: 500 });
   }
 }
