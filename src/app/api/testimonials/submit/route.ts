@@ -7,18 +7,6 @@ import { v4 as uuidv4 } from 'uuid';
 // Optional: For sending email notifications to admin
 // import nodemailer from 'nodemailer'; 
 
-// Define a more flexible insert type that matches your database structure
-type TestimonialInsert = {
-  client_name: string;
-  client_title_company?: string | null;
-  quote: string;
-  rating?: number | null;
-  image_url?: string | null;
-  is_featured: boolean;
-  approved: boolean;
-  email_internal?: string;
-};
-
 export async function POST(req: NextRequest) {
   if (!supabaseAdmin) {
     console.error("Supabase admin client is not initialized for testimonial submission.");
@@ -45,14 +33,7 @@ export async function POST(req: NextRequest) {
     if (!isValidEmail(email)) {
         return NextResponse.json({ message: 'Invalid email format provided.' }, { status: 400 });
     }
-    
-    // Additional validation
-    if (quote.trim().length < 10) {
-      return NextResponse.json({ message: 'Quote must be at least 10 characters long.' }, { status: 400 });
-    }
-    if (client_name.trim().length < 2) {
-      return NextResponse.json({ message: 'Name must be at least 2 characters long.' }, { status: 400 });
-    }
+    // Add more validation as needed (e.g., quote length)
     // --- End Validation ---
 
     let rating: number | null = null;
@@ -102,7 +83,7 @@ export async function POST(req: NextRequest) {
 
     // Data to insert into 'testimonials' table
     // Note: 'approved' is set to false by default for customer submissions
-    const testimonialToInsert: TestimonialInsert = {
+    const testimonialToInsert: Omit<Testimonial, 'id' | 'created_at'> & { email_internal?: string } = {
       client_name: client_name.trim(),
       client_title_company: client_title_company?.trim() || null,
       quote: quote.trim(),
@@ -110,7 +91,7 @@ export async function POST(req: NextRequest) {
       image_url: imageUrlFromStorage, // This will be null if no image was uploaded
       is_featured: false, // Default not featured
       approved: false, // <<--- IMPORTANT: Submitted testimonials are not approved by default
-      email_internal: email, // Store the submitter's email for internal reference
+      // email_internal: email, // Optional: if you add an internal email column to testimonials table
     };
 
     const { data: insertedTestimonial, error: insertError } = await supabaseAdmin
@@ -134,29 +115,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Optional: Send an email notification to admin about new testimonial
-    await sendAdminNotificationEmail(insertedTestimonial as Testimonial, email);
+    // await sendAdminNotificationEmail(insertedTestimonial as Testimonial, email);
 
-    return NextResponse.json({ 
-      message: 'Thank you! Your testimonial has been submitted for review.',
-      testimonialId: insertedTestimonial.id 
-    }, { status: 201 });
+    return NextResponse.json({ message: 'Thank you! Your testimonial has been submitted for review.' }, { status: 201 });
 
   } catch (error: any) {
     console.error("Failed to submit testimonial (API Global Catch):", error.message);
-    
-    // Cleanup uploaded image if there was an error after upload
     if (uploadedImagePathInStorage && !error.message.includes('upload image') && !error.message.includes('public URL')) {
-        try { 
-          await supabaseAdmin.storage.from('product-images').remove([uploadedImagePathInStorage]); 
-        }
-        catch (cleanupError: any) { 
-          console.error("Failed to rollback image storage upload:", cleanupError.message); 
-        }
+        try { await supabaseAdmin.storage.from('product-images').remove([uploadedImagePathInStorage]); }
+        catch (cleanupError: any) { console.error("Failed to rollback image storage upload:", cleanupError.message); }
     }
-    
-    return NextResponse.json({ 
-      message: error.message || 'Internal Server Error.' 
-    }, { status: 500 });
+    return NextResponse.json({ message: error.message || 'Internal Server Error.' }, { status: 500 });
   }
 }
 
@@ -165,44 +134,22 @@ function isValidEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 
-// Enhanced admin notification email function
-async function sendAdminNotificationEmail(testimonial: Testimonial, submitterEmail: string) {
-  console.log(`New testimonial submitted by ${testimonial.client_name} (${submitterEmail}). Needs approval.`);
-  
-  // Uncomment and configure if you want to send actual emails
-  /*
-  try {
-    const transporter = nodemailer.createTransporter({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
-      to: process.env.ADMIN_NOTIFICATION_EMAIL,
-      subject: 'New Testimonial Submitted for Bills On Solar',
-      html: `
-        <h2>New Testimonial Submission</h2>
-        <p><strong>Name:</strong> ${testimonial.client_name}</p>
-        <p><strong>Email:</strong> ${submitterEmail}</p>
-        <p><strong>Company/Title:</strong> ${testimonial.client_title_company || 'Not provided'}</p>
-        <p><strong>Rating:</strong> ${testimonial.rating ? `${testimonial.rating}/5 stars` : 'Not provided'}</p>
-        <p><strong>Quote:</strong></p>
-        <blockquote>"${testimonial.quote}"</blockquote>
-        ${testimonial.image_url ? `<p><strong>Image:</strong> <a href="${testimonial.image_url}">View Image</a></p>` : ''}
-        <p>Please review and approve this testimonial in your admin panel.</p>
-        <p><em>Submitted at: ${new Date().toLocaleString()}</em></p>
-      `,
-    });
-    
-    console.log('Admin notification email sent successfully');
-  } catch (emailError: any) {
-    console.error("Failed to send admin notification email:", emailError.message);
-  }
-  */
-}
+// Optional: Placeholder for sending admin notification email
+// async function sendAdminNotificationEmail(testimonial: Testimonial, submitterEmail: string) {
+//   // Configure Nodemailer or your email service
+//   console.log(`New testimonial submitted by ${testimonial.client_name} (${submitterEmail}). Needs approval.`);
+//   // try {
+//   //   const transporter = nodemailer.createTransport({ /* ... your config ... */ });
+//   //   await transporter.sendMail({
+//   //     from: process.env.EMAIL_FROM,
+//   //     to: process.env.ADMIN_NOTIFICATION_EMAIL,
+//   //     subject: 'New Testimonial Submitted for Bills On Solar',
+//   //     html: `<p>A new testimonial has been submitted:</p>
+//   //            <p><b>Name:</b> ${testimonial.client_name}</p>
+//   //            <p><b>Quote:</b> "${testimonial.quote}"</p>
+//   //            <p>Please review it in the admin panel.</p>`,
+//   //   });
+//   // } catch (emailError) {
+//   //   console.error("Failed to send admin notification email:", emailError);
+//   // }
+// }
