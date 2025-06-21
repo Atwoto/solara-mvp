@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
       name,
       price,
       wattage, // Will be null if not provided or invalid
-      imageUrl,
+       image_url: imageUrl,
       category,
       description: description || null, // Ensure null if empty string and DB expects null
     };
