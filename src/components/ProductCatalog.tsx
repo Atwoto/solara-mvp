@@ -158,9 +158,9 @@ const ProductCatalog = ({
                       <div 
                         className="relative w-full overflow-hidden bg-gray-100 h-56 sm:h-60 md:h-64 group-hover:opacity-90 transition-opacity duration-300" 
                       >
-                        {product.imageUrl ? (
+                        {product.image_url ? (
                             <Image 
-                                src={product.imageUrl} 
+                                src={product.image_url} 
                                 alt={product.name} 
                                 fill // Use fill instead of layout="fill"
                                 style={{ objectFit: 'cover' }} // Use style for objectFit with fill
