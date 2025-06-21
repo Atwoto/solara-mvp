@@ -9,7 +9,7 @@ export interface Product {
   name: string;
   price: number;
   wattage?: number | null;     
-  imageUrl?: string | null; 
+  
    image_url: string | null; // <-- Add this line
   category?: string | null; 
   description?: string | null; 
@@ -44,7 +44,7 @@ export type BlogPostCategory = typeof BLOG_POST_CATEGORIES[number];
 export interface Testimonial {
   id: string; created_at: string; client_name: string;
   client_title_company?: string | null; quote: string; rating?: number | null; 
-  imageUrl?: string | null; is_featured?: boolean | null; approved?: boolean | null; 
+   image_url?: string | null; is_featured?: boolean | null; approved?: boolean | null; 
 }
 
 // --- ORDER RELATED TYPES ---
