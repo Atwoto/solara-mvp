@@ -4,45 +4,55 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { CartItem, Product as AppProductType } from '@/types';
+import type { Session } from 'next-auth'; // Import for explicit session typing
 
 // Helper to get user's cart ID
 async function getUserCartId(userId: string): Promise<string | null> {
     if (!supabaseAdmin) return null;
-    const { data: cart, error } = await supabaseAdmin
-        .from('cart')
-        .select('id')
-        .eq('user_id', userId)
-        .single();
-    if (error && error.code !== 'PGRST116') { 
-        console.error("Error fetching user's cart ID:", error);
+    try {
+        const { data: cart, error } = await supabaseAdmin
+            .from('cart')
+            .select('id')
+            .eq('user_id', userId)
+            .single<{ id: string }>(); // Type hint for Supabase response
+
+        if (error && error.code !== 'PGRST116') { 
+            console.error("Error fetching user's cart ID:", error);
+            return null;
+        }
+        return cart?.id || null;
+    } catch (e) {
+        console.error("Exception in getUserCartId:", e);
         return null;
     }
-    return typeof cart?.id === 'string' ? cart.id : null;
 }
 
 // Helper to get product details
 async function getProductDetails(productId: string): Promise<AppProductType | null> {
     if (!supabaseAdmin) return null;
-    
-    const { data: product, error } = await supabaseAdmin
-        .from('products')
-        .select('id, name, price, imageUrl, wattage, category, description, created_at')
-        .eq('id', productId)
-        .single();
-    
-    if (error) {
-        console.error("Error fetching product details:", error);
+    try {
+        const { data: product, error } = await supabaseAdmin
+            .from('products')
+            .select('*') // Select all columns to match AppProductType
+            .eq('id', productId)
+            .single<AppProductType>(); // Type hint for Supabase response
+        
+        if (error) {
+            console.error("Error fetching product details:", error);
+            return null;
+        }
+        return product;
+    } catch(e) {
+        console.error("Exception in getProductDetails:", e);
         return null;
     }
-    
-    return product as AppProductType;
 }
 
 // --- PUT (Update Item Quantity) ---
 export async function PUT(req: NextRequest) {
     if (!supabaseAdmin) return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
 
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions) as Session | null;
     if (!session?.user?.id) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -50,13 +60,25 @@ export async function PUT(req: NextRequest) {
     try {
         const { productId, newQuantity } = await req.json();
 
-        if (!productId || typeof newQuantity !== 'number' || newQuantity <= 0) {
-            return NextResponse.json({ error: "Invalid request: productId and a positive newQuantity are required." }, { status: 400 });
+        if (!productId || typeof newQuantity !== 'number' || newQuantity < 0) { // Allow quantity of 0 to trigger deletion
+            return NextResponse.json({ error: "Invalid request: productId and a valid newQuantity are required." }, { status: 400 });
         }
 
         const cartId = await getUserCartId(session.user.id);
         if (!cartId) {
-            return NextResponse.json({ error: "User cart not found. Add an item first." }, { status: 404 });
+            return NextResponse.json({ error: "User cart not found." }, { status: 404 });
+        }
+
+        // If new quantity is 0, delete the item instead of updating
+        if (newQuantity === 0) {
+            const { error: deleteError } = await supabaseAdmin
+                .from('cart_items')
+                .delete()
+                .eq('cart_id', cartId)
+                .eq('product_id', productId);
+            
+            if (deleteError) throw deleteError;
+            return NextResponse.json({ message: "Item removed from cart due to zero quantity" });
         }
 
         // First, get the product details to ensure it exists
@@ -72,24 +94,19 @@ export async function PUT(req: NextRequest) {
             .eq('cart_id', cartId)
             .eq('product_id', productId)
             .select('quantity, product_id')
-            .single();
+            .single<{ quantity: number; product_id: string }>(); // <<--- FIX: Add type hint here
 
         if (updateError) {
-            console.error("Error updating cart item quantity:", updateError);
             if (updateError.code === 'PGRST116') { 
                 return NextResponse.json({ error: "Item not found in cart to update." }, { status: 404 });
             }
             throw updateError;
         }
 
-        if (!updatedCartItem) {
-            return NextResponse.json({ error: "Failed to update cart item." }, { status: 500 });
-        }
-
         // Combine the product details with the updated quantity
         const cartItem: CartItem = {
             ...product,
-            quantity: updatedCartItem.quantity,
+            quantity: updatedCartItem.quantity, // Now TypeScript knows this is a number
         };
 
         return NextResponse.json({ message: "Item quantity updated", item: cartItem });
@@ -104,7 +121,7 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
     if (!supabaseAdmin) return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
 
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions) as Session | null;
     if (!session?.user?.id) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -119,27 +136,11 @@ export async function DELETE(req: NextRequest) {
     try {
         const cartId = await getUserCartId(session.user.id);
         if (!cartId) {
-            return NextResponse.json({ message: "User cart not found, nothing to delete." }, { status: 200 });
+            // If there's no cart, the item doesn't exist, so the action is technically successful.
+            return NextResponse.json({ message: "User cart not found, nothing to delete." });
         }
 
-        // Check if the item exists in the cart before trying to delete
-        const { data: existingItem, error: checkError } = await supabaseAdmin
-            .from('cart_items')
-            .select('product_id')
-            .eq('cart_id', cartId)
-            .eq('product_id', productId)
-            .single();
-
-        if (checkError && checkError.code === 'PGRST116') {
-            return NextResponse.json({ message: "Item not found in cart." }, { status: 404 });
-        }
-
-        if (checkError) {
-            console.error("Error checking cart item existence:", checkError);
-            throw checkError;
-        }
-
-        // Delete the item
+        // Delete the item. No need to check for existence first, delete will just affect 0 rows if it's not there.
         const { error: deleteError } = await supabaseAdmin
             .from('cart_items')
             .delete()
