@@ -31,7 +31,7 @@ export interface CartItem extends Product {
 export interface BlogPost { 
   id: string; created_at: string; title: string; slug: string; 
   published_at?: string | null; category?: BlogPostCategory | string | null;
-  imageUrl?: string | null; excerpt?: string | null; content: string; 
+  image_url?: string | null; excerpt?: string | null; content: string; 
   author_name?: string | null; 
 }
 export const BLOG_POST_CATEGORIES = [
