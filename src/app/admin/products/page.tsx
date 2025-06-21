@@ -149,8 +149,8 @@ const AdminProductsPage = () => {
               {products.map((product) => (
                 <tr key={product.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {product.imageUrl ? (
-                      <Image src={product.imageUrl} alt={product.name} width={40} height={40} className="h-10 w-10 object-cover rounded" />
+                    {product.image_url ? (
+                      <Image src={product.image_url} alt={product.name} width={40} height={40} className="h-10 w-10 object-cover rounded" />
                     ) : (
                       <div className="h-10 w-10 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-400">No Img</div>
                     )}
