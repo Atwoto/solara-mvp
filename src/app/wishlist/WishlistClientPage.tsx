@@ -117,7 +117,7 @@ const WishlistClientPage = () => {
           {wishlistProducts.map((product) => (
             <div key={product.id} className="group flex flex-col bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
               <Link href={`/products/${product.id}`} className="block relative w-full h-64 overflow-hidden bg-gray-100 group/image">
-                  {product.imageUrl ? (
+                  {product.image_url ? (
                     <NextImage 
                       src={product.image_url} 
                       alt={product.name || 'Product image'} 
