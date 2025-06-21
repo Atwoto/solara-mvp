@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
       excerpt: excerpt || null,
       author_name: author_name || (session.user.name || 'Admin'), // Default to session user's name
       // --- FIX IS HERE: Changed image_url to imageUrl ---
-      imageUrl: uploadedImageUrl,
+      image_url: uploadedImageUrl, // Changed back to snake_case to match the BlogPost type
       published_at: published_at_string ? new Date(published_at_string).toISOString() : null,
     };
 
