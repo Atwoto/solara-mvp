@@ -7,23 +7,27 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Navigation, Pagination } from 'swiper/modules';
 import NextImage from 'next/image';
 import { Testimonial as TestimonialType } from '@/types';
-import { StarIcon } from '@heroicons/react/24/solid'; // For displaying rating
+import { StarIcon } from '@heroicons/react/24/solid';
 
 // Import Swiper styles
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 
+// *** FIX #1: Separated variants from transitions and added 'as const' assertions. ***
 const quoteVariants = {
-  hidden: { opacity: 0, y: 30 }, // Slightly less y offset
-  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: 'easeOut' } },
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0 },
 };
+const quoteTransition = { duration: 0.7, ease: 'easeOut' } as const;
 
 const authorVariants = {
   hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, delay: 0.2 } }, // Added delay
-  exit: { opacity: 0, y: -10, transition: { duration: 0.3 } },
+  visible: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -10 },
 };
+const authorTransition = { duration: 0.5 } as const;
+const authorTransitionWithDelay = { duration: 0.5, delay: 0.2 } as const;
 
 const TestimonialSlider = () => {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -36,8 +40,7 @@ const TestimonialSlider = () => {
       setIsLoading(true);
       setError(null);
       try {
-        // Fetch latest (up to 5) APPROVED testimonials
-        const response = await fetch('/api/testimonials?limit=5'); // REMOVED &featured=true
+        const response = await fetch('/api/testimonials?limit=5');
         if (!response.ok) {
           const errData = await response.json();
           throw new Error(errData.message || 'Failed to fetch testimonials');
@@ -54,7 +57,6 @@ const TestimonialSlider = () => {
     fetchTestimonials();
   }, []);
 
-  // Loading, Error, and No Data States (can be styled more if desired)
   if (isLoading) return <div className="bg-deep-night text-center py-24"><p className="text-gray-300">Loading Testimonials...</p></div>;
   if (error) return <div className="bg-deep-night text-center py-24"><p className="text-red-400">Error: {error}</p></div>;
   if (testimonials.length === 0) return (
@@ -71,9 +73,6 @@ const TestimonialSlider = () => {
 
   return (
     <div className="relative bg-deep-night text-white py-20 sm:py-28 overflow-hidden">
-      {/* Optional: Subtle background pattern or texture */}
-      {/* <div className="absolute inset-0 opacity-5 [background-image:radial-gradient(circle_at_center,_rgba(255,255,255,0.1)_1px,_transparent_1px)] [background-size:2rem_2rem]"></div> */}
-      
       <div className="relative container mx-auto px-4 text-center">
         <p className="font-semibold text-sm text-solar-flare-start mb-3 uppercase tracking-wider">
           Testimonial
@@ -92,21 +91,20 @@ const TestimonialSlider = () => {
             
           <Swiper
             modules={[Autoplay, Navigation, Pagination]}
-            navigation={{
-                nextEl: '.swiper-button-next-custom',
-                prevEl: '.swiper-button-prev-custom',
-            }}
+            navigation={{ nextEl: '.swiper-button-next-custom', prevEl: '.swiper-button-prev-custom' }}
             pagination={{ clickable: true, el: '.swiper-pagination-custom' }}
-            loop={testimonials.length > 1} // Only loop if more than one slide
+            loop={testimonials.length > 1}
             slidesPerView={1}
             autoplay={{ delay: 7000, disableOnInteraction: false }}
             onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
-            className="testimonial-swiper-custom" // Unique class for specific styling
+            className="testimonial-swiper-custom"
           >
             {testimonials.map((testimonial, index) => (
               <SwiperSlide key={testimonial.id} className="px-4 sm:px-0">
                   <motion.blockquote
                       variants={quoteVariants}
+                      // *** FIX #2: Added the 'transition' prop. ***
+                      transition={quoteTransition}
                       initial="hidden"
                       animate={activeIndex === index ? "visible" : "hidden"} 
                       className="text-lg sm:text-xl md:text-2xl italic leading-relaxed sm:leading-loose text-gray-200 min-h-[150px] sm:min-h-[180px] flex items-center justify-center"
@@ -115,18 +113,13 @@ const TestimonialSlider = () => {
                   </motion.blockquote>
               </SwiperSlide>
             ))}
-            {/* Custom Navigation and Pagination Elements */}
             {testimonials.length > 1 && (
                 <>
                     <div className="swiper-button-prev-custom absolute left-0 sm:-left-10 top-1/2 -translate-y-1/2 z-20 cursor-pointer p-2 rounded-full hover:bg-white/10 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-white/70 hover:text-white">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-white/70 hover:text-white"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
                     </div>
                     <div className="swiper-button-next-custom absolute right-0 sm:-right-10 top-1/2 -translate-y-1/2 z-20 cursor-pointer p-2 rounded-full hover:bg-white/10 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-white/70 hover:text-white">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-white/70 hover:text-white"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
                     </div>
                     <div className="swiper-pagination-custom !absolute !bottom-[-30px] sm:!bottom-[-40px] w-full flex justify-center space-x-2"></div>
                 </>
@@ -137,11 +130,13 @@ const TestimonialSlider = () => {
             <AnimatePresence mode="wait">
               {currentTestimonial && (
                 <motion.div
-                  key={currentTestimonial.id} // Key by testimonial ID for content change
+                  key={currentTestimonial.id}
                   variants={authorVariants}
                   initial="hidden"
                   animate="visible"
                   exit="exit"
+                  // *** FIX #3: Applied the correct transition objects here as well. ***
+                  transition={authorTransitionWithDelay}
                   className="flex flex-col items-center"
                 >
                   {currentTestimonial.image_url && (
@@ -175,20 +170,17 @@ const TestimonialSlider = () => {
         </div>
       </div>
       
-      {/* Global styles for Swiper are better in your globals.css or a dedicated CSS module,
-          but keeping them here for now as per previous structure. Make sure they are specific
-          enough using .testimonial-swiper-custom if you have other swipers. */}
       <style jsx global>{`
         .testimonial-swiper-custom .swiper-pagination-bullet {
           background-color: rgba(255, 255, 255, 0.4) !important;
           opacity: 1;
           width: 10px;
           height: 10px;
-          margin: 0 5px !important; /* Add some margin */
+          margin: 0 5px !important;
           transition: background-color 0.3s ease-in-out, transform 0.3s ease-in-out;
         }
         .testimonial-swiper-custom .swiper-pagination-bullet-active {
-          background-color: #FDB813 !important; /* solar-flare-start */
+          background-color: #FDB813 !important;
           transform: scale(1.1);
         }
       `}</style>
