@@ -91,9 +91,9 @@ const EditArticlePage = () => {
           published_at_date: pDate,
           published_at_time: pTime,
           imageFile: null, 
-          currentImageUrl: article.imageUrl || null, // Corrected: image_url from BlogPost to imageUrl
+          currentImageUrl: article.image_url || null, // Corrected: image_url from BlogPost to imageUrl
         });
-        if(article.imageUrl) setImagePreview(article.imageUrl); // Corrected
+        if(article.image_url) setImagePreview(article.image_url); // Corrected
 
       } catch (err: any) {
         setError(err.message);
@@ -201,9 +201,9 @@ const EditArticlePage = () => {
             author_name: updatedArticle.author_name || '',
             published_at_date: pDate, published_at_time: pTime,
             imageFile: null, // Clear image file after successful upload/update
-            currentImageUrl: updatedArticle.imageUrl || null,
+            currentImageUrl: updatedArticle.image_url || null,
         });
-        if(updatedArticle.imageUrl) {setImagePreview(updatedArticle.imageUrl);} else {setImagePreview(null);}
+        if(updatedArticle.image_url) {setImagePreview(updatedArticle.image_url);} else {setImagePreview(null);}
       }
       // router.refresh(); // Could also just refresh data on the /admin/blog page
     } catch (err: any) {
