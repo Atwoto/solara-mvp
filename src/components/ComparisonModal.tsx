@@ -1,9 +1,11 @@
 // src/components/ComparisonModal.tsx
 'use client';
 
-import { useComparison, Product } from '@/context/ComparisonContext';
+// *** FIX #1: Changed the import source for 'Product' ***
+import { useComparison } from '@/context/ComparisonContext';
+import { Product } from '@/types'; // Import Product from the central types file
 import Image from 'next/image';
-import { XMarkIcon, TrashIcon } from '@heroicons/react/24/solid';
+import { XMarkIcon, TrashIcon, ScaleIcon } from '@heroicons/react/24/solid'; // Using solid for consistency
 
 interface ComparisonModalProps {
   isOpen: boolean;
@@ -37,7 +39,7 @@ const ComparisonModal = ({ isOpen, onClose }: ComparisonModalProps) => {
         {/* Modal Content */}
         {comparisonItems.length === 0 ? (
           <div className="p-6 sm:p-10 text-center text-gray-500 flex-grow flex flex-col items-center justify-center">
-            <ScaleIcon className="h-16 w-16 text-gray-300 mb-4" /> {/* Assuming you have ScaleIcon or similar */}
+            <ScaleIcon className="h-16 w-16 text-gray-300 mb-4" />
             <p className="text-lg">No products selected for comparison.</p>
             <p className="text-sm mt-1">Add products from the product listings to compare them here.</p>
             <button
@@ -55,8 +57,9 @@ const ComparisonModal = ({ isOpen, onClose }: ComparisonModalProps) => {
               {comparisonItems.map((product) => (
                 <div key={product.id} className="border border-gray-200 rounded-lg p-3 sm:p-4 flex flex-col bg-gray-50/50">
                   <div className="relative w-full h-40 sm:h-48 mb-3 rounded overflow-hidden">
-                    {product.imageUrl ? (
-                      <Image src={product.imageUrl} alt={product.name} layout="fill" objectFit="cover" />
+                    {/* *** FIX #2: Changed imageUrl to image_url *** */}
+                    {product.image_url ? (
+                      <Image src={product.image_url} alt={product.name} layout="fill" objectFit="cover" />
                     ) : (
                       <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">No Image</div>
                     )}
@@ -64,11 +67,9 @@ const ComparisonModal = ({ isOpen, onClose }: ComparisonModalProps) => {
                   <h3 className="text-md sm:text-lg font-semibold text-graphite mb-1">{product.name}</h3>
                   <p className="text-xl sm:text-2xl font-bold text-deep-night mb-2">Ksh {product.price.toLocaleString()}</p>
                   
-                  {/* Add more product details for comparison here */}
                   <div className="text-xs sm:text-sm text-gray-600 space-y-1 mb-3 flex-grow">
                     {product.wattage && <p><strong>Wattage:</strong> {product.wattage}W</p>}
                     {product.category && <p><strong>Category:</strong> {product.category}</p>}
-                    {/* Add other fields like description, dimensions, etc. */}
                     {product.description && <p className="mt-1 line-clamp-3"><strong>Desc:</strong> {product.description}</p>}
                   </div>
                   
@@ -106,8 +107,5 @@ const ComparisonModal = ({ isOpen, onClose }: ComparisonModalProps) => {
     </div>
   );
 };
-
-// You might need to import ScaleIcon if it's not globally available
-import { ScaleIcon } from '@heroicons/react/24/outline'; // Or wherever it is
 
 export default ComparisonModal;
