@@ -41,7 +41,8 @@ const ScrollToTopButton = () => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           transition={{ duration: 0.3 }}
-          className="fixed bottom-20 right-5 z-[9990] h-12 w-12 rounded-full bg-deep-night/70 text-white shadow-lg backdrop-blur-sm transition-all duration-300 hover:bg-deep-night hover:scale-110 focus:outline-none focus:ring-2 focus:ring-solar-flare-start focus:ring-offset-2 focus:ring-offset-gray-50"
+          // <<--- CHANGE IS HERE: Changed "right-5" to "left-5" ---
+          className="fixed bottom-20 left-5 z-[9990] h-12 w-12 rounded-full bg-deep-night/70 text-white shadow-lg backdrop-blur-sm transition-all duration-300 hover:bg-deep-night hover:scale-110 focus:outline-none focus:ring-2 focus:ring-solar-flare-start focus:ring-offset-2 focus:ring-offset-gray-50"
           aria-label="Scroll to top"
         >
           <ArrowUpIcon className="h-6 w-6 mx-auto" />
