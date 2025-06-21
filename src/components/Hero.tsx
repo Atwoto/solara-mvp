@@ -24,9 +24,16 @@ const textContainerVariants = {
   visible: { opacity: 1, transition: { staggerChildren: 0.2, delayChildren: 0.3 } },
 };
 
+// *** FIX #1: Removed the 'transition' property from the 'visible' variant. ***
 const textItemVariants = {
   hidden: { y: 60, opacity: 0 },
-  visible: { y: 0, opacity: 1, transition: { duration: 0.7, ease: "easeOut" } },
+  visible: { y: 0, opacity: 1 },
+};
+
+// *** FIX #2: Created a reusable transition object. ***
+const textItemTransition = {
+  duration: 0.7,
+  ease: "easeOut"
 };
 
 const Hero = () => {
@@ -38,8 +45,6 @@ const Hero = () => {
   }, []);
 
   return (
-    // --- FIX: Changed from <main> to <section> ---
-    // Removed h-screen and added a negative top margin to pull it "up" into the layout's padding area.
     <section className="relative -mt-[60px] h-screen overflow-hidden bg-deep-night text-shadow-sm">
       {isClient && (
         <Swiper
@@ -79,7 +84,8 @@ const Hero = () => {
               exit="hidden"
               className="flex flex-col items-center max-w-3xl"
             >
-              <motion.div variants={textItemVariants}>
+              {/* *** FIX #3: Added the 'transition' prop to each motion component. *** */}
+              <motion.div variants={textItemVariants} transition={textItemTransition}>
                 {(() => {
                   const currentSlide = slideData[activeIndex];
                   if (!currentSlide) return null;
@@ -90,22 +96,29 @@ const Hero = () => {
               <motion.p 
                 className="mb-3 text-sm font-medium tracking-wider text-solar-flare-start uppercase sm:text-base" 
                 variants={textItemVariants}
+                transition={textItemTransition}
               >
                 {slideData[activeIndex]?.preTitle}
               </motion.p>
               <motion.h1 
                 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl leading-tight"
                 variants={textItemVariants}
+                transition={textItemTransition}
               >
                 {slideData[activeIndex]?.line1}
               </motion.h1>
               <motion.h1 
                 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl leading-tight"
                 variants={textItemVariants}
+                transition={textItemTransition}
               >
                 {slideData[activeIndex]?.line2}
               </motion.h1>
-              <motion.div variants={textItemVariants} className="mt-10 sm:mt-12">
+              <motion.div 
+                variants={textItemVariants} 
+                transition={textItemTransition} 
+                className="mt-10 sm:mt-12"
+              >
                 <Link href="/products" legacyBehavior>
                   <a className="inline-flex items-center justify-center px-8 py-3 sm:px-10 sm:py-4 text-base sm:text-lg font-semibold text-white transition-all duration-300 ease-in-out transform bg-gradient-to-r from-solar-flare-start to-solar-flare-end rounded-lg shadow-lg hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-2 focus:ring-solar-flare-end focus:ring-opacity-50 active:scale-95">
                     GET STARTED
@@ -131,7 +144,6 @@ const Hero = () => {
         )}
       </div>
 
-      {/* Custom styles for Swiper navigation and pagination */}
       <style jsx global>{`
         .hero-swiper .swiper-button-next,
         .hero-swiper .swiper-button-prev {
