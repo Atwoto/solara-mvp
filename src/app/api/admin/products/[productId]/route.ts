@@ -57,7 +57,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ message: 'Product not found' }, { status: 404 });
     }
     
-    // Fixed type conversion issue
     return NextResponse.json(data as unknown as Product);
   } catch (error: any) {
     console.error('API: Server error GET product:', error.message, error.stack);
@@ -140,7 +139,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     } else if (formData.has('currentImageUrl') && !currentImageUrl) { 
       newImageUrl = null;
       
-      const { data: productBeforeUpdate } = await supabaseAdmin.from('products').select('imageUrl').eq('id', productId).single();
+      // *** FIX #1: Select 'image_url' and check 'image_url' ***
+      const { data: productBeforeUpdate } = await supabaseAdmin.from('products').select('image_url').eq('id', productId).single();
       if (productBeforeUpdate?.image_url && typeof productBeforeUpdate.image_url === 'string') {
         try {
           const oldFileNameWithFolder = new URL(productBeforeUpdate.image_url).pathname.split('/').slice(4).join('/');
@@ -161,6 +161,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (category) productToUpdate.category = category;
     if (description !== null) productToUpdate.description = description;
     
+    // *** FIX #2: Assign to 'image_url' ***
     if (newImageUrl !== undefined) { 
       productToUpdate.image_url = newImageUrl;
     }
@@ -204,6 +205,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   }
 
   try {
+    // *** FIX #3: Select 'image_url' ***
     const { data: productToDelete, error: fetchErr } = await supabaseAdmin
       .from('products')
       .select('image_url')
@@ -225,7 +227,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ message: 'Failed to delete product from database.', error: deleteDbError.message }, { status: 500 });
     }
 
-    // Fixed: Added proper type checking and validation
+    // *** FIX #4: Check 'image_url' ***
     if (productToDelete?.image_url && typeof productToDelete.image_url === 'string' && productToDelete.image_url.trim() !== '') {
       try {
         const imageUrlPath = new URL(productToDelete.image_url).pathname;
