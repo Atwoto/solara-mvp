@@ -5,9 +5,8 @@ import { useRouter } from 'next/navigation';
 import FormInput from "@/components/FormInput";
 import Link from "next/link";
 import { createClient } from '@supabase/supabase-js';
+import { ArrowPathIcon, ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
 
-// Supabase client initialization should ideally be in a central lib file, 
-// but keeping it here to match your original structure.
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -24,21 +23,19 @@ export default function SignUpClientPage() {
   const [isLoading, setIsLoading] = useState(false);
   
   const router = useRouter();
-  // Note: useSearchParams() is removed from here as it's what causes the static rendering issue.
-  // If you need it later, it should be kept here inside the client component.
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
 
+    if (password.length < 8) {
+        setError("Password must be at least 8 characters long.");
+        return;
+    }
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
-    }
-    if (password.length < 6) {
-        setError("Password must be at least 6 characters long.");
-        return;
     }
 
     setIsLoading(true);
@@ -56,51 +53,77 @@ export default function SignUpClientPage() {
     setIsLoading(false);
 
     if (signUpError) {
-      setError(signUpError.message);
-    } else if (data.user?.identities?.length === 0) {
-      setError("This email is already in use. Please try logging in.");
+      // Improve Supabase's default error message for better UX
+      if (signUpError.message.includes("User already registered")) {
+        setError("This email is already in use. Please try logging in.");
+      } else {
+        setError(signUpError.message);
+      }
     } else if (data.user) {
-      setSuccess("Account created successfully! Please check your email to confirm your account before logging in.");
+      setSuccess("Please check your email to confirm your account before logging in.");
     } else {
-        setError("An unknown error occurred during sign-up. Please try again.");
+        setError("An unknown error occurred. Please try again.");
     }
   };
 
   return (
-    <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-2xl shadow-lg">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-graphite tracking-tight">Create Your Account</h1>
-        <p className="mt-2 text-gray-600">
-          Already have an account?{' '}
-          <Link href="/login" className="font-medium text-solar-flare-end hover:text-solar-flare-start transition-colors">
-            Log in
-          </Link>
-        </p>
-      </div>
-
+    // The main container for the form content. No card styles needed.
+    <div className="w-full max-w-md space-y-8">
       {success ? (
-          <div className="p-4 text-center bg-green-50 text-green-700 border border-green-200 rounded-lg">
-              <h3 className="font-semibold">Success!</h3>
-              <p className="text-sm mt-1">{success}</p>
-              <Link href="/login" className="font-bold text-solar-flare-end hover:underline mt-4 inline-block">
-                  Proceed to Login →
-              </Link>
+          // A more celebratory and clear success state
+          <div className="text-center p-8">
+              <CheckCircleIcon className="w-16 h-16 mx-auto text-green-500" />
+              <h2 className="mt-4 text-3xl font-bold text-graphite">Account Created!</h2>
+              <p className="mt-2 text-gray-600">{success}</p>
+              <div className="mt-8">
+                <Link 
+                  href="/login" 
+                  className="inline-block w-full bg-gradient-to-r from-solar-flare-start to-solar-flare-end py-3 px-6 font-semibold text-white rounded-xl shadow-lg hover:opacity-90 active:scale-[0.98] transition-all duration-300"
+                >
+                    Proceed to Login
+                </Link>
+              </div>
           </div>
       ) : (
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {error && <div className="p-3 bg-red-100 text-red-800 rounded-lg text-sm text-center">{error}</div>}
-
-            <FormInput label="Full Name" name="name" type="text" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name"/>
-            <FormInput label="Email Address" name="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email"/>
-            <FormInput label="Password" name="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="new-password"/>
-            <FormInput label="Confirm Password" name="confirmPassword" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required autoComplete="new-password"/>
-            
-            <div>
-              <button type="submit" disabled={isLoading} className="w-full flex justify-center bg-deep-night py-3 font-semibold text-white rounded-lg hover:bg-graphite transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                {isLoading ? 'Creating Account...' : 'Sign Up'}
-              </button>
+          <>
+            <div className="text-center">
+              <h1 className="text-4xl font-bold text-graphite tracking-tight">Create Your Account</h1>
+              <p className="mt-2 text-gray-500">
+                Already have an account?{' '}
+                <Link href="/login" className="font-semibold text-solar-flare-end hover:text-solar-flare-start transition-colors duration-300">
+                  Log in here
+                </Link>
+              </p>
             </div>
-          </form>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {error && (
+                <div className="flex items-center p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200">
+                  <ExclamationCircleIcon className="h-5 w-5 mr-2 flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* Ensure FormInput's inner <input> has classes like: */}
+              {/* "focus:ring-solar-flare-end focus:border-solar-flare-end" for a consistent look */}
+              <FormInput label="Full Name" name="name" type="text" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name"/>
+              <FormInput label="Email Address" name="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email"/>
+              <FormInput label="Password" name="password" type="password" placeholder="Minimum 8 characters" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="new-password"/>
+              <FormInput label="Confirm Password" name="confirmPassword" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required autoComplete="new-password"/>
+              
+              <div>
+                {/* The stunning new primary button, matching the login page */}
+                <button 
+                  type="submit" 
+                  disabled={isLoading} 
+                  className="w-full flex justify-center items-center bg-gradient-to-r from-solar-flare-start to-solar-flare-end py-3 font-semibold text-white rounded-xl shadow-lg hover:opacity-90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-solar-flare-end transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isLoading && <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" />}
+                  {isLoading ? 'Creating Account...' : 'Create Account'}
+                </button>
+              </div>
+            </form>
+          </>
       )}
     </div>
   );
