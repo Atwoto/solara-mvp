@@ -11,35 +11,21 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Chatbot from '@/components/Chatbot';
 import ScrollProgress from '@/components/ScrollProgress';
-import ScrollToTopButton from '@/components/ScrollToTopButton'; // <<--- IMPORT IT
+import ScrollToTopButton from '@/components/ScrollToTopButton';
 import AuthProvider from '@/components/AuthProvider'; 
 import './globals.css';
 
-// <<--- NEW: Define paths that should NOT have top padding ---
-// These are pages that have their own full-width colored header backgrounds.
-const NO_PADDING_PATHS = [
-  '/products',
-  '/services',
-  '/about',
-  '/contact',
-  '/projects',
-  '/blog',
-  // Add any other paths here, e.g., '/projects' if it uses PageHeader
-];
-
 export default function RootLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+
+  // 1. DEFINE OUR DISTINCT LAYOUT ZONES
+  // These are the routes that will have a clean, header-less, footer-less layout.
   const isAdminPage = pathname.startsWith('/admin');
-
-  // <<--- NEW: Check if the current page is one of the special full-width pages ---
-  const isFullWidthPage = NO_PADDING_PATHS.some(path => pathname.startsWith(path));
-
-  // <<--- UPDATED: The logic for applying top padding ---
-  // Apply padding only if it's NOT an admin page AND NOT a full-width page.
-  // I've also added a larger padding for desktop (lg) as good practice. Adjust if needed.
-  const mainPaddingTopClass = isAdminPage || isFullWidthPage
-    ? '' 
-    : 'pt-[60px] lg:pt-[72px]'; 
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup') || pathname.startsWith('/forgot-password');
+  
+  // 2. DETERMINE IF THE MAIN LAYOUT SHOULD BE SHOWN
+  // The main layout (with Header/Footer) appears on every page that is NOT an admin or auth page.
+  const showMainLayout = !isAdminPage && !isAuthPage;
 
   return (
     <html lang="en">
@@ -47,26 +33,43 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <title>Bills On Solar EA Limited</title>
         <meta name="description" content="Powering Your Tomorrow Sustainably with Solar Energy Solutions in Kenya." />
       </head>
-      <body className="flex flex-col min-h-screen bg-gray-50 text-graphite">
+      {/*
+        BEAUTIFICATION: We're switching from the generic 'bg-gray-50' to our new, brighter
+        'bg-cloud-white' for a more modern and premium feel across the entire site.
+        This ensures visual consistency with the new login/signup pages.
+      */}
+      <body className="flex flex-col min-h-screen bg-cloud-white text-graphite">
         <AuthProvider> 
-          {isAdminPage ? (
-            <>{children}</> 
-          ) : (
+          {showMainLayout ? (
+            // --- MAIN SITE LAYOUT ---
+            // This renders for pages like Home, Products, About, etc.
             <CartProvider>
               <WishlistProvider>
                 <ComparisonProvider>
                   <Header />
-                  {/* The mainPaddingTopClass is now conditionally applied here */}
-                  <main className={`flex-grow ${mainPaddingTopClass}`}> 
+                  {/*
+                    SIMPLIFIED PADDING: The padding is now applied consistently to all main site pages.
+                    This is more robust than maintaining a list of paths. The header's height is fixed,
+                    so the content on every page needs to be pushed down by the same amount.
+                    Values taken from your original code.
+                  */}
+                  <main className="flex-grow pt-[60px] lg:pt-[72px]"> 
                     {children} 
                   </main>
                   <Chatbot />
-                   <ScrollToTopButton /> {/* <<--- ADD IT HERE */}
+                  <ScrollToTopButton />
                   <Footer /> 
                   <ScrollProgress />
                 </ComparisonProvider>
               </WishlistProvider>
             </CartProvider>
+          ) : (
+            // --- AUTH & ADMIN LAYOUT ---
+            // This renders for /login, /signup, and /admin/*. It's a clean slate.
+            // The pages themselves (e.g., LoginPage) are responsible for their own full-screen layout.
+            <>
+              {children}
+            </>
           )}
         </AuthProvider>
       </body>
