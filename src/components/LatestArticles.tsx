@@ -8,8 +8,6 @@ import { motion } from 'framer-motion';
 import { BlogPost } from '@/types';
 import { CalendarDaysIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 
-// Animation variants for the container and items
-// THE FIX: Added 'as const' to tell TypeScript these are literal, unchanging values.
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -21,7 +19,6 @@ const containerVariants = {
   },
 } as const;
 
-// THE FIX: Added 'as const' here as well.
 const itemVariants = {
   hidden: { opacity: 0, y: 30 },
   visible: {
@@ -50,9 +47,15 @@ const SecondaryArticleCard = ({ post }: { post: BlogPost }) => (
           <h3 className="text-lg font-semibold text-graphite group-hover:text-solar-flare-end transition-colors line-clamp-2">{post.title}</h3>
         </Link>
         <div className="flex items-center space-x-2 text-xs text-gray-500 mt-2">
-          <CalendarDaysIcon className="h-4 w-4 text-gray-400" />
-          <time dateTime={post.published_at}>{new Date(post.published_at!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</time>
-          {post.category && <span>· {post.category}</span>}
+          {/* THE FIX: Added a check to ensure post.published_at exists before rendering */}
+          {post.published_at && (
+            <>
+              <CalendarDaysIcon className="h-4 w-4 text-gray-400" />
+              <time dateTime={post.published_at}>{new Date(post.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</time>
+              {post.category && <span>·</span>}
+            </>
+          )}
+          {post.category && <span>{post.category}</span>}
         </div>
       </div>
     </div>
@@ -65,7 +68,6 @@ const LatestArticles = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Data fetching logic is the same
     const fetchLatestArticles = async () => {
       setIsLoading(true);
       try {
@@ -95,7 +97,6 @@ const LatestArticles = () => {
   );
 
   if (isLoading || error || posts.length === 0) {
-    // Graceful handling of edge cases
     return (
       <div className="bg-white py-20 sm:py-28">
         <div className="container mx-auto px-4">
@@ -130,8 +131,13 @@ const LatestArticles = () => {
             </div>
             <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8 z-20 text-white">
               <div className="flex items-center space-x-3 text-xs opacity-80 mb-2">
-                <CalendarDaysIcon className="h-4 w-4" />
-                <time dateTime={featuredPost.published_at}>{new Date(featuredPost.published_at!).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
+                {/* THE FIX: Also added a check here for the featured post */}
+                {featuredPost.published_at && (
+                  <>
+                    <CalendarDaysIcon className="h-4 w-4" />
+                    <time dateTime={featuredPost.published_at}>{new Date(featuredPost.published_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
+                  </>
+                )}
                 {featuredPost.category && <span className="inline-block bg-solar-flare-end/80 px-2 py-0.5 rounded-full text-white font-medium">{featuredPost.category}</span>}
               </div>
               <h3 className="text-2xl sm:text-3xl font-bold text-shadow-md transition-colors group-hover:text-solar-flare-start">{featuredPost.title}</h3>
