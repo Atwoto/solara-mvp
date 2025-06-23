@@ -1,9 +1,9 @@
 'use client';
 
-import { FaWhatsapp } from 'react-icons/fa'; // You may need to install this: npm install react-icons
+import { FaWhatsapp } from 'react-icons/fa';
 
 const WhatsAppButton = () => {
-  // IMPORTANT: Replace this with your full phone number in international format, without '+', spaces, or dashes.
+  // Your phone number remains the same
   const phoneNumber = '254737555222'; 
   const whatsappLink = `https://wa.me/${phoneNumber}`;
 
@@ -16,7 +16,7 @@ const WhatsAppButton = () => {
       className="
         fixed 
         bottom-5 
-        right-5 
+        left-5   /* <--- THIS IS THE ONLY CHANGE (from right-5 to left-5) */
         z-50 
         h-14 w-14 
         bg-whatsapp 
@@ -41,7 +41,5 @@ const WhatsAppButton = () => {
     </a>
   );
 };
-
-// To move it to the LEFT side, simply change `right-5` to `left-5` in the className above.
 
 export default WhatsAppButton;
