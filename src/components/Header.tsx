@@ -23,42 +23,33 @@ interface BrandOrServiceGroup { name: string; products: ProductOrServiceLink[]; 
 interface SubCategory { name: string; href: string; count?: number; brands?: BrandOrServiceGroup[]; }
 interface TopLevelCategory { name: string; href: string; count?: number; subcategories?: SubCategory[]; }
 
-// --- NAVIGATION DATA ---
+// =======================================================================================
+// --- NAVIGATION DATA (IMPORTANT: PASTE YOUR DATA HERE) ---
+// =======================================================================================
 const mainNavLinks = [
   { name: 'Projects', href: '/projects' },
   { name: 'About Us', href: '/about' },
   { name: 'Contact Us', href: '/contact' },
   { name: 'Blog', href: '/blog'},
 ];
-const productCategoriesData: TopLevelCategory[] = [ /* Paste your productCategoriesData array here */ ];
-const installationServiceCategories: TopLevelCategory[] = [ /* Paste your installationServiceCategories array here */ ];
+const productCategoriesData: TopLevelCategory[] = [
+  // ... PASTE YOUR 'productCategoriesData' ARRAY CONTENT HERE ...
+];
+const installationServiceCategories: TopLevelCategory[] = [
+  // ... PASTE YOUR 'installationServiceCategories' ARRAY CONTENT HERE ...
+];
 
 
 // =======================================================================================
-//  INTERNAL SUB-COMPONENTS FOR CLEANLINESS
-//  (These are defined here but used in the main Header component below)
+//  INTERNAL SUB-COMPONENTS
 // =======================================================================================
 
-// --- 1. DESKTOP NAVIGATION COMPONENT ---
+// --- 1. DESKTOP NAVIGATION COMPONENT (UPDATED FOR HOVER) ---
 const DesktopNav = ({ pathname }: { pathname: string }) => {
   const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false);
   const [isServicesDropdownOpen, setIsServicesDropdownOpen] = useState(false);
-  const productsDropdownRef = useRef<HTMLDivElement>(null);
-  const servicesDropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-      setIsProductsDropdownOpen(false);
-      setIsServicesDropdownOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (productsDropdownRef.current && !productsDropdownRef.current.contains(event.target as Node)) setIsProductsDropdownOpen(false);
-      if (servicesDropdownRef.current && !servicesDropdownRef.current.contains(event.target as Node)) setIsServicesDropdownOpen(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  // Removed useRef and useEffect for click-outside logic as it's not needed for hover.
 
   const NavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
     const isActive = pathname === href || (href !== "/" && pathname.startsWith(href) && href.length > 1 && pathname.split('/')[1] === href.split('/')[1]);
@@ -112,11 +103,11 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
 
   return (
     <nav className="hidden lg:flex items-center space-x-1 xl:space-x-2">
-      {/* Products Dropdown */}
-      <div className="relative" ref={productsDropdownRef}>
-        <button type="button" onClick={() => { setIsProductsDropdownOpen(p => !p); setIsServicesDropdownOpen(false); }} className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ease-in-out hover:text-solar-flare-end ${pathname.startsWith('/products') || isProductsDropdownOpen ? 'font-semibold text-solar-flare-end' : 'text-graphite/70'}`}>
+      {/* Products Dropdown - NOW WITH HOVER */}
+      <div className="relative" onMouseEnter={() => { setIsProductsDropdownOpen(true); setIsServicesDropdownOpen(false); }} onMouseLeave={() => setIsProductsDropdownOpen(false)}>
+        <div className={`flex items-center px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-200 ease-in-out hover:text-solar-flare-end ${pathname.startsWith('/products') || isProductsDropdownOpen ? 'font-semibold text-solar-flare-end' : 'text-graphite/70'}`}>
           Products <ChevronDownIcon className={`ml-1 h-4 w-4 transition-transform duration-200 ${isProductsDropdownOpen ? 'rotate-180' : ''}`} />
-        </button>
+        </div>
         <AnimatePresence>
           {isProductsDropdownOpen && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ duration: 0.2 }} className="absolute left-0 mt-3 w-80 bg-white rounded-xl shadow-2xl border border-gray-200/80 z-[9999] p-1">
@@ -126,11 +117,11 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
         </AnimatePresence>
       </div>
 
-      {/* Services Dropdown */}
-      <div className="relative" ref={servicesDropdownRef}>
-         <button type="button" onClick={() => { setIsServicesDropdownOpen(p => !p); setIsProductsDropdownOpen(false); }} className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ease-in-out hover:text-solar-flare-end ${pathname.startsWith('/services') || isServicesDropdownOpen ? 'font-semibold text-solar-flare-end' : 'text-graphite/70'}`}>
+      {/* Services Dropdown - NOW WITH HOVER */}
+      <div className="relative" onMouseEnter={() => { setIsServicesDropdownOpen(true); setIsProductsDropdownOpen(false); }} onMouseLeave={() => setIsServicesDropdownOpen(false)}>
+        <div className={`flex items-center px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-200 ease-in-out hover:text-solar-flare-end ${pathname.startsWith('/services') || isServicesDropdownOpen ? 'font-semibold text-solar-flare-end' : 'text-graphite/70'}`}>
           Installation Services <ChevronDownIcon className={`ml-1 h-4 w-4 transition-transform duration-200 ${isServicesDropdownOpen ? 'rotate-180' : ''}`} />
-        </button>
+        </div>
          <AnimatePresence>
           {isServicesDropdownOpen && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ duration: 0.2 }} className="absolute left-0 mt-3 w-80 bg-white rounded-xl shadow-2xl border border-gray-200/80 z-[9999] p-1">
@@ -144,7 +135,6 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
     </nav>
   );
 };
-
 
 // --- 2. ACTION ICONS COMPONENT ---
 const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void; }) => {
@@ -169,7 +159,6 @@ const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void;
 
   return (
     <div className="flex items-center space-x-1 sm:space-x-2">
-      {/* Desktop Auth Status */}
       <div className="hidden lg:flex items-center space-x-4">
         {sessionStatus === 'authenticated' ? (
           <>
@@ -182,14 +171,12 @@ const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void;
           <Link href="/login" className="flex justify-center items-center bg-gradient-to-r from-solar-flare-start to-solar-flare-end px-5 py-2 text-sm font-semibold text-white rounded-full shadow-md hover:opacity-90 active:scale-[0.98] transition-all duration-300">Log In</Link>
         ) : <div className="h-9 w-24 bg-gray-200 rounded-full animate-pulse"></div>}
       </div>
-
       <IconButton onClick={openComparisonModal} ariaLabel="Compare items" badgeCount={comparisonItems.length}><ArrowsRightLeftIcon className="h-6 w-6" /></IconButton>
       <IconButton href="/wishlist" ariaLabel="View Wishlist" badgeCount={isWishlistLoading ? undefined : wishlistCount}><HeartIcon className="h-6 w-6" /></IconButton>
       <IconButton onClick={openCart} ariaLabel="Open shopping cart" badgeCount={getTotalItems()}><ShoppingCartIcon className="h-6 w-6" /></IconButton>
     </div>
   );
 };
-
 
 // --- 3. MOBILE MENU COMPONENT ---
 const MobileMenu = ({ isOpen, closeMenu, pathname }: { isOpen: boolean; closeMenu: () => void; pathname: string; }) => {
@@ -220,10 +207,7 @@ const MobileMenu = ({ isOpen, closeMenu, pathname }: { isOpen: boolean; closeMen
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
-          className="lg:hidden bg-white/95 backdrop-blur-lg absolute w-full shadow-2xl left-0 right-0 h-[calc(100vh-64px)] overflow-y-auto z-[9997]"
-        >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="lg:hidden bg-white/95 backdrop-blur-lg absolute w-full shadow-2xl left-0 right-0 h-[calc(100vh-64px)] overflow-y-auto z-[9997]">
           <div className="px-5 pt-5 pb-10">
             <nav className="flex flex-col">
               <MobileAccordion title="Products" data={productCategoriesData} isOpen={isMobileProductsOpen} onToggle={() => setIsMobileProductsOpen(p => !p)} />
@@ -257,7 +241,7 @@ const MobileMenu = ({ isOpen, closeMenu, pathname }: { isOpen: boolean; closeMen
 
 
 // =======================================================================================
-//  MAIN HEADER COMPONENT
+//  MAIN EXPORTED HEADER COMPONENT
 // =======================================================================================
 const Header = () => {
   const pathname = usePathname();
