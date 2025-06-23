@@ -1,5 +1,5 @@
 // tailwind.config.js
-const plugin = require('tailwindcss/plugin')
+const plugin = require('tailwindcss/plugin');
 
 module.exports = {
   content: [
@@ -8,17 +8,32 @@ module.exports = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    // There should only be ONE extend block.
     extend: {
+      // All your customizations go here as siblings.
       colors: {
         'deep-night': '#1a2b48',
         'solar-flare-start': '#FFC837',
         'solar-flare-end': '#FF8008',
-        'clean-air': '#F4F7F5', // You might have this as 'cloud-white'
-        'cloud-white': '#F7F9FA', // Let's ensure this one is here
+        'clean-air': '#F4F7F5',
+        'cloud-white': '#F7F9FA',
         'graphite': '#333333',
-        'whatsapp': '#25D366', 
+        'whatsapp': '#25D366',
       },
-      // Define text shadow values
+      animation: {
+        'infinite-scroll': 'infinite-scroll 30s linear infinite',
+        'infinite-scroll-reverse': 'infinite-scroll-reverse 30s linear infinite',
+      },
+      keyframes: {
+        'infinite-scroll': {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
+        'infinite-scroll-reverse': {
+          '0%': { transform: 'translateX(-50%)' },
+          '100%': { transform: 'translateX(0)' },
+        }
+      },
       textShadow: {
         sm: '0 1px 2px var(--tw-shadow-color)',
         DEFAULT: '0 2px 4px var(--tw-shadow-color)',
@@ -28,7 +43,6 @@ module.exports = {
   },
   plugins: [
     require('@tailwindcss/aspect-ratio'),
-    // Add the text-shadow plugin
     plugin(function ({ matchUtilities, theme }) {
       matchUtilities(
         { 'text-shadow': (value) => ({ textShadow: value }) },
@@ -36,4 +50,4 @@ module.exports = {
       )
     }),
   ],
-}
+};
