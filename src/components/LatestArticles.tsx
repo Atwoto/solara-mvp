@@ -9,6 +9,7 @@ import { BlogPost } from '@/types';
 import { CalendarDaysIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 
 // Animation variants for the container and items
+// THE FIX: Added 'as const' to tell TypeScript these are literal, unchanging values.
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -18,8 +19,9 @@ const containerVariants = {
       ease: 'easeOut',
     },
   },
-};
+} as const;
 
+// THE FIX: Added 'as const' here as well.
 const itemVariants = {
   hidden: { opacity: 0, y: 30 },
   visible: {
@@ -30,7 +32,7 @@ const itemVariants = {
       ease: 'easeOut',
     },
   },
-};
+} as const;
 
 // Reusable Article Card Component for secondary posts
 const SecondaryArticleCard = ({ post }: { post: BlogPost }) => (
