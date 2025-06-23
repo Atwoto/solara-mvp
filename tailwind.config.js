@@ -15,11 +15,14 @@ module.exports = {
         'graphite': '#333333',
         'whatsapp': '#25D366', 
       },
+      // --- ADD THIS ANIMATION BLOCK ---
+      animation: {
+        'ping-slow': 'ping 2.5s cubic-bezier(0, 0, 0.2, 1) infinite',
+      },
+      // ---------------------------------
     },
   },
   plugins: [
     require('@tailwindcss/aspect-ratio'),
   ],
-  
 }
-

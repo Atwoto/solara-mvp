@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { PhoneIcon, EnvelopeIcon, MapPinIcon, ClockIcon } from '@heroicons/react/24/solid';
+import { PhoneIcon, EnvelopeIcon, MapPinIcon } from '@heroicons/react/24/solid';
 
-// A small, reusable component for each piece of contact info
+// The reusable sub-component remains the same
 const ContactInfo = ({ icon, text, href }: { icon: React.ReactNode; text: string; href: string }) => (
   <a 
     href={href} 
@@ -16,16 +16,26 @@ const ContactInfo = ({ icon, text, href }: { icon: React.ReactNode; text: string
 
 export const TopBar = () => {
   return (
-    // The main container for the top bar
     <div className="bg-graphite text-white w-full">
       <div className="container mx-auto flex items-center justify-between px-4 py-2">
         
-        {/* Contact Info - This part will hide on smaller screens */}
+        {/* --- NEW: Mobile-only Phone Number --- */}
+        {/* This `flex md:hidden` block is ONLY visible on small screens. */}
+        <div className="flex md:hidden">
+          <ContactInfo 
+            icon={<PhoneIcon className="h-4 w-4" />} 
+            text="0737555222" 
+            href="tel:0737555222"
+          />
+        </div>
+
+        {/* --- This is the existing Desktop view --- */}
+        {/* This `hidden md:flex` block is ONLY visible on medium screens and up. */}
         <div className="hidden md:flex items-center space-x-6">
           <ContactInfo 
             icon={<MapPinIcon className="h-4 w-4" />} 
             text="Ashray industrial park, Off Enterprise Road" 
-            href="https://maps.google.com/?q=Ashray+industrial+park" // Example link
+            href="https://maps.google.com/?q=Ashray+industrial+park"
           />
           <ContactInfo 
             icon={<EnvelopeIcon className="h-4 w-4" />} 
@@ -39,10 +49,7 @@ export const TopBar = () => {
           />
         </div>
 
-        {/* This div is to push the button to the right when info is hidden */}
-        <div className="flex-grow md:hidden"></div>
-
-        {/* Contact Us Button */}
+        {/* The "Contact Us" button remains visible on all screen sizes */}
         <div>
           <Link 
             href="/contact" 
