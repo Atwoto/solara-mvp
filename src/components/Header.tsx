@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Fragment, ReactNode } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
@@ -10,7 +10,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { 
     ShoppingCartIcon, Bars3Icon, XMarkIcon, HeartIcon, 
     ArrowsRightLeftIcon, UserCircleIcon, ArrowLeftOnRectangleIcon, 
-    ArrowRightOnRectangleIcon, ChevronDownIcon, ChevronRightIcon, WrenchScrewdriverIcon
+    ArrowRightOnRectangleIcon, ChevronDownIcon, ChevronRightIcon
 } from '@heroicons/react/24/outline';
 import NextImage from 'next/image';
 import CartSidebar from './CartSidebar';
@@ -32,44 +32,77 @@ const mainNavLinks = [
   { name: 'Contact Us', href: '/contact' },
   { name: 'Blog', href: '/blog'},
 ];
+
 const productCategoriesData: TopLevelCategory[] = [
-  // ... PASTE YOUR 'productCategoriesData' ARRAY CONTENT HERE ...
-];
-const installationServiceCategories: TopLevelCategory[] = [
-  // ... PASTE YOUR 'installationServiceCategories' ARRAY CONTENT HERE ...
+  { name: 'Solar Panels', href: '/products?category=solar-panels', count: 21 },
+  {
+    name: 'Inverters', 
+    href: '/products?category=inverters',
+    subcategories: [
+      { name: 'Off-grid Inverters', href: '/products?category=off-grid-inverters', count: 8 },
+      { name: 'Hybrid Inverters', href: '/products?category=hybrid-inverters', count: 26 },
+      { name: 'Grid-tied Inverters', href: '/products?category=grid-tied-inverters', count: 15 }
+    ]
+  },
+  {
+    name: 'Battery', 
+    href: '/products?category=batteries',
+    subcategories: [
+      { name: 'Valve Regulated Lead Acid Battery', href: '/products?category=vrla-battery' },
+      { name: 'Lithium Ion Battery', href: '/products?category=lithium-ion-battery', count: 17 }
+    ]
+  },
+  { name: 'Portable Power Station', href: '/products?category=portable-power-station', count: 5 },
 ];
 
+const installationServiceCategories: TopLevelCategory[] = [
+  {
+    name: 'Residential',
+    href: '/services/residential',
+    subcategories: [
+      {
+        name: 'Solar Hybrid Systems',
+        href: '/services/residential-solar-hybrid-systems',
+        brands: [ 
+          {
+            name: 'Available Systems',
+            products: [
+              { name: '3kW Solar Hybrid System', href: '/services/residential-solar-hybrid-3kw' },
+              { name: '5kW Solar Hybrid System', href: '/services/residential-solar-hybrid-5kw' },
+              { name: '8kW Solar Hybrid System', href: '/services/residential-solar-hybrid-8kw' },
+            ]
+          }
+        ]
+      },
+      { name: 'Power Backup Systems', href: '/services/residential-power-backup-systems' }
+    ]
+  },
+  { name: 'Commercial', href: '/services/commercial-solar-solutions' },
+  { name: 'Industrial', href: '/services/industrial-solar-solutions' },
+  { name: 'Water Pumps Installation', href: '/services/water-pump-installation' }
+];
 
 // =======================================================================================
 //  INTERNAL SUB-COMPONENTS
 // =======================================================================================
 
-// --- 1. DESKTOP NAVIGATION COMPONENT (UPDATED FOR HOVER) ---
 const DesktopNav = ({ pathname }: { pathname: string }) => {
   const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false);
   const [isServicesDropdownOpen, setIsServicesDropdownOpen] = useState(false);
 
-  // Removed useRef and useEffect for click-outside logic as it's not needed for hover.
-
   const NavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
     const isActive = pathname === href || (href !== "/" && pathname.startsWith(href) && href.length > 1 && pathname.split('/')[1] === href.split('/')[1]);
-    return (
-      <Link href={href} className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ease-in-out hover:text-solar-flare-end ${isActive ? 'font-semibold text-solar-flare-end' : 'text-graphite/70'}`}>
-        {children}
-      </Link>
-    );
+    return <Link href={href} className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ease-in-out hover:text-solar-flare-end ${isActive ? 'font-semibold text-solar-flare-end' : 'text-graphite/70'}`}>{children}</Link>;
   };
 
   const DropdownMenu = ({ categoryL1, closeDropdown }: { categoryL1: TopLevelCategory, closeDropdown: () => void }) => (
     <div key={categoryL1.name} className="group/L1 relative text-gray-600"> 
         <div className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-solar-flare-start/10 hover:text-solar-flare-end transition-colors rounded-lg mx-1 my-0.5">
-            <Link href={categoryL1.href || '#'} onClick={closeDropdown} className="flex-grow font-medium">
-                {categoryL1.name}
-            </Link>
+            <Link href={categoryL1.href || '#'} onClick={closeDropdown} className="flex-grow font-medium">{categoryL1.name}</Link>
             {categoryL1.subcategories && <ChevronRightIcon className="h-4 w-4 text-gray-400 group-hover/L1:text-solar-flare-end" />}
         </div>
         {categoryL1.subcategories && (
-            <div className="absolute left-full top-0 mt-0 ml-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200/80 opacity-0 invisible group-hover/L1:opacity-100 group-hover/L1:visible transition-all duration-200 ease-in-out z-[99999] group-hover/L1:delay-50 pointer-events-none group-hover/L1:pointer-events-auto">
+            <div className="absolute left-full top-0 mt-0 ml-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200/80 opacity-0 invisible group-hover/L1:opacity-100 group-hover/L1:visible transition-all duration-200 ease-in-out z-20 group-hover/L1:delay-50 pointer-events-none group-hover/L1:pointer-events-auto">
                 <div className="py-1">
                     {categoryL1.subcategories.map((categoryL2) => (
                         <div key={categoryL2.name} className="group/L2 relative text-gray-600">
@@ -78,15 +111,13 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
                                 {categoryL2.brands && <ChevronRightIcon className="h-4 w-4 text-gray-400 group-hover/L2:text-solar-flare-end" />}
                             </Link>
                             {categoryL2.brands && (
-                                <div className="absolute left-full top-0 mt-0 ml-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200/80 opacity-0 invisible group-hover/L2:opacity-100 group-hover/L2:visible transition-all z-[999999] pointer-events-none group-hover/L2:pointer-events-auto">
+                                <div className="absolute left-full top-0 mt-0 ml-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200/80 opacity-0 invisible group-hover/L2:opacity-100 group-hover/L2:visible transition-all z-30 pointer-events-none group-hover/L2:pointer-events-auto">
                                     <div className="p-2">
                                         {categoryL2.brands.map((brand) => (
                                             <div key={brand.name} className="py-1">
                                                 <div className="text-xs font-semibold text-gray-400 mb-1 uppercase px-2">{brand.name}</div>
                                                 {brand.products.map((product) => (
-                                                    <Link key={product.name} href={product.href || '#'} onClick={closeDropdown} className="block px-2 py-1.5 text-xs text-gray-500 hover:text-solar-flare-end hover:bg-solar-flare-start/10 rounded-md transition-colors">
-                                                        {product.name}
-                                                    </Link>
+                                                    <Link key={product.name} href={product.href || '#'} onClick={closeDropdown} className="block px-2 py-1.5 text-xs text-gray-500 hover:text-solar-flare-end hover:bg-solar-flare-start/10 rounded-md transition-colors">{product.name}</Link>
                                                 ))}
                                             </div>
                                         ))}
@@ -103,40 +134,35 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
 
   return (
     <nav className="hidden lg:flex items-center space-x-1 xl:space-x-2">
-      {/* Products Dropdown - NOW WITH HOVER */}
       <div className="relative" onMouseEnter={() => { setIsProductsDropdownOpen(true); setIsServicesDropdownOpen(false); }} onMouseLeave={() => setIsProductsDropdownOpen(false)}>
         <div className={`flex items-center px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-200 ease-in-out hover:text-solar-flare-end ${pathname.startsWith('/products') || isProductsDropdownOpen ? 'font-semibold text-solar-flare-end' : 'text-graphite/70'}`}>
           Products <ChevronDownIcon className={`ml-1 h-4 w-4 transition-transform duration-200 ${isProductsDropdownOpen ? 'rotate-180' : ''}`} />
         </div>
         <AnimatePresence>
           {isProductsDropdownOpen && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ duration: 0.2 }} className="absolute left-0 mt-3 w-80 bg-white rounded-xl shadow-2xl border border-gray-200/80 z-[9999] p-1">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ duration: 0.2 }} className="absolute left-0 mt-3 w-80 bg-white rounded-xl shadow-2xl border border-gray-200/80 z-20 p-1">
                 {productCategoriesData.map((cat) => <DropdownMenu key={cat.name} categoryL1={cat} closeDropdown={() => setIsProductsDropdownOpen(false)} />)}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-
-      {/* Services Dropdown - NOW WITH HOVER */}
       <div className="relative" onMouseEnter={() => { setIsServicesDropdownOpen(true); setIsProductsDropdownOpen(false); }} onMouseLeave={() => setIsServicesDropdownOpen(false)}>
         <div className={`flex items-center px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-200 ease-in-out hover:text-solar-flare-end ${pathname.startsWith('/services') || isServicesDropdownOpen ? 'font-semibold text-solar-flare-end' : 'text-graphite/70'}`}>
           Installation Services <ChevronDownIcon className={`ml-1 h-4 w-4 transition-transform duration-200 ${isServicesDropdownOpen ? 'rotate-180' : ''}`} />
         </div>
          <AnimatePresence>
           {isServicesDropdownOpen && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ duration: 0.2 }} className="absolute left-0 mt-3 w-80 bg-white rounded-xl shadow-2xl border border-gray-200/80 z-[9999] p-1">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ duration: 0.2 }} className="absolute left-0 mt-3 w-80 bg-white rounded-xl shadow-2xl border border-gray-200/80 z-20 p-1">
                 {installationServiceCategories.map((cat) => <DropdownMenu key={cat.name} categoryL1={cat} closeDropdown={() => setIsServicesDropdownOpen(false)} />)}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-      
       {mainNavLinks.map((link) => <NavLink key={link.name} href={link.href}>{link.name}</NavLink>)}
     </nav>
   );
 };
 
-// --- 2. ACTION ICONS COMPONENT ---
 const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void; }) => {
   const { openCart, getTotalItems } = useCart();
   const { wishlistCount, isLoading: isWishlistLoading } = useWishlist();
@@ -147,11 +173,7 @@ const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void;
     const content = (
       <div className="relative p-2 rounded-full text-graphite/70 hover:text-solar-flare-end hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-solar-flare-end transition-all duration-200">
         {children}
-        {badgeCount !== undefined && badgeCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white">
-            {badgeCount > 9 ? '9+' : badgeCount}
-          </span>
-        )}
+        {badgeCount !== undefined && badgeCount > 0 && (<span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white">{badgeCount > 9 ? '9+' : badgeCount}</span>)}
       </div>
     );
     return href ? <Link href={href} aria-label={ariaLabel}>{content}</Link> : <button onClick={onClick} aria-label={ariaLabel}>{content}</button>;
@@ -163,9 +185,7 @@ const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void;
         {sessionStatus === 'authenticated' ? (
           <>
             <span className="text-sm text-graphite/80 truncate max-w-[150px]" title={session.user?.email ?? undefined}>Hi, {session.user?.name?.split(' ')[0] ?? ''}</span>
-            <button onClick={() => signOut()} className="group flex items-center text-sm font-medium text-graphite/70 hover:text-solar-flare-end transition-colors" title="Log Out">
-              <ArrowLeftOnRectangleIcon className="h-5 w-5 mr-1" /><span>Log Out</span>
-            </button>
+            <button onClick={() => signOut()} className="group flex items-center text-sm font-medium text-graphite/70 hover:text-solar-flare-end transition-colors" title="Log Out"><ArrowLeftOnRectangleIcon className="h-5 w-5 mr-1" /><span>Log Out</span></button>
           </>
         ) : sessionStatus === 'unauthenticated' ? (
           <Link href="/login" className="flex justify-center items-center bg-gradient-to-r from-solar-flare-start to-solar-flare-end px-5 py-2 text-sm font-semibold text-white rounded-full shadow-md hover:opacity-90 active:scale-[0.98] transition-all duration-300">Log In</Link>
@@ -178,7 +198,6 @@ const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void;
   );
 };
 
-// --- 3. MOBILE MENU COMPONENT ---
 const MobileMenu = ({ isOpen, closeMenu, pathname }: { isOpen: boolean; closeMenu: () => void; pathname: string; }) => {
   const [isMobileProductsOpen, setIsMobileProductsOpen] = useState(false);
   const [isMobileServicesOpen, setIsMobileServicesOpen] = useState(false);
@@ -191,15 +210,7 @@ const MobileMenu = ({ isOpen, closeMenu, pathname }: { isOpen: boolean; closeMen
         <ChevronDownIcon className={`h-5 w-5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       <AnimatePresence>
-        {isOpen && (
-          <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} transition={{ duration: 0.3, ease: 'easeInOut' }} className="overflow-hidden">
-            <div className="pt-2 pl-2 space-y-1">
-              {data.map((cat) => (
-                <Link key={cat.name} href={cat.href || '#'} onClick={closeMenu} className="block pl-2 pr-2 py-2 text-md font-medium text-gray-600 hover:text-solar-flare-end hover:bg-gray-100 rounded-lg">{cat.name}</Link>
-              ))}
-            </div>
-          </motion.div>
-        )}
+        {isOpen && (<motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} transition={{ duration: 0.3, ease: 'easeInOut' }} className="overflow-hidden"><div className="pt-2 pl-2 space-y-1">{data.map((cat) => (<Link key={cat.name} href={cat.href || '#'} onClick={closeMenu} className="block pl-2 pr-2 py-2 text-md font-medium text-gray-600 hover:text-solar-flare-end hover:bg-gray-100 rounded-lg">{cat.name}</Link>))}</div></motion.div>)}
       </AnimatePresence>
     </div>
   );
@@ -207,23 +218,18 @@ const MobileMenu = ({ isOpen, closeMenu, pathname }: { isOpen: boolean; closeMen
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="lg:hidden bg-white/95 backdrop-blur-lg absolute w-full shadow-2xl left-0 right-0 h-[calc(100vh-64px)] overflow-y-auto z-[9997]">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="lg:hidden bg-white/95 backdrop-blur-lg absolute w-full shadow-2xl left-0 right-0 h-[calc(100vh-64px)] overflow-y-auto z-50">
           <div className="px-5 pt-5 pb-10">
             <nav className="flex flex-col">
               <MobileAccordion title="Products" data={productCategoriesData} isOpen={isMobileProductsOpen} onToggle={() => setIsMobileProductsOpen(p => !p)} />
               <MobileAccordion title="Installation Services" data={installationServiceCategories} isOpen={isMobileServicesOpen} onToggle={() => setIsMobileServicesOpen(p => !p)} />
-              {mainNavLinks.map((link) => (
-                <Link key={link.name} href={link.href} className="block py-3 text-lg font-semibold border-b border-gray-200 text-graphite hover:text-solar-flare-end" onClick={closeMenu}>{link.name}</Link>
-              ))}
+              {mainNavLinks.map((link) => (<Link key={link.name} href={link.href} className="block py-3 text-lg font-semibold border-b border-gray-200 text-graphite hover:text-solar-flare-end" onClick={closeMenu}>{link.name}</Link>))}
               <div className="pt-8">
                 {sessionStatus === 'authenticated' ? (
                   <div className="space-y-4">
                      <div className="flex items-center">
                         {session.user?.image ? <NextImage src={session.user.image} alt="Avatar" width={40} height={40} className="rounded-full mr-3"/> : <UserCircleIcon className="h-10 w-10 text-gray-400 mr-3"/>}
-                        <div>
-                            <p className="font-semibold text-graphite">{session.user?.name}</p>
-                            <p className="text-sm text-gray-500">{session.user?.email}</p>
-                        </div>
+                        <div><p className="font-semibold text-graphite">{session.user?.name}</p><p className="text-sm text-gray-500">{session.user?.email}</p></div>
                      </div>
                      <button onClick={() => { signOut(); closeMenu(); }} className="w-full flex items-center justify-center py-3 rounded-lg text-md font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"><ArrowLeftOnRectangleIcon className="h-5 w-5 mr-2"/>Log Out</button>
                   </div>
@@ -239,10 +245,6 @@ const MobileMenu = ({ isOpen, closeMenu, pathname }: { isOpen: boolean; closeMen
   );
 };
 
-
-// =======================================================================================
-//  MAIN EXPORTED HEADER COMPONENT
-// =======================================================================================
 const Header = () => {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -252,20 +254,15 @@ const Header = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-[9998] w-full bg-white/80 text-graphite shadow-sm backdrop-blur-md border-b border-gray-200/80">
+      <header className="sticky top-0 z-50 w-full bg-white/80 text-graphite shadow-sm backdrop-blur-md border-b border-gray-200/80">
         <div className="container mx-auto flex items-center justify-between p-3 sm:p-4">
-          
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center group">
-              <div className="relative h-8 w-8 sm:h-10 sm:w-10">
-                <NextImage src="/images/logo.png" alt="Bills On Solar EA Limited Logo" fill className="object-contain" sizes="40px"/>
-              </div>
+              <div className="relative h-8 w-8 sm:h-10 sm:w-10"><NextImage src="/images/logo.png" alt="Bills On Solar EA Limited Logo" fill className="object-contain" sizes="40px"/></div>
               <span className="ml-2 sm:ml-3 text-lg sm:text-xl font-bold text-graphite group-hover:text-solar-flare-end transition-colors">Bills On Solar</span>
             </Link>
           </div>
-
           <DesktopNav pathname={pathname} />
-
           <div className="flex items-center">
             <ActionIcons openComparisonModal={() => setIsComparisonModalOpen(true)} />
             <div className="lg:hidden flex items-center ml-2">
@@ -275,10 +272,8 @@ const Header = () => {
             </div>
           </div>
         </div>
-
         <MobileMenu isOpen={isMobileMenuOpen} closeMenu={() => setIsMobileMenuOpen(false)} pathname={pathname}/>
       </header>
-
       <CartSidebar /> 
       <ComparisonModal isOpen={isComparisonModalOpen} onClose={() => setIsComparisonModalOpen(false)} />
     </>
