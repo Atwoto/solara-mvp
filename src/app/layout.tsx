@@ -1,5 +1,4 @@
 // src/app/layout.tsx
-
 'use client'; 
 
 import { ReactNode } from 'react';
@@ -8,6 +7,7 @@ import { CartProvider } from '@/context/CartContext';
 import { WishlistProvider } from '@/context/WishlistContext';
 import { ComparisonProvider } from '@/context/ComparisonContext';
 import Header from '@/components/Header';
+import { TopBar } from '@/components/layout/TopBar'; // <--- 1. IMPORT THE NEW COMPONENT
 import Footer from '@/components/Footer';
 import Chatbot from '@/components/Chatbot';
 import ScrollProgress from '@/components/ScrollProgress';
@@ -17,14 +17,8 @@ import './globals.css';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-
-  // 1. DEFINE OUR DISTINCT LAYOUT ZONES
-  // These are the routes that will have a clean, header-less, footer-less layout.
   const isAdminPage = pathname.startsWith('/admin');
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup') || pathname.startsWith('/forgot-password');
-  
-  // 2. DETERMINE IF THE MAIN LAYOUT SHOULD BE SHOWN
-  // The main layout (with Header/Footer) appears on every page that is NOT an admin or auth page.
   const showMainLayout = !isAdminPage && !isAuthPage;
 
   return (
@@ -33,29 +27,30 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <title>Bills On Solar EA Limited</title>
         <meta name="description" content="Powering Your Tomorrow Sustainably with Solar Energy Solutions in Kenya." />
       </head>
-      {/*
-        BEAUTIFICATION: We're switching from the generic 'bg-gray-50' to our new, brighter
-        'bg-cloud-white' for a more modern and premium feel across the entire site.
-        This ensures visual consistency with the new login/signup pages.
-      */}
       <body className="flex flex-col min-h-screen bg-cloud-white text-graphite">
         <AuthProvider> 
           {showMainLayout ? (
-            // --- MAIN SITE LAYOUT ---
-            // This renders for pages like Home, Products, About, etc.
             <CartProvider>
               <WishlistProvider>
                 <ComparisonProvider>
-                  <Header />
+                  
+                  {/* --- 2. WRAP TOPBAR AND HEADER IN A STICKY CONTAINER --- */}
+                  <div className="sticky top-0 z-50 w-full">
+                    <TopBar />
+                    <Header />
+                  </div>
+                  
                   {/*
-                    SIMPLIFIED PADDING: The padding is now applied consistently to all main site pages.
-                    This is more robust than maintaining a list of paths. The header's height is fixed,
-                    so the content on every page needs to be pushed down by the same amount.
-                    Values taken from your original code.
+                    The main content still needs padding, but now it's from the *entire* sticky group.
+                    You may need to slightly adjust the `pt-[...]` value to get the spacing perfect.
+                    Let's start by adding the TopBar's approximate height (e.g., 36px) to the existing padding.
+                    pt-[60px] becomes pt-[96px]
+                    pt-[72px] becomes pt-[108px]
                   */}
-                  <main className="flex-grow pt-[60px] lg:pt-[72px]"> 
+                  <main className="flex-grow pt-[96px] lg:pt-[108px] relative z-10"> 
                     {children} 
                   </main>
+
                   <Chatbot />
                   <ScrollToTopButton />
                   <Footer /> 
@@ -64,12 +59,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               </WishlistProvider>
             </CartProvider>
           ) : (
-            // --- AUTH & ADMIN LAYOUT ---
-            // This renders for /login, /signup, and /admin/*. It's a clean slate.
-            // The pages themselves (e.g., LoginPage) are responsible for their own full-screen layout.
-            <>
-              {children}
-            </>
+            <>{children}</>
           )}
         </AuthProvider>
       </body>
