@@ -1,6 +1,8 @@
+// app/page.tsx
+
 import Hero from '@/components/Hero';
 import InteractiveShowcase from '@/components/InteractiveShowcase';
-import StatsCounter from '@/components/StatsCounter'; // <-- 1. IMPORT THE NEW COMPONENT
+import StatsCounter from '@/components/StatsCounter';
 import ProductCatalog from '@/components/ProductCatalog';
 import WhyChooseUs from '@/components/WhyChooseUs';
 import ScrollAnimationWrapper from '@/components/ScrollAnimationWrapper';
@@ -8,6 +10,7 @@ import PartnersSection from '@/components/PartnersSection';
 import TestimonialSlider from '@/components/TestimonialSlider';
 import LatestArticles from '@/components/LatestArticles';
 import AboutSection from '@/components/AboutSection';
+import ContactSection from '@/components/ContactSection'; // Import the new component
 import Head from 'next/head';
 
 export default function HomePage() {
@@ -24,10 +27,6 @@ export default function HomePage() {
         <InteractiveShowcase />
       </ScrollAnimationWrapper>
 
-      {/* 
-        This is the NEW dynamic stats section, placed right after the showcase
-        and wrapped in your animation wrapper for a consistent feel.
-      */}
       <ScrollAnimationWrapper>
         <StatsCounter />
       </ScrollAnimationWrapper>
@@ -41,9 +40,12 @@ export default function HomePage() {
         />
       </ScrollAnimationWrapper>
 
-      <ScrollAnimationWrapper>
-        <AboutSection />
-      </ScrollAnimationWrapper>
+      {/* --- ANCHOR #1: ABOUT US --- */}
+      <section id="about-us">
+        <ScrollAnimationWrapper>
+          <AboutSection />
+        </ScrollAnimationWrapper>
+      </section>
 
       <ScrollAnimationWrapper>
         <WhyChooseUs />
@@ -52,14 +54,24 @@ export default function HomePage() {
       <ScrollAnimationWrapper>
         <PartnersSection /> 
       </ScrollAnimationWrapper>
-      
+       {/* --- ANCHOR #3: CONTACT US --- */}
+      <section id="contact-us">
+        <ScrollAnimationWrapper>
+          <ContactSection />
+        </ScrollAnimationWrapper>
+      </section>
       <ScrollAnimationWrapper>
         <TestimonialSlider />
       </ScrollAnimationWrapper>
       
-      <ScrollAnimationWrapper>
-        <LatestArticles />
-      </ScrollAnimationWrapper>
+      {/* --- ANCHOR #2: BLOG --- */}
+      <section id="blog">
+        <ScrollAnimationWrapper>
+          <LatestArticles />
+        </ScrollAnimationWrapper>
+      </section>
+      
+     
     </>
   );
 }

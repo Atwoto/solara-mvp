@@ -15,13 +15,11 @@ import ScrollToTopButton from '@/components/ScrollToTopButton';
 import AuthProvider from '@/components/AuthProvider'; 
 import './globals.css';
 
-// --- THIS IS THE FIX FOR THE VERCEL BUILD ERROR ---
-// Global styles like these can only be imported in the root layout file.
+// --- Global styles ---
 import 'swiper/css';
 import 'swiper/css/effect-fade';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
-// --------------------------------------------------
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -34,7 +32,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   const showMainLayout = !isAdminPage && !isAuthPage;
 
   return (
-    <html lang="en">
+    // THIS IS THE ONLY CHANGE: added className="scroll-smooth"
+    <html lang="en" className="scroll-smooth"> 
       <head>
         <title>Bills On Solar EA Limited</title>
         <meta name="description" content="Powering Your Tomorrow Sustainably with Solar Energy Solutions in Kenya." />

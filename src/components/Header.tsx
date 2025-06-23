@@ -1,3 +1,5 @@
+// components/Header.tsx
+
 'use client';
 
 import { useState, useEffect, ReactNode } from 'react';
@@ -25,14 +27,15 @@ interface TopLevelCategory { name: string; href: string; count?: number; subcate
 
 
 // =======================================================================================
-// --- NAVIGATION DATA (IMPORTANT: PASTE YOUR DATA HERE) ---
+// --- NAVIGATION DATA (IMPORTANT: THIS IS THE KEY CHANGE) ---
 // =======================================================================================
 const mainNavLinks = [
   { name: 'Projects', href: '/projects' },
-  { name: 'About Us', href: '/about' },
-  { name: 'Contact Us', href: '/contact' },
-  { name: 'Blog', href: '/blog'},
+  { name: 'About Us', href: '/#about-us' },   // Changed from /about
+  { name: 'Contact Us', href: '/#contact-us' }, // Changed from /contact
+  { name: 'Blog', href: '/#blog'},           // Changed from /blog
 ];
+
 const productCategoriesData: TopLevelCategory[] = [
   { name: 'Solar Panels', href: '/products?category=solar-panels', count: 21 },
   { name: 'Inverters', href: '/products?category=inverters', subcategories: [
@@ -62,7 +65,7 @@ const installationServiceCategories: TopLevelCategory[] = [
 
 
 // =======================================================================================
-//  INTERNAL SUB-COMPONENTS
+//  INTERNAL SUB-COMPONENTS (No changes below this line, provided for completeness)
 // =======================================================================================
 
 const DesktopNav = ({ pathname }: { pathname: string }) => {
@@ -113,7 +116,6 @@ const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void;
   return (<div className="flex items-center space-x-1 sm:space-x-2"><div className="hidden lg:flex items-center space-x-4">{sessionStatus === 'authenticated' ? (<><span className="text-sm text-graphite/80 truncate max-w-[150px]" title={session.user?.email ?? undefined}>Hi, {session.user?.name?.split(' ')[0] ?? ''}</span><button onClick={() => signOut()} className="group flex items-center text-sm font-medium text-graphite/70 hover:text-solar-flare-end transition-colors" title="Log Out"><ArrowLeftOnRectangleIcon className="h-5 w-5 mr-1" /><span>Log Out</span></button></>) : sessionStatus === 'unauthenticated' ? (<Link href="/login" className="flex justify-center items-center bg-gradient-to-r from-solar-flare-start to-solar-flare-end px-5 py-2 text-sm font-semibold text-white rounded-full shadow-md hover:opacity-90 active:scale-[0.98] transition-all duration-300">Log In</Link>) : <div className="h-9 w-24 bg-gray-200 rounded-full animate-pulse"></div>}</div><IconButton onClick={openComparisonModal} ariaLabel="Compare items" badgeCount={comparisonItems.length}><ArrowsRightLeftIcon className="h-6 w-6" /></IconButton><IconButton href="/wishlist" ariaLabel="View Wishlist" badgeCount={isWishlistLoading ? undefined : wishlistCount}><HeartIcon className="h-6 w-6" /></IconButton><IconButton onClick={openCart} ariaLabel="Open shopping cart" badgeCount={getTotalItems()}><ShoppingCartIcon className="h-6 w-6" /></IconButton></div>);
 };
 
-// --- NEW RECURSIVE MOBILE MENU ---
 const MobileRecursiveMenu = ({ items, closeMenu, level = 0 }: { items: TopLevelCategory[] | SubCategory[]; closeMenu: () => void; level?: number; }) => {
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
 
@@ -196,9 +198,6 @@ const MobileMenu = ({ isOpen, closeMenu }: { isOpen: boolean; closeMenu: () => v
   );
 };
 
-// =======================================================================================
-//  MAIN EXPORTED HEADER COMPONENT
-// =======================================================================================
 const Header = () => {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
