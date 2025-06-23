@@ -13,14 +13,13 @@ module.exports = {
         'solar-flare-end': '#FF8008',
         'clean-air': '#F4F7F5',
         'graphite': '#333333',
-      
-      'whatsapp': '#25D366', // <-- ADD THIS LINE
-    },
+        'whatsapp': '#25D366', 
       },
     },
   },
   plugins: [
     require('@tailwindcss/aspect-ratio'),
   ],
+  
 }
 

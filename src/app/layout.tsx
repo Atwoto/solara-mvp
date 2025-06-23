@@ -9,11 +9,19 @@ import Header from '@/components/Header';
 import { TopBar } from '@/components/layout/TopBar';
 import Footer from '@/components/Footer';
 import Chatbot from '@/components/Chatbot';
-import WhatsAppButton from '@/components/WhatsAppButton'; // <-- 1. IMPORT THE WHATSAPP BUTTON
+import WhatsAppButton from '@/components/WhatsAppButton';
 import ScrollProgress from '@/components/ScrollProgress';
 import ScrollToTopButton from '@/components/ScrollToTopButton';
 import AuthProvider from '@/components/AuthProvider'; 
 import './globals.css';
+
+// --- THIS IS THE FIX FOR THE VERCEL BUILD ERROR ---
+// Global styles like these can only be imported in the root layout file.
+import 'swiper/css';
+import 'swiper/css/effect-fade';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+// --------------------------------------------------
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -55,7 +63,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
                   {/* Floating Action Buttons and Global Components */}
                   <Chatbot />
-                  <WhatsAppButton /> {/* <-- 2. ADD THE WHATSAPP BUTTON COMPONENT HERE */}
+                  <WhatsAppButton />
                   <ScrollToTopButton />
                   <Footer /> 
                   <ScrollProgress />
