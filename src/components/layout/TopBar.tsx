@@ -52,7 +52,7 @@ export const TopBar = () => {
         {/* The "Contact Us" button remains visible on all screen sizes */}
         <div>
           <Link 
-            href="/contact" 
+            href="/#contact-us" 
             className="px-4 py-1.5 text-xs font-bold text-deep-night bg-gradient-to-r from-solar-flare-start to-solar-flare-end rounded-full shadow-sm hover:opacity-90 transition-opacity"
           >
             CONTACT US
