@@ -1,4 +1,3 @@
-// src/app/layout.tsx
 'use client'; 
 
 import { ReactNode } from 'react';
@@ -7,9 +6,10 @@ import { CartProvider } from '@/context/CartContext';
 import { WishlistProvider } from '@/context/WishlistContext';
 import { ComparisonProvider } from '@/context/ComparisonContext';
 import Header from '@/components/Header';
-import { TopBar } from '@/components/layout/TopBar'; // <--- 1. IMPORT THE NEW COMPONENT
+import { TopBar } from '@/components/layout/TopBar';
 import Footer from '@/components/Footer';
 import Chatbot from '@/components/Chatbot';
+import WhatsAppButton from '@/components/WhatsAppButton'; // <-- 1. IMPORT THE WHATSAPP BUTTON
 import ScrollProgress from '@/components/ScrollProgress';
 import ScrollToTopButton from '@/components/ScrollToTopButton';
 import AuthProvider from '@/components/AuthProvider'; 
@@ -17,8 +17,12 @@ import './globals.css';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+
+  // Define our distinct layout zones
   const isAdminPage = pathname.startsWith('/admin');
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup') || pathname.startsWith('/forgot-password');
+  
+  // Determine if the main layout (Header, Footer, etc.) should be shown
   const showMainLayout = !isAdminPage && !isAuthPage;
 
   return (
@@ -30,36 +34,40 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="flex flex-col min-h-screen bg-cloud-white text-graphite">
         <AuthProvider> 
           {showMainLayout ? (
+            // --- MAIN SITE LAYOUT ---
             <CartProvider>
               <WishlistProvider>
                 <ComparisonProvider>
                   
-                  {/* --- 2. WRAP TOPBAR AND HEADER IN A STICKY CONTAINER --- */}
+                  {/* Sticky container for both TopBar and Header */}
                   <div className="sticky top-0 z-50 w-full">
                     <TopBar />
                     <Header />
                   </div>
                   
-                  {/*
-                    The main content still needs padding, but now it's from the *entire* sticky group.
-                    You may need to slightly adjust the `pt-[...]` value to get the spacing perfect.
-                    Let's start by adding the TopBar's approximate height (e.g., 36px) to the existing padding.
-                    pt-[60px] becomes pt-[96px]
-                    pt-[72px] becomes pt-[108px]
+                  {/* 
+                    Main content area with padding to avoid being hidden by the sticky header group.
+                    The `relative z-10` ensures dropdown menus from the header appear ON TOP of this content.
                   */}
                   <main className="flex-grow pt-[96px] lg:pt-[108px] relative z-10"> 
                     {children} 
                   </main>
 
+                  {/* Floating Action Buttons and Global Components */}
                   <Chatbot />
+                  <WhatsAppButton /> {/* <-- 2. ADD THE WHATSAPP BUTTON COMPONENT HERE */}
                   <ScrollToTopButton />
                   <Footer /> 
                   <ScrollProgress />
+
                 </ComparisonProvider>
               </WishlistProvider>
             </CartProvider>
           ) : (
-            <>{children}</>
+            // --- AUTH & ADMIN LAYOUT (Clean slate) ---
+            <>
+              {children}
+            </>
           )}
         </AuthProvider>
       </body>
