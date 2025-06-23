@@ -15,14 +15,16 @@ import { HeartIcon as HeartOutline, ArrowsRightLeftIcon as ArrowsRightLeftOutlin
 import { Product as ProductType } from '@/types';
 
 // Animation variants for the container and items
+// THE FIX: Added 'as const' to both variant definitions.
 const containerVariants = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.1 } },
-};
+} as const;
+
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
-};
+} as const;
 
 interface ProductCatalogProps {
   limit?: number;
@@ -56,7 +58,6 @@ const ProductCatalog = ({
     : titleText;
 
   useEffect(() => {
-    // --- Data fetching logic remains the same ---
     const fetchProducts = async () => {
       setIsLoading(true);
       setError(null);
@@ -83,7 +84,7 @@ const ProductCatalog = ({
   };
 
   const handleWishlistToggle = (e: React.MouseEvent, productId: string) => {
-    e.preventDefault(); // Prevent link navigation
+    e.preventDefault(); 
     if (!session) {
       alert('Please log in to use the wishlist.');
       router.push('/login');
@@ -93,13 +94,12 @@ const ProductCatalog = ({
   };
 
   const handleCompareToggle = (e: React.MouseEvent, product: ProductType) => {
-    e.preventDefault(); // Prevent link navigation
+    e.preventDefault(); 
     toggleComparison(product);
   };
 
   const productsToDisplay = limit ? products.slice(0, limit) : products;
 
-  // --- Render states ---
   if (isLoading) return <div className={`${sectionBg} py-24 text-center text-gray-500`}>Loading Products...</div>;
   if (error) return <div className={`${sectionBg} py-24 text-center text-red-500`}>Error: Could not load products.</div>;
 
@@ -131,7 +131,6 @@ const ProductCatalog = ({
               return (
                 <motion.div key={product.id} variants={itemVariants}>
                   <Link href={`/products/${product.id}`} className="block relative group rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300">
-                    {/* --- Image and Default Info --- */}
                     <div className="relative w-full h-72 bg-gray-200">
                       {product.image_url ? (
                           <Image src={product.image_url} alt={product.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" priority={index < 4} />
@@ -145,7 +144,6 @@ const ProductCatalog = ({
                       </div>
                     </div>
 
-                    {/* --- THE "WOW" FACTOR: Action Panel Reveal on Hover --- */}
                     <div className="absolute inset-x-0 bottom-0 p-5 bg-white/80 backdrop-blur-md transform translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out">
                         <div className="flex items-end justify-between">
                           <div className="flex flex-col">
