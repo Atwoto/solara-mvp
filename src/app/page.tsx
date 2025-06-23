@@ -1,14 +1,14 @@
-// src/app/page.tsx
 import Hero from '@/components/Hero';
 import InteractiveShowcase from '@/components/InteractiveShowcase';
-import ProductCatalog from '@/components/ProductCatalog'; // Your updated ProductCatalog
+import StatsCounter from '@/components/StatsCounter'; // <-- 1. IMPORT THE NEW COMPONENT
+import ProductCatalog from '@/components/ProductCatalog';
 import WhyChooseUs from '@/components/WhyChooseUs';
 import ScrollAnimationWrapper from '@/components/ScrollAnimationWrapper';
 import PartnersSection from '@/components/PartnersSection';
 import TestimonialSlider from '@/components/TestimonialSlider';
 import LatestArticles from '@/components/LatestArticles';
 import AboutSection from '@/components/AboutSection';
-import Head from 'next/head'; // For page-specific head elements
+import Head from 'next/head';
 
 export default function HomePage() {
   return (
@@ -16,7 +16,6 @@ export default function HomePage() {
       <Head>
         <title>Bills On Solar EA Limited - Affordable Solar Energy Solutions</title>
         <meta name="description" content="Powering your tomorrow with reliable and affordable solar energy solutions in Kenya. Explore our range of solar panels, inverters, and more." />
-        {/* Add other meta tags like Open Graph, keywords etc. */}
       </Head>
       
       <Hero />
@@ -25,13 +24,20 @@ export default function HomePage() {
         <InteractiveShowcase />
       </ScrollAnimationWrapper>
 
-      {/* Use ProductCatalog with limit and other props */}
+      {/* 
+        This is the NEW dynamic stats section, placed right after the showcase
+        and wrapped in your animation wrapper for a consistent feel.
+      */}
+      <ScrollAnimationWrapper>
+        <StatsCounter />
+      </ScrollAnimationWrapper>
+
       <ScrollAnimationWrapper>
         <ProductCatalog 
-          limit={6}                 // <<--- Show only 6 products
-          showTitle={true}          // <<--- Show "Featured Products" title
-          showExploreButton={true}  // <<--- Show "Explore All Products" button
-          gridCols="lg:grid-cols-3" // <<--- You can specify grid columns if needed, default is 3
+          limit={6}
+          showTitle={true}
+          showExploreButton={true}
+          gridCols="lg:grid-cols-3"
         />
       </ScrollAnimationWrapper>
 
