@@ -20,27 +20,44 @@ const createSupabaseClientForUser = (session: Session) => {
 // --- GET User's Cart ---
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  
+  // THE FIX: The check for `supabaseAdmin` is removed. The session check is sufficient.
+  if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   try {
     const supabase = createSupabaseClientForUser(session);
-    // NOTE: This assumes you have Row Level Security (RLS) enabled on your 'cart'
-    // and 'cart_items' tables, allowing users to only see their own data.
+    
+    // This query now relies on RLS (Row Level Security) being enabled in your Supabase dashboard
+    // to ensure users can only access their own cart.
     const { data, error } = await supabase
       .from('cart')
       .select(`id, cart_items (product_id, quantity, products (*))`)
       .single();
 
-    if (error && error.code !== 'PGRST116') throw error;
-    if (!data) return NextResponse.json([]); // No cart found, return empty array
+    if (error && error.code !== 'PGRST116') { // 'PGRST116' means no cart found, which is okay.
+      throw error;
+    }
+    
+    // If no cart exists, create one.
+    if (!data) {
+      const { data: newCart, error: createError } = await supabase.from('cart').insert({}).select().single();
+      if (createError) throw createError;
+      return NextResponse.json([]); // Return empty cart for the new user.
+    }
 
     const cartItems = data.cart_items.map(item => ({...item.products, quantity: item.quantity}));
     return NextResponse.json(cartItems);
 
   } catch (error: any) {
+    console.error("GET /api/cart Error:", error.message);
     return NextResponse.json({ error: "Failed to fetch cart.", details: error.message }, { status: 500 });
   }
 }
+
+// POST, PUT, DELETE operations would be similarly refactored to use `createSupabaseClientForUser`
+// It is crucial that any future modifications to this file follow this pattern.
 
 
 
