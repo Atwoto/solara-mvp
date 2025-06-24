@@ -42,13 +42,20 @@ export async function GET(req: NextRequest) {
             return NextResponse.json([]); 
         }
 
-        // --- FIXED: Simplified type assertion ---
+        // --- FIXED: Explicit handling of Supabase response ---
         const validCartItems: AppCartItemType[] = data.cart_items
             .filter(item => item && item.products) // Ensure item and its nested product exist
-            .map(item => ({
-                ...(item.products as AppProductType), // Direct type assertion
-                quantity: item.quantity,
-            }) as AppCartItemType);
+            .map(item => {
+                const product = item.products as any; // Handle Supabase response
+                return {
+                    id: product.id,
+                    created_at: product.created_at,
+                    name: product.name,
+                    price: product.price,
+                    image_url: product.image_url,
+                    quantity: item.quantity,
+                } as AppCartItemType;
+            });
             
         return NextResponse.json(validCartItems);
 
