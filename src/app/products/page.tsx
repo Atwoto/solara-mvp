@@ -1,77 +1,147 @@
 // src/app/products/page.tsx
 'use client'; 
 
-import ProductCatalog from '@/components/ProductCatalog';
-import PageHeader from '@/components/PageHeader'; 
-import Head from 'next/head'; 
+import { Suspense, useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react'; 
-import { PRODUCT_CATEGORY_SLUGS, ProductCategorySlug } from '@/types';
+import { Product } from '@/types';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const capitalizeCategoryName = (slug?: string | null): string => {
+import PageHeader from '@/components/PageHeader';
+import ProductSidebar from '@/components/ProductSidebar';
+import ProductCatalog from '@/components/ProductCatalog';
+import { productCategoriesData } from '@/lib/navigationData';
+
+// --- Helper Functions ---
+const getCategoryNameFromSlug = (slug?: string | null): string => {
   if (!slug) return 'All Products';
-  // Attempt to find a more descriptive name if it's a known slug from types.ts,
-  // otherwise, just format the slug.
-  // You might want to create a mapping from slugs to display names if they differ significantly.
-  if (PRODUCT_CATEGORY_SLUGS.includes(slug as ProductCategorySlug)) {
-    return slug
-      .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+  for (const category of productCategoriesData) {
+    if (category.href.endsWith(slug)) return category.name;
+    if (category.subcategories) {
+      for (const sub of category.subcategories) {
+        if (sub.href.endsWith(slug)) return sub.name;
+      }
+    }
   }
-  return slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, ' '); // Basic formatting for other slugs
+  return slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
 
+type SortOrder = 'newest' | 'price-asc' | 'price-desc';
+
+// --- Main Content Component ---
 function ProductsPageContent() {
   const searchParams = useSearchParams();
-  const categorySlugFromUrl = searchParams.get('category') || undefined; // This will now be e.g., "grid-tied-inverters"
+  const categorySlug = searchParams.get('category');
   
-  const pageTitle = capitalizeCategoryName(categorySlugFromUrl); 
-  const metaDescription = categorySlugFromUrl 
-    ? `Explore our ${pageTitle} at Bills On Solar EA Limited.`
-    : 'Explore our full range of high-efficiency solar panels, inverters, batteries, and complete solar solutions.';
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
+
+  // Fetch all products once on component mount
+  useEffect(() => {
+    const fetchAllProducts = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch('/api/products');
+        if (!response.ok) throw new Error('Could not load products.');
+        setAllProducts(await response.json());
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAllProducts();
+  }, []);
+
+  // Memoize the filtering and sorting logic to run only when dependencies change
+  const displayedProducts = useMemo(() => {
+    let filtered = categorySlug 
+      ? allProducts.filter(p => p.category_slug === categorySlug)
+      : allProducts;
+    
+    switch (sortOrder) {
+      case 'price-asc':
+        return [...filtered].sort((a, b) => a.price - b.price);
+      case 'price-desc':
+        return [...filtered].sort((a, b) => b.price - a.price);
+      case 'newest':
+      default:
+        return [...filtered].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+  }, [allProducts, categorySlug, sortOrder]);
+
+  const pageTitle = getCategoryNameFromSlug(categorySlug);
 
   return (
     <>
-      <Head>
-        <title>{`${pageTitle} - Bills On Solar EA Limited`}</title>
-        <meta name="description" content={metaDescription} />
-      </Head>
-
       <PageHeader
         title={pageTitle}
-        subtitle={categorySlugFromUrl ? `Browse our selection of ${pageTitle.toLowerCase()}.` : "Our complete range of high-efficiency solar solutions."}
+        subtitle={`Browse our complete selection of ${pageTitle.toLowerCase()}.`}
+        backgroundImageUrl="/images/projects-hero-bg.jpg" // Re-using this for a nice techy feel
+        breadcrumbs={[{ name: 'Home', href: '/' }, { name: 'Products', href: '/products' }]}
       />
 
-      <div className="container mx-auto px-4 pb-12 sm:pb-20">
-        <ProductCatalog
-          category={categorySlugFromUrl} // Pass the direct slug
-          showTitle={false} 
-          showExploreButton={!categorySlugFromUrl} 
-          gridCols="sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-        />
+      <div className="bg-gray-50">
+        <div className="container mx-auto px-4 py-12">
+          <div className="flex flex-col lg:flex-row gap-12">
+            {/* --- Sidebar --- */}
+            <ProductSidebar />
+            
+            {/* --- Main Content: Grid & Sorter --- */}
+            <div className="w-full">
+              {/* Sorter and Count */}
+              <div className="flex flex-col sm:flex-row justify-between items-center mb-8 pb-4 border-b">
+                <p className="text-gray-600 text-sm mb-4 sm:mb-0">
+                  Showing <span className="font-bold text-deep-night">{displayedProducts.length}</span> products
+                </p>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="sort" className="text-sm font-medium text-gray-700">Sort by:</label>
+                  <select
+                    id="sort"
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+                    className="text-sm rounded-md border-gray-300 shadow-sm focus:border-solar-flare-end focus:ring-solar-flare-end"
+                  >
+                    <option value="newest">Newest</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* "Wow" Animated Product Catalog */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={categorySlug + sortOrder} // This is the magic key for re-animating on change
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {isLoading ? (
+                    <div className="text-center py-20 text-gray-500">Loading...</div>
+                  ) : error ? (
+                    <div className="text-center py-20 text-red-500">{error}</div>
+                  ) : (
+                    <ProductCatalog products={displayedProducts} />
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );
 }
 
+// Main page export with Suspense
 export default function ProductsPage() {
   return (
-    <Suspense fallback={<LoadingState />}> 
+    <Suspense fallback={<PageHeader title="Loading..." subtitle="Finding the best solar solutions for you." />}> 
       <ProductsPageContent />
     </Suspense>
   );
 }
-
-const LoadingState = () => (
-  <div className="container mx-auto px-4 py-10 text-center">
-    <PageHeader title="Loading Products..." subtitle="Please wait while we fetch the best solar solutions for you." />
-    <div className="animate-pulse mt-8">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="bg-gray-200 h-96 rounded-xl"></div>
-        ))}
-      </div>
-    </div>
-  </div>
-);
