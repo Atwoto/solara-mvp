@@ -31,9 +31,8 @@ const WishlistClientPage = () => {
   const [wishlistProducts, setWishlistProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [movedToCartId, setMovedToCartId] = useState<string | null>(null); // For button feedback
+  const [movedToCartId, setMovedToCartId] = useState<string | null>(null);
 
-  // Data fetching logic remains the same
   useEffect(() => {
     const fetchWishlistProducts = async () => {
       if (isWishlistLoading) return setIsLoadingProducts(true);
@@ -59,7 +58,6 @@ const WishlistClientPage = () => {
     addToCart(product, 1);
     removeFromWishlist(product.id);
     setMovedToCartId(product.id);
-    // No timeout needed, item will disappear from view
   };
 
   const isLoadingPage = isWishlistLoading || isLoadingProducts;
@@ -78,7 +76,6 @@ const WishlistClientPage = () => {
   return ( 
     <div className="bg-gray-50 min-h-[calc(100vh-300px)] py-12 sm:py-16">
         <div className="container mx-auto px-4">
-            {/* --- Polished Header --- */}
             <div className="text-center mb-12">
                 <h1 className="text-3xl sm:text-4xl font-extrabold text-graphite">
                     My <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-500 to-pink-500">Wishlist</span>
@@ -111,7 +108,7 @@ const WishlistClientPage = () => {
                             <motion.div 
                                 key={product.id} 
                                 variants={itemVariants}
-                                layout // This makes the grid reflow smoothly
+                                layout
                                 exit="exit"
                                 className="group flex flex-col bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300"
                             >
@@ -132,7 +129,8 @@ const WishlistClientPage = () => {
                                             className={`w-full flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white rounded-lg shadow-md transition-all duration-300 ${movedToCartId === product.id ? 'bg-green-500' : 'bg-gradient-to-r from-solar-flare-start to-solar-flare-end hover:opacity-90'}`}
                                         >
                                             {movedToCartId === product.id ? <CheckIcon className="h-5 w-5 mr-2"/> : <ShoppingCartIcon className="h-5 w-5 mr-2"/>}
-                                            {movedTo-cart-id === product.id ? 'Moved!' : 'Move to Cart'}
+                                            {/* THE FIX: Corrected the variable name here */}
+                                            {movedToCartId === product.id ? 'Moved!' : 'Move to Cart'}
                                         </button>
                                         <button 
                                             onClick={() => removeFromWishlist(product.id)}
