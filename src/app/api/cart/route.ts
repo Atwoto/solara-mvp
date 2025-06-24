@@ -42,19 +42,19 @@ export async function GET(req: NextRequest) {
         }
 
         // --- THE DEFINITIVE, BULLETPROOF FIX IS HERE ---
-        // We use the .reduce() method for a completely type-safe transformation.
-        // It iterates through the items, and only if an item's 'products' field is valid,
-        // does it add a correctly-shaped CartItem to the new array.
+        // This handles the actual data structure where `products` is an array.
         const validCartItems = data.cart_items.reduce((acc: AppCartItemType[], item) => {
-          // This 'if' check is the most robust type guard.
-          if (item && item.products) {
+          // Check if item exists, if 'products' is an array, and if it's not empty
+          if (item && Array.isArray(item.products) && item.products.length > 0) {
+            // Extract the actual product object from the first element of the array
+            const productData = item.products[0];
             acc.push({
-              ...item.products, // Spread the full product object
+              ...productData, // Spread the actual product object
               quantity: item.quantity,
             });
           }
           return acc;
-        }, []); // Start with an empty array of the correct type.
+        }, []);
             
         return NextResponse.json(validCartItems);
 
@@ -105,12 +105,12 @@ export async function POST(req: NextRequest) {
             upsertedItem = data;
         }
 
-        if (!upsertedItem || !upsertedItem.products) {
-            throw new Error("Failed to process cart item.");
+        if (!upsertedItem || !Array.isArray(upsertedItem.products) || upsertedItem.products.length === 0) {
+            throw new Error("Failed to process cart item or retrieve product details.");
         }
 
         const finalItem: AppCartItemType = {
-            ...(upsertedItem.products as AppProductType),
+            ...(upsertedItem.products[0] as AppProductType),
             quantity: upsertedItem.quantity
         };
 
