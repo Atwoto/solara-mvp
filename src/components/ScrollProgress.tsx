@@ -1,30 +1,35 @@
 // src/components/ScrollProgress.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
+import { motion, useScroll, useTransform, useMotionValueEvent, AnimatePresence } from 'framer-motion';
 
 const ScrollProgress = () => {
-  const [progress, setProgress] = useState(0);
+  const { scrollYProgress } = useScroll();
   const [isVisible, setIsVisible] = useState(false);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const totalHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-      const scrollPosition = window.scrollY;
-      
-      if (scrollPosition > 200) {
-        setIsVisible(true);
-      } else {
-        setIsVisible(false);
-      }
-      
-      setProgress((scrollPosition / totalHeight) * 100);
-    };
+  // This is the modern, performant way to react to scroll changes.
+  useMotionValueEvent(scrollYProgress, "change", (latest) => {
+    // Show button after scrolling past 10% of the page
+    if (latest > 0.1) {
+      setIsVisible(true);
+    } else {
+      setIsVisible(false);
+    }
+  });
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  // --- THE "WOW" UPGRADES ---
+  // 1. Create a motion value that maps scroll (0-1) to percentage (0-100)
+  const progressPercentage = useTransform(scrollYProgress, [0, 1], [0, 100]);
+  
+  // 2. Create a motion value for the background using the percentage. This animates smoothly.
+  const background = useTransform(
+    progressPercentage,
+    (p) => `conic-gradient(#FF8008 ${p}%, #e0e0e0 ${p}%)`
+  );
+
+  // 3. Create a rounded motion value for the text display so it counts up smoothly.
+  const roundedPercentage = useTransform(progressPercentage, (latest) => Math.round(latest));
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -33,20 +38,25 @@ const ScrollProgress = () => {
   return (
     <AnimatePresence>
       {isVisible && (
-        // **THE FIX IS HERE:** Changed bottom-5 left-5 to bottom-24 right-5
         <motion.button
           onClick={scrollToTop}
-          className="fixed bottom-24 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full"
-          style={{
-            background: `conic-gradient(#FF8008 ${progress}%, #e0e0e0 ${progress}%)`,
-          }}
-          initial={{ opacity: 0, scale: 0.5 }}
+          // THE FIX: Correctly positioned above the chatbot.
+          className="fixed bottom-28 right-5 z-50 flex h-16 w-16 items-center justify-center rounded-full shadow-lg"
+          style={{ background }} // Use the smooth, transformed background
+          initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.5 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          whileHover={{ scale: 1.1, transition: { type: 'spring', stiffness: 300 } }}
+          whileTap={{ scale: 0.95 }}
+          aria-label="Scroll to top"
         >
           {/* Inner circle */}
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white">
-            <span className="text-sm font-bold text-deep-night">{Math.round(progress)}%</span>
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white">
+            {/* This motion.span will display the animated number */}
+            <motion.span className="text-sm font-bold text-deep-night">
+              {roundedPercentage}
+            </motion.span>
+            <span className="text-sm font-bold text-deep-night">%</span>
           </div>
         </motion.button>
       )}
