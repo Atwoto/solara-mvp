@@ -17,16 +17,20 @@ import NextImage from 'next/image';
 import CartSidebar from './CartSidebar';
 import ComparisonModal from './ComparisonModal';
 import { motion, AnimatePresence } from 'framer-motion';
+import { productCategoriesData } from '@/lib/navigationData';
 
-// --- Type Definitions ---
-interface SubCategory { name: string; href: string; }
-interface TopLevelCategory { name: string; href: string; subcategories?: SubCategory[]; }
+// --- THE FIX: A SINGLE RECURSIVE TYPE FOR ALL NAVIGATION ---
+// This type can contain itself, allowing for infinite nesting levels.
+interface NavCategory {
+  name: string;
+  href: string;
+  count?: number;
+  subcategories?: NavCategory[]; // It can have an array of itself
+}
 
 // =======================================================================================
-// --- NAVIGATION DATA (NOW IMPORTED FROM CENTRAL FILE) ---
+// --- NAVIGATION DATA ---
 // =======================================================================================
-import { productCategoriesData } from '@/lib/navigationData'; // <-- We are now importing this
-
 const mainNavLinks = [
   { name: 'Projects', href: '/projects' },
   { name: 'About Us', href: '/#about-us' },
@@ -34,10 +38,7 @@ const mainNavLinks = [
   { name: 'Blog', href: '/#blog' },
 ];
 
-// THE OLD, HARD-CODED `productCategoriesData` ARRAY HAS BEEN DELETED FROM HERE.
-
-// Installation service categories can remain here or be moved to navigationData.ts as well for consistency.
-const installationServiceCategories: TopLevelCategory[] = [
+const installationServiceCategories: NavCategory[] = [ // Using the new NavCategory type
   { name: 'Residential', href: '/services/residential', subcategories: [
       { name: 'Solar Hybrid Systems', href: '/services/residential-solar-hybrid-systems', subcategories: [
           { name: '3kW Solar Hybrid System', href: '/services/residential-solar-hybrid-3kw' },
@@ -53,7 +54,7 @@ const installationServiceCategories: TopLevelCategory[] = [
 
 
 // =======================================================================================
-//  (The rest of the component code remains the same)
+//  INTERNAL SUB-COMPONENTS
 // =======================================================================================
 
 const DesktopNav = ({ pathname }: { pathname: string }) => {
@@ -63,7 +64,7 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
     const isActive = pathname === href || (href !== "/" && pathname.startsWith(href) && href.length > 1 && pathname.split('/')[1] === href.split('/')[1]);
     return <Link href={href} className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ease-in-out hover:text-solar-flare-end ${isActive ? 'font-semibold text-solar-flare-end' : 'text-graphite/70'}`}>{children}</Link>;
   };
-  const DropdownMenu = ({ categoryL1, closeDropdown }: { categoryL1: TopLevelCategory, closeDropdown: () => void }) => (
+  const DropdownMenu = ({ categoryL1, closeDropdown }: { categoryL1: NavCategory, closeDropdown: () => void }) => (
     <div key={categoryL1.name} className="group/L1 relative text-gray-600"> 
         <div className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-solar-flare-start/10 hover:text-solar-flare-end transition-colors rounded-lg mx-1 my-0.5">
             <Link href={categoryL1.href || '#'} onClick={closeDropdown} className="flex-grow font-medium">{categoryL1.name}</Link>
@@ -92,7 +93,6 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
     </nav>
   );
 };
-
 const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void; }) => {
   const { openCart, getTotalItems } = useCart();
   const { wishlistCount, isLoading: isWishlistLoading } = useWishlist();
@@ -105,10 +105,15 @@ const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void;
   return (<div className="flex items-center space-x-1 sm:space-x-2"><div className="hidden lg:flex items-center space-x-4">{sessionStatus === 'authenticated' ? (<><span className="text-sm text-graphite/80 truncate max-w-[150px]" title={session.user?.email ?? undefined}>Hi, {session.user?.name?.split(' ')[0] ?? ''}</span><button onClick={() => signOut()} className="group flex items-center text-sm font-medium text-graphite/70 hover:text-solar-flare-end transition-colors" title="Log Out"><ArrowLeftOnRectangleIcon className="h-5 w-5 mr-1" /><span>Log Out</span></button></>) : sessionStatus === 'unauthenticated' ? (<Link href="/login" className="flex justify-center items-center bg-gradient-to-r from-solar-flare-start to-solar-flare-end px-5 py-2 text-sm font-semibold text-white rounded-full shadow-md hover:opacity-90 active:scale-[0.98] transition-all duration-300">Log In</Link>) : <div className="h-9 w-24 bg-gray-200 rounded-full animate-pulse"></div>}</div><IconButton onClick={openComparisonModal} ariaLabel="Compare items" badgeCount={comparisonItems.length}><ArrowsRightLeftIcon className="h-6 w-6" /></IconButton><IconButton href="/wishlist" ariaLabel="View Wishlist" badgeCount={isWishlistLoading ? undefined : wishlistCount}><HeartIcon className="h-6 w-6" /></IconButton><IconButton onClick={openCart} ariaLabel="Open shopping cart" badgeCount={getTotalItems()}><ShoppingCartIcon className="h-6 w-6" /></IconButton></div>);
 };
 
-const MobileRecursiveMenu = ({ items, closeMenu, level = 0 }: { items: TopLevelCategory[]; closeMenu: () => void; level?: number; }) => {
+const MobileRecursiveMenu = ({ items, closeMenu, level = 0 }: { items: NavCategory[]; closeMenu: () => void; level?: number; }) => {
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
-  const toggleItem = (name: string) => { setOpenItems(prev => ({ ...prev, [name]: !prev[name] })); };
-  const hasSubcategories = (item: TopLevelCategory) => (item.subcategories && item.subcategories.length > 0);
+
+  const toggleItem = (name: string) => {
+    setOpenItems(prev => ({ ...prev, [name]: !prev[name] }));
+  };
+  
+  const hasSubcategories = (item: NavCategory) => (item.subcategories && item.subcategories.length > 0);
+
   return (
     <div className={`space-y-1 ${level > 0 ? `pl-3 border-l-2 border-gray-200 ml-2` : ''}`}>
       {items.map((item) => (
@@ -116,12 +121,37 @@ const MobileRecursiveMenu = ({ items, closeMenu, level = 0 }: { items: TopLevelC
           <div className="flex items-center justify-between rounded-md hover:bg-gray-100">
             <Link
               href={item.href || '#'}
-              onClick={(e) => { if (!hasSubcategories(item)) { closeMenu(); } else { e.preventDefault(); toggleItem(item.name); } }}
+              onClick={(e) => {
+                if (!hasSubcategories(item)) {
+                  closeMenu();
+                } else {
+                  e.preventDefault();
+                  toggleItem(item.name);
+                }
+              }}
               className="flex-grow py-2.5 px-2 text-md font-medium text-gray-700"
-            >{item.name}</Link>
-            {hasSubcategories(item) && (<button onClick={() => toggleItem(item.name)} className="p-2.5 text-gray-400"><ChevronDownIcon className={`h-5 w-5 transition-transform duration-300 ${openItems[item.name] ? 'rotate-180 text-solar-flare-end' : ''}`} /></button>)}
+            >
+              {item.name}
+            </Link>
+            {hasSubcategories(item) && (
+              <button onClick={() => toggleItem(item.name)} className="p-2.5 text-gray-400">
+                <ChevronDownIcon className={`h-5 w-5 transition-transform duration-300 ${openItems[item.name] ? 'rotate-180 text-solar-flare-end' : ''}`} />
+              </button>
+            )}
           </div>
-          <AnimatePresence>{hasSubcategories(item) && openItems[item.name] && (<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: 'easeInOut' }} className="overflow-hidden"><MobileRecursiveMenu items={item.subcategories!} closeMenu={closeMenu} level={level + 1} /></motion.div>)}</AnimatePresence>
+          <AnimatePresence>
+            {hasSubcategories(item) && openItems[item.name] && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="overflow-hidden"
+              >
+                <MobileRecursiveMenu items={item.subcategories!} closeMenu={closeMenu} level={level + 1} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       ))}
     </div>
@@ -135,9 +165,19 @@ const MobileMenu = ({ isOpen, closeMenu }: { isOpen: boolean; closeMenu: () => v
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="lg:hidden bg-white/95 backdrop-blur-lg absolute w-full shadow-2xl left-0 right-0 h-[calc(100vh-64px)] overflow-y-auto z-[9997]">
           <div className="px-4 pt-4 pb-10">
             <nav className="flex flex-col space-y-2">
-              <div className="border-b pb-2"><h3 className="px-2 text-sm font-semibold text-gray-400 uppercase tracking-wider">Products</h3><MobileRecursiveMenu items={productCategoriesData} closeMenu={closeMenu} /></div>
-              <div className="border-b pb-2"><h3 className="px-2 pt-2 text-sm font-semibold text-gray-400 uppercase tracking-wider">Services</h3><MobileRecursiveMenu items={installationServiceCategories} closeMenu={closeMenu} /></div>
-              <div className="pt-2">{mainNavLinks.map((link) => (<Link key={link.name} href={link.href} className="block py-2.5 px-2 text-md font-medium text-gray-700 hover:bg-gray-100 rounded-md" onClick={closeMenu}>{link.name}</Link>))}</div>
+              <div className="border-b pb-2">
+                <h3 className="px-2 text-sm font-semibold text-gray-400 uppercase tracking-wider">Products</h3>
+                <MobileRecursiveMenu items={productCategoriesData} closeMenu={closeMenu} />
+              </div>
+              <div className="border-b pb-2">
+                <h3 className="px-2 pt-2 text-sm font-semibold text-gray-400 uppercase tracking-wider">Services</h3>
+                <MobileRecursiveMenu items={installationServiceCategories} closeMenu={closeMenu} />
+              </div>
+              <div className="pt-2">
+                {mainNavLinks.map((link) => (
+                    <Link key={link.name} href={link.href} className="block py-2.5 px-2 text-md font-medium text-gray-700 hover:bg-gray-100 rounded-md" onClick={closeMenu}>{link.name}</Link>
+                ))}
+              </div>
               <div className="pt-8">{sessionStatus === 'authenticated' ? (<div className="space-y-4"><div className="flex items-center">{session.user?.image ? <NextImage src={session.user.image} alt="Avatar" width={40} height={40} className="rounded-full mr-3"/> : <UserCircleIcon className="h-10 w-10 text-gray-400 mr-3"/>}<div><p className="font-semibold text-graphite">{session.user?.name}</p><p className="text-sm text-gray-500">{session.user?.email}</p></div></div><button onClick={() => { signOut(); closeMenu(); }} className="w-full flex items-center justify-center py-3 rounded-lg text-md font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"><ArrowLeftOnRectangleIcon className="h-5 w-5 mr-2"/>Log Out</button></div>) : sessionStatus === 'unauthenticated' ? (<Link href="/login" onClick={closeMenu} className="w-full flex items-center justify-center bg-gradient-to-r from-solar-flare-start to-solar-flare-end py-3 text-md font-semibold text-white rounded-full shadow-md hover:opacity-90 active:scale-[0.98] transition-all duration-300">Log In / Sign Up</Link>) : null}</div>
             </nav>
           </div>
@@ -147,6 +187,9 @@ const MobileMenu = ({ isOpen, closeMenu }: { isOpen: boolean; closeMenu: () => v
   );
 };
 
+// =======================================================================================
+//  MAIN EXPORTED HEADER COMPONENT
+// =======================================================================================
 const Header = () => {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -156,11 +199,20 @@ const Header = () => {
     <>
       <header className="sticky top-0 z-[49] w-full bg-white/80 text-graphite shadow-sm backdrop-blur-md border-b border-gray-200/80">
         <div className="container mx-auto flex items-center justify-between p-3 sm:p-4">
-          <div className="flex-shrink-0"><Link href="/" className="flex items-center group"><div className="relative h-8 w-8 sm:h-10 sm:w-10"><NextImage src="/images/logo.png" alt="Bills On Solar EA Limited Logo" fill className="object-contain" sizes="40px"/></div><span className="ml-2 sm:ml-3 text-lg sm:text-xl font-bold text-graphite group-hover:text-solar-flare-end transition-colors">Bills On Solar</span></Link></div>
+          <div className="flex-shrink-0">
+            <Link href="/" className="flex items-center group">
+              <div className="relative h-8 w-8 sm:h-10 sm:w-10">
+                <NextImage src="/images/logo.png" alt="Bills On Solar EA Limited Logo" fill className="object-contain" sizes="40px"/>
+              </div>
+              <span className="ml-2 sm:ml-3 text-lg sm:text-xl font-bold text-graphite group-hover:text-solar-flare-end transition-colors">Bills On Solar</span>
+            </Link>
+          </div>
           <DesktopNav pathname={pathname} />
           <div className="flex items-center">
             <ActionIcons openComparisonModal={() => setIsComparisonModalOpen(true)} />
-            <div className="lg:hidden flex items-center ml-2"><button className="p-2 rounded-md text-graphite/70 hover:text-solar-flare-end hover:bg-gray-100" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label="Toggle mobile menu">{isMobileMenuOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}</button></div>
+            <div className="lg:hidden flex items-center ml-2">
+              <button className="p-2 rounded-md text-graphite/70 hover:text-solar-flare-end hover:bg-gray-100" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label="Toggle mobile menu">{isMobileMenuOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}</button>
+            </div>
           </div>
         </div>
         <MobileMenu isOpen={isMobileMenuOpen} closeMenu={() => setIsMobileMenuOpen(false)} />
