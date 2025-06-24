@@ -14,6 +14,7 @@ import WhatsAppButton from '@/components/WhatsAppButton';
 import ScrollProgress from '@/components/ScrollProgress';
 import ScrollToTopButton from '@/components/ScrollToTopButton'; // You might have renamed/removed this for ScrollProgress
 import AuthProvider from '@/components/AuthProvider'; 
+import SupabaseListener from '@/components/SupabaseListener';
 import './globals.css';
 
 // --- Global styles ---
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className="flex flex-col min-h-screen bg-cloud-white text-graphite">
         <AuthProvider> 
+        <SupabaseListener />
           {showMainLayout ? (
             <CartProvider>
               <WishlistProvider>
