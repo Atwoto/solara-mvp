@@ -1,38 +1,30 @@
 // src/components/SupabaseListener.tsx
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react'; // Import useMemo
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabaseClient';
+import { signIn, signOut } from 'next-auth/react';
 
-// This component will be a client-side listener for Supabase auth events.
 export default function SupabaseListener() {
   const router = useRouter();
-  const supabase = createSupabaseBrowserClient();
+  
+  // THE FIX: Create the client instance once using useMemo.
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
   useEffect(() => {
-    // This listener fires every time the user's auth state changes.
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      // The SIGNED_IN event fires after a successful login.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN') {
-        // A router.refresh() is a "soft" refresh. It re-fetches server data
-        // and re-renders Server Components without losing client-side state.
-        // This is the key to making the UI update.
+        await signIn('credentials', { session: JSON.stringify(session), redirect: false });
         router.refresh();
       }
-      // The SIGNED_OUT event fires after a successful logout.
       if (event === 'SIGNED_OUT') {
+        await signOut({ redirect: false });
         router.refresh();
       }
     });
-
-    // Cleanup the subscription when the component unmounts
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => { subscription.unsubscribe(); };
   }, [supabase, router]);
 
-  return null; // This component renders nothing. It's just a listener.
+  return null;
 }

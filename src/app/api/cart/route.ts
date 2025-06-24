@@ -1,94 +1,48 @@
 // src/app/api/cart/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseClient';
+import { createClient } from '@supabase/supabase-js';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { Product as AppProductType, CartItem as AppCartItemType } from '@/types';
 import type { Session } from 'next-auth';
 
-// Define types for Supabase responses more explicitly if needed
-interface SupabaseCartItemWithProduct {
-    product_id: string;
-    quantity: number;
-    products: AppProductType | null; // Product can be null if join fails or product deleted
-}
-
-interface SupabaseCart {
-    id: string;
-    cart_items: SupabaseCartItemWithProduct[];
-}
-
-async function getOrCreateCart(userId: string): Promise<{ id: string; existingCartItems: AppCartItemType[] } | null> {
-    if (!supabaseAdmin) {
-        console.error("API CART: getOrCreateCart - Supabase admin client not initialized.");
-        return null;
-    }
-
-    let { data: cartData, error: cartError } = await supabaseAdmin
-        .from('cart')
-        .select(`
-            id,
-            cart_items (
-                product_id,
-                quantity,
-                products (*)
-            )
-        `)
-        .eq('user_id', userId)
-        .single<SupabaseCart>();
-
-    if (cartError && cartError.code !== 'PGRST116') { // PGRST116 means "no rows found", which is fine.
-        console.error('Error fetching cart in getOrCreateCart:', cartError);
-        return null;
-    }
-
-    if (cartData) {
-        const existingCartItems: AppCartItemType[] = cartData.cart_items
-            .filter(ci => ci.products !== null) // Filter out items where product might be null
-            .map((ci) => ({
-                ...(ci.products as AppProductType), 
-                quantity: ci.quantity,
-            }));
-        return { id: cartData.id, existingCartItems };
-    }
-
-    // If no cart exists, create one
-    const { data: newCartData, error: newCartError } = await supabaseAdmin
-        .from('cart')
-        .insert({ user_id: userId })
-        .select('id')
-        .single<{ id: string }>();
-
-    if (newCartError || !newCartData) {
-        console.error('Error creating new cart in getOrCreateCart:', newCartError);
-        return null;
-    }
-    return { id: newCartData.id, existingCartItems: [] };
-}
+// Helper to create a user-specific Supabase client
+const createSupabaseClientForUser = (session: Session) => {
+  const accessToken = (session as any).supabaseAccessToken;
+  if (!accessToken) throw new Error("User is not authenticated with Supabase.");
+  
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
+  );
+};
 
 // --- GET User's Cart ---
-export async function GET(req: NextRequest) {
-    try {
-        const session = await getServerSession(authOptions);
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        if (!session?.user?.id) {
-            return NextResponse.json({ error: "Unauthorized: User not authenticated." }, { status: 401 });
-        }
-        if (!supabaseAdmin) {
-            return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
-        }
+  try {
+    const supabase = createSupabaseClientForUser(session);
+    // NOTE: This assumes you have Row Level Security (RLS) enabled on your 'cart'
+    // and 'cart_items' tables, allowing users to only see their own data.
+    const { data, error } = await supabase
+      .from('cart')
+      .select(`id, cart_items (product_id, quantity, products (*))`)
+      .single();
 
-        const cartDataResult = await getOrCreateCart(session.user.id);
-        if (!cartDataResult) {
-            return NextResponse.json({ error: "Could not retrieve or create cart." }, { status: 500 });
-        }
-        return NextResponse.json(cartDataResult.existingCartItems);
+    if (error && error.code !== 'PGRST116') throw error;
+    if (!data) return NextResponse.json([]); // No cart found, return empty array
 
-    } catch (error: any) {
-        console.error("Error in GET /api/cart:", error);
-        return NextResponse.json({ error: "Failed to fetch cart.", details: error.message }, { status: 500 });
-    }
+    const cartItems = data.cart_items.map(item => ({...item.products, quantity: item.quantity}));
+    return NextResponse.json(cartItems);
+
+  } catch (error: any) {
+    return NextResponse.json({ error: "Failed to fetch cart.", details: error.message }, { status: 500 });
+  }
 }
+
+
 
 // --- POST (Add Item to Cart / Update Quantity) ---
 export async function POST(req: NextRequest) {

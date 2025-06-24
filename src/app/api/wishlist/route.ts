@@ -1,50 +1,44 @@
 // src/app/api/wishlist/route.ts
-
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServerSession } from 'next-auth/next';
-import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from "@/lib/auth";
-import { supabaseAdmin } from '@/lib/supabaseClient'; // Import the admin client for consistency and permissions
+import type { Session } from 'next-auth';
 
-// NOTE: You don't need to create a new client here if you import supabaseAdmin from your lib
+// Helper to create a user-specific Supabase client
+const createSupabaseClientForUser = (session: Session) => {
+  const accessToken = (session as any).supabaseAccessToken;
+  if (!accessToken) throw new Error("User is not authenticated with Supabase.");
+
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
+  );
+};
 
 // GET: Fetch the user's wishlist
-export async function GET(req: NextRequest) {
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+
   try {
-    const session = await getServerSession(authOptions);
+    const supabase = createSupabaseClientForUser(session);
+    // This assumes RLS is enabled on 'wishlist_items'
+    const { data, error } = await supabase.from('wishlist_items').select('product_id');
 
-    if (!session?.user?.id) {
-      console.error("API WISHLIST GET: Not authenticated");
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    }
+    if (error) throw error;
     
-    if (!supabaseAdmin) {
-        console.error("API WISHLIST GET: Supabase admin client not initialized.");
-        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-    }
-
-    const { data, error } = await supabaseAdmin
-      .from('wishlist_items')
-      .select('product_id') // Select just the needed column
-      .eq('user_id', session.user.id);
-
-    if (error) {
-      console.error("API WISHLIST GET: Supabase error", error);
-      throw error;
-    }
-
-    // --- START OF FIX ---
-    // Return the array of objects directly.
-    // The data from Supabase will be: [ { product_id: '...' }, { product_id: '...' } ]
-    // This matches the `WishlistApiResponseItem[]` type that your context expects.
-    return NextResponse.json(data || []); 
-    // --- END OF FIX ---
+    // The context expects an array of product IDs, not objects.
+    const wishlistIds = data.map(item => item.product_id);
+    return NextResponse.json(wishlistIds || []); 
 
   } catch (error: any) {
-    console.error("Error fetching wishlist:", error);
-    return NextResponse.json({ error: error.message || 'An internal server error occurred.' }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+// POST and DELETE logic can be re-added here, using the `createSupabaseClientForUser` method.
 
 // POST: Add an item to the wishlist
 export async function POST(req: NextRequest) {
