@@ -10,138 +10,77 @@ import type { Session } from 'next-auth';
 const createSupabaseClientForUser = (session: Session) => {
   const accessToken = (session as any).supabaseAccessToken;
   if (!accessToken) throw new Error("User is not authenticated with Supabase.");
-  
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
   );
 };
 
-// --- GET User's Cart ---
-export async function GET(req: NextRequest) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const supabase = createSupabaseClientForUser(session);
+    const { data, error } = await supabase.from('cart').select(`id, cart_items(product_id, quantity, products(*))`).single();
+    if (error && error.code !== 'PGRST116') throw error;
+    if (!data) {
+      const { error: createError } = await supabase.from('cart').insert({ user_id: session.user.id });
+      if (createError) throw createError;
+      return NextResponse.json([]);
     }
-
-    try {
-        const supabase = createSupabaseClientForUser(session);
-        
-        const { data, error } = await supabase
-            .from('cart')
-            .select(`id, cart_items (product_id, quantity, products (*))`)
-            .single();
-
-        if (error && error.code !== 'PGRST116') throw error;
-        
-        if (!data || !data.cart_items) {
-            const { error: createError } = await supabase.from('cart').insert({ user_id: session.user.id });
-            if (createError) throw createError;
-            return NextResponse.json([]); 
-        }
-
-        // --- THE DEFINITIVE, BULLETPROOF FIX IS HERE ---
-        // This handles the actual data structure where `products` is an array.
-        const validCartItems = data.cart_items.reduce((acc: AppCartItemType[], item) => {
-          // Check if item exists, if 'products' is an array, and if it's not empty
-          if (item && Array.isArray(item.products) && item.products.length > 0) {
-            // Extract the actual product object from the first element of the array
-            const productData = item.products[0];
-            acc.push({
-              ...productData, // Spread the actual product object
-              quantity: item.quantity,
-            });
-          }
-          return acc;
-        }, []);
-            
-        return NextResponse.json(validCartItems);
-
-    } catch (error: any) {
-        console.error("GET /api/cart Error:", error.message);
-        return NextResponse.json({ error: "Failed to fetch cart.", details: error.message }, { status: 500 });
-    }
+    const validCartItems = data.cart_items.reduce((acc: AppCartItemType[], item: any) => {
+      if (item && item.products) acc.push({ ...item.products, quantity: item.quantity });
+      return acc;
+    }, []);
+    return NextResponse.json(validCartItems);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
 
-
-// --- POST (Add Item to Cart / Update Quantity) ---
 export async function POST(req: NextRequest) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const supabase = createSupabaseClientForUser(session);
+    const { productId, quantity = 1 } = await req.json();
+    if (!productId) return NextResponse.json({ error: "Product ID is required" }, { status: 400 });
+
+    let { data: cart } = await supabase.from('cart').select('id').single();
+    if (!cart) {
+      const { data: newCart } = await supabase.from('cart').insert({ user_id: session.user.id }).select('id').single();
+      cart = newCart;
     }
+    if (!cart) throw new Error("Could not get or create cart.");
 
-    try {
-        const supabase = createSupabaseClientForUser(session);
-        const { productId, quantity = 1 } = await req.json();
-
-        if (!productId || typeof quantity !== 'number' || quantity <= 0) {
-            return NextResponse.json({ error: "Invalid product ID or quantity provided." }, { status: 400 });
-        }
-
-        let { data: cartData, error: cartError } = await supabase.from('cart').select('id').single();
-        if (cartError && cartError.code !== 'PGRST116') throw cartError;
-        
-        let cartId: string;
-        if (cartData) {
-            cartId = cartData.id;
-        } else {
-            const { data: newCart, error: createError } = await supabase.from('cart').insert({ user_id: session.user.id }).select('id').single();
-            if (createError) throw createError;
-            cartId = newCart!.id;
-        }
-        
-        const { data: existingItem } = await supabase.from('cart_items').select('id, quantity').eq('cart_id', cartId).eq('product_id', productId).single();
-
-        let upsertedItem;
-        if (existingItem) {
-            const { data, error } = await supabase.from('cart_items').update({ quantity: existingItem.quantity + quantity }).eq('id', existingItem.id).select('*, products(*)').single();
-            if (error) throw error;
-            upsertedItem = data;
-        } else {
-            const { data, error } = await supabase.from('cart_items').insert({ cart_id: cartId, product_id: productId, quantity }).select('*, products(*)').single();
-            if (error) throw error;
-            upsertedItem = data;
-        }
-
-        if (!upsertedItem || !Array.isArray(upsertedItem.products) || upsertedItem.products.length === 0) {
-            throw new Error("Failed to process cart item or retrieve product details.");
-        }
-
-        const finalItem: AppCartItemType = {
-            ...(upsertedItem.products[0] as AppProductType),
-            quantity: upsertedItem.quantity
-        };
-
-        return NextResponse.json({ message: "Item processed successfully", item: finalItem });
-
-    } catch (error: any) {
-        console.error("POST /api/cart Error:", error.message);
-        return NextResponse.json({ error: "Failed to process cart item.", details: error.message }, { status: 500 });
+    const { data: existingItem } = await supabase.from('cart_items').select('id, quantity').eq('cart_id', cart.id).eq('product_id', productId).single();
+    if (existingItem) {
+      await supabase.from('cart_items').update({ quantity: existingItem.quantity + quantity }).eq('id', existingItem.id);
+    } else {
+      await supabase.from('cart_items').insert({ cart_id: cart.id, product_id: productId, quantity });
     }
+    return NextResponse.json({ success: true, message: "Cart updated." });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
 
-// --- DELETE (Clear Cart) ---
 export async function DELETE(req: NextRequest) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const supabase = createSupabaseClientForUser(session);
+    const { productId } = await req.json();
+    if (!productId) { // This is for removing a single item
+        // Logic to clear the whole cart
+        let { data: cart } = await supabase.from('cart').select('id').single();
+        if (cart) await supabase.from('cart_items').delete().eq('cart_id', cart.id);
+        return NextResponse.json({ success: true, message: "Cart cleared." });
+    } else { // Logic for removing one item
+        let { data: cart } = await supabase.from('cart').select('id').single();
+        if (cart) await supabase.from('cart_items').delete().eq('cart_id', cart.id).eq('product_id', productId);
+        return NextResponse.json({ success: true, message: "Item removed." });
     }
-    
-    try {
-        const supabase = createSupabaseClientForUser(session);
-        const { data: cart, error: cartError } = await supabase.from('cart').select('id').single();
-        if (cartError && cartError.code !== 'PGRST116') throw cartError;
-
-        if (cart) {
-            const { error: deleteError } = await supabase.from('cart_items').delete().eq('cart_id', cart.id);
-            if (deleteError) throw deleteError;
-        }
-        
-        return NextResponse.json({ message: "Cart cleared successfully" });
-    } catch (error: any) {
-        console.error("DELETE /api/cart Error:", error.message);
-        return NextResponse.json({ error: "Failed to clear cart.", details: error.message }, { status: 500 });
-    }
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
