@@ -21,7 +21,6 @@ const createSupabaseClientForUser = (session: Session) => {
 // --- GET User's Cart ---
 export async function GET(req: NextRequest) {
     const session = await getServerSession(authOptions);
-
     if (!session?.user?.id) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -42,20 +41,20 @@ export async function GET(req: NextRequest) {
             return NextResponse.json([]); 
         }
 
-        // --- FIXED: Explicit handling of Supabase response ---
-        const validCartItems: AppCartItemType[] = data.cart_items
-            .filter(item => item && item.products) // Ensure item and its nested product exist
-            .map(item => {
-                const product = item.products as any; // Handle Supabase response
-                return {
-                    id: product.id,
-                    created_at: product.created_at,
-                    name: product.name,
-                    price: product.price,
-                    image_url: product.image_url,
-                    quantity: item.quantity,
-                } as AppCartItemType;
+        // --- THE DEFINITIVE, BULLETPROOF FIX IS HERE ---
+        // We use the .reduce() method for a completely type-safe transformation.
+        // It iterates through the items, and only if an item's 'products' field is valid,
+        // does it add a correctly-shaped CartItem to the new array.
+        const validCartItems = data.cart_items.reduce((acc: AppCartItemType[], item) => {
+          // This 'if' check is the most robust type guard.
+          if (item && item.products) {
+            acc.push({
+              ...item.products, // Spread the full product object
+              quantity: item.quantity,
             });
+          }
+          return acc;
+        }, []); // Start with an empty array of the correct type.
             
         return NextResponse.json(validCartItems);
 
@@ -133,7 +132,6 @@ export async function DELETE(req: NextRequest) {
     try {
         const supabase = createSupabaseClientForUser(session);
         const { data: cart, error: cartError } = await supabase.from('cart').select('id').single();
-
         if (cartError && cartError.code !== 'PGRST116') throw cartError;
 
         if (cart) {
