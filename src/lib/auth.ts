@@ -1,91 +1,34 @@
 // src/lib/auth.ts
 
-import type { NextAuthOptions, User as NextAuthUser } from 'next-auth';       
+import type { NextAuthOptions } from 'next-auth';       
 import { SupabaseAdapter } from '@next-auth/supabase-adapter';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import GoogleProvider from 'next-auth/providers/google';
-import { createClient } from '@supabase/supabase-js';
 
-interface AppUser extends NextAuthUser {
-  id: string;
-  email: string;
-}
+// NO MORE PROVIDERS NEEDED HERE! Supabase handles it.
 
 export const authOptions: NextAuthOptions = {
+  // We still use the adapter to sync sessions, users, etc.
   adapter: SupabaseAdapter({
     url: process.env.SUPABASE_URL!,
     secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
   }),
 
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      // --- THE DEFINITIVE FIX IS HERE ---
-      // This object makes the OAuth request more explicit and robust,
-      // which is often required for production environments like Vercel.
-      authorization: {
-        params: {
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code"
-        }
-      }
-    }),
-    CredentialsProvider({
-      name: 'Credentials',
-      credentials: {
-        email: { label: "Email", type: "text" },
-        password: { label: "Password", type: "password" }
-      },
-      async authorize(credentials): Promise<AppUser | null> {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Email and password are required.");
-        }
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
-        const { data: signInResponse, error: signInError } = await supabase.auth.signInWithPassword({
-          email: credentials.email,
-          password: credentials.password,
-        });
-        if (signInError) {
-          console.error("Supabase credentials sign-in error:", signInError.message);
-          return null;
-        }
-        const supabaseUser = signInResponse?.user;
-        if (supabaseUser && supabaseUser.id && supabaseUser.email) {
-          return {
-            id: supabaseUser.id,
-            email: supabaseUser.email,
-            name: supabaseUser.user_metadata?.full_name || null,
-            image: supabaseUser.user_metadata?.avatar_url || null,
-          };
-        }
-        return null;
-      },
-    }),
-  ],
+  // The providers array is now empty because Supabase handles the sign-in flow.
+  providers: [], 
 
   session: {
     strategy: 'jwt',
   },
 
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.email = user.email || undefined;
-        token.name = user.name;
-        token.picture = user.image;
+    // This callback is still important to link the Supabase user to the NextAuth token.
+    async session({ session, user }) {
+      const signingSecret = process.env.SUPABASE_JWT_SECRET;
+      if (signingSecret) {
+        // You can optionally sign a custom JWT here if needed for other services
       }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user && token.id) {
-        (session.user as any).id = token.id;
-        (session.user as any).email = token.email;
+      // Link the session user ID to the user ID from the database
+      if (session.user) {
+        session.user.id = user.id;
       }
       return session;
     },
@@ -93,8 +36,5 @@ export const authOptions: NextAuthOptions = {
   
   pages: {
     signIn: '/login',
-    error: '/auth/error', 
   },
-
-  debug: process.env.NODE_ENV === 'development',
 };
