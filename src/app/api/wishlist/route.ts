@@ -1,11 +1,12 @@
 // src/app/api/wishlist/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from "@/lib/auth";
 import type { Session } from 'next-auth';
 
-// Helper to create a user-specific Supabase client
+// Helper to create a user-specific Supabase client, authenticated as the logged-in user.
 const createSupabaseClientForUser = (session: Session) => {
   const accessToken = (session as any).supabaseAccessToken;
   if (!accessToken) throw new Error("User is not authenticated with Supabase.");
@@ -18,97 +19,81 @@ const createSupabaseClientForUser = (session: Session) => {
 };
 
 // GET: Fetch the user's wishlist
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
 
   try {
     const supabase = createSupabaseClientForUser(session);
-    // This assumes RLS is enabled on 'wishlist_items'
+    // This query now relies on RLS to only fetch the current user's items.
     const { data, error } = await supabase.from('wishlist_items').select('product_id');
 
     if (error) throw error;
     
-    // The context expects an array of product IDs, not objects.
+    // The client-side context expects an array of strings (product IDs).
     const wishlistIds = data.map(item => item.product_id);
     return NextResponse.json(wishlistIds || []); 
 
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Error fetching wishlist:", error.message);
+    return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
   }
 }
 
-// POST and DELETE logic can be re-added here, using the `createSupabaseClientForUser` method.
-
 // POST: Add an item to the wishlist
 export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
+
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    }
-    if (!supabaseAdmin) {
-        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-    }
-    
+    const supabase = createSupabaseClientForUser(session);
     const { productId } = await req.json();
 
     if (!productId) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
     }
+    
+    // The user_id is now implicitly handled by the authenticated client and RLS policies.
+    const { error } = await supabase.from('wishlist_items').upsert({ product_id: productId });
 
-    // Use .upsert() to prevent duplicates.
-    // For this to work, you MUST have a UNIQUE constraint on (user_id, product_id) in your Supabase table.
-    const { data, error } = await supabaseAdmin
-      .from('wishlist_items')
-      .upsert({ user_id: session.user.id, product_id: productId }, { onConflict: 'user_id, product_id' }); // Specify conflict target
-
-    if (error) {
-      console.error("API WISHLIST POST: Supabase error", error);
-      throw error;
-    }
+    if (error) throw error;
 
     return NextResponse.json({ success: true, message: "Item added to wishlist." });
 
   } catch (error: any) {
-    console.error("Error adding to wishlist:", error);
-    return NextResponse.json({ error: error.message || 'An internal server error occurred.' }, { status: 500 });
+    console.error("Error adding to wishlist:", error.message);
+    return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
   }
 }
 
 // DELETE: Remove an item from the wishlist
 export async function DELETE(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
+
   try {
-    const session = await getServerSession(authOptions);
-  
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    }
-    if (!supabaseAdmin) {
-        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-    }
-  
+    const supabase = createSupabaseClientForUser(session);
     const { productId } = await req.json();
   
     if (!productId) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
     }
   
-    const { error } = await supabaseAdmin
-      .from('wishlist_items')
-      .delete()
-      .match({ user_id: session.user.id, product_id: productId });
+    // RLS ensures the user can only delete their own wishlist items.
+    const { error } = await supabase.from('wishlist_items').delete().eq('product_id', productId);
   
-    if (error) {
-      console.error("API WISHLIST DELETE: Supabase error", error);
-      throw error;
-    }
+    if (error) throw error;
   
     return NextResponse.json({ success: true, message: "Item removed from wishlist." });
 
   } catch (error: any) {
-    console.error("Error deleting from wishlist:", error);
-    return NextResponse.json({ error: error.message || 'An internal server error occurred.' }, { status: 500 });
+    console.error("Error deleting from wishlist:", error.message);
+    return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
   }
 }
