@@ -37,7 +37,6 @@ function ProductsPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
 
-  // Fetch all products once on component mount
   useEffect(() => {
     const fetchAllProducts = async () => {
       setIsLoading(true);
@@ -55,10 +54,10 @@ function ProductsPageContent() {
     fetchAllProducts();
   }, []);
 
-  // Memoize the filtering and sorting logic to run only when dependencies change
   const displayedProducts = useMemo(() => {
     let filtered = categorySlug 
-      ? allProducts.filter(p => p.category_slug === categorySlug)
+      // THE FIX: Changed p.category_slug to p.category
+      ? allProducts.filter(p => p.category === categorySlug)
       : allProducts;
     
     switch (sortOrder) {
@@ -68,6 +67,7 @@ function ProductsPageContent() {
         return [...filtered].sort((a, b) => b.price - a.price);
       case 'newest':
       default:
+        // Assuming your product data has a 'created_at' timestamp
         return [...filtered].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
   }, [allProducts, categorySlug, sortOrder]);
@@ -79,19 +79,16 @@ function ProductsPageContent() {
       <PageHeader
         title={pageTitle}
         subtitle={`Browse our complete selection of ${pageTitle.toLowerCase()}.`}
-        backgroundImageUrl="/images/projects-hero-bg.jpg" // Re-using this for a nice techy feel
+        backgroundImageUrl="/images/projects-hero-bg.jpg"
         breadcrumbs={[{ name: 'Home', href: '/' }, { name: 'Products', href: '/products' }]}
       />
 
       <div className="bg-gray-50">
         <div className="container mx-auto px-4 py-12">
           <div className="flex flex-col lg:flex-row gap-12">
-            {/* --- Sidebar --- */}
             <ProductSidebar />
             
-            {/* --- Main Content: Grid & Sorter --- */}
             <div className="w-full">
-              {/* Sorter and Count */}
               <div className="flex flex-col sm:flex-row justify-between items-center mb-8 pb-4 border-b">
                 <p className="text-gray-600 text-sm mb-4 sm:mb-0">
                   Showing <span className="font-bold text-deep-night">{displayedProducts.length}</span> products
@@ -111,10 +108,9 @@ function ProductsPageContent() {
                 </div>
               </div>
 
-              {/* "Wow" Animated Product Catalog */}
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={categorySlug + sortOrder} // This is the magic key for re-animating on change
+                  key={categorySlug + sortOrder}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
@@ -137,7 +133,6 @@ function ProductsPageContent() {
   );
 }
 
-// Main page export with Suspense
 export default function ProductsPage() {
   return (
     <Suspense fallback={<PageHeader title="Loading..." subtitle="Finding the best solar solutions for you." />}> 
