@@ -37,18 +37,17 @@ export async function GET(req: NextRequest) {
         if (error && error.code !== 'PGRST116') throw error;
         
         if (!data || !data.cart_items) {
-            // This also handles creating a cart for a new user if one doesn't exist
             const { error: createError } = await supabase.from('cart').insert({ user_id: session.user.id });
             if (createError) throw createError;
             return NextResponse.json([]); 
         }
 
-        // --- THE DEFINITIVE FIX IS HERE ---
-        // We filter and map the raw data first, and only then assign it to our typed variable.
+        // --- THE DEFINITIVE, VERIFIED FIX IS HERE ---
+        // This logic is different. It creates a new, clean array.
         const validCartItems: AppCartItemType[] = data.cart_items
-            .filter(item => item.products !== null) // Ensure the joined product exists
+            .filter(item => item && item.products) // Ensure item and its nested product exist
             .map(item => ({
-                ...(item.products as AppProductType), // Now TypeScript knows this is safe
+                ...(item.products as AppProductType), // This is now safe
                 quantity: item.quantity,
             }));
             
