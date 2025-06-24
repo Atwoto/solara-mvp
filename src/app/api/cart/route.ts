@@ -42,12 +42,16 @@ export async function GET(req: NextRequest) {
             return NextResponse.json([]); 
         }
 
-        // --- THE DEFINITIVE, VERIFIED FIX IS HERE ---
-        // This logic is different. It creates a new, clean array.
+        // --- FIXED: Added proper type assertion ---
         const validCartItems: AppCartItemType[] = data.cart_items
-            .filter(item => item && item.products) // Ensure item and its nested product exist
+            .filter((item): item is { products: AppProductType; quantity: number } => 
+                item && 
+                item.products && 
+                typeof item.products === 'object' &&
+                typeof item.quantity === 'number'
+            )
             .map(item => ({
-                ...(item.products as AppProductType), // This is now safe
+                ...item.products,
                 quantity: item.quantity,
             }));
             
