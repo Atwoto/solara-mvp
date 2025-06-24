@@ -29,27 +29,27 @@ export async function GET(req: NextRequest) {
     try {
         const supabase = createSupabaseClientForUser(session);
         
-        // This query now relies on RLS (Row Level Security) being enabled in your Supabase dashboard
-        // to ensure users can only access their own cart.
         const { data, error } = await supabase
             .from('cart')
             .select(`id, cart_items (product_id, quantity, products (*))`)
             .single();
 
-        if (error && error.code !== 'PGRST116') { // 'PGRST116' means no cart found, which is okay.
-            throw error;
-        }
+        if (error && error.code !== 'PGRST116') throw error;
         
-        // If no cart exists, create one.
         if (!data) {
             const { data: newCart, error: createError } = await supabase.from('cart').insert({ user_id: session.user.id }).select().single();
             if (createError) throw createError;
-            return NextResponse.json([]); // Return empty cart for the new user.
+            return NextResponse.json([]);
         }
 
-        const cartItems = data.cart_items
-            .filter(item => item.products) // Filter out items where product might be null
-            .map(item => ({...(item.products as AppProductType), quantity: item.quantity}));
+        // --- THE DEFINITIVE FIX IS HERE ---
+        // We use a safe type-guarded mapping.
+        const cartItems: AppCartItemType[] = data.cart_items
+            .filter((item): item is { products: AppProductType; quantity: number } => item.products !== null) // Type guard
+            .map((item) => ({
+                ...item.products, // Now TypeScript knows this is a full Product
+                quantity: item.quantity,
+            }));
             
         return NextResponse.json(cartItems);
 
@@ -75,7 +75,6 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Invalid product ID or quantity provided." }, { status: 400 });
         }
 
-        // Get or create cart
         let { data: cartData, error: cartError } = await supabase.from('cart').select('id').single();
         if (cartError && cartError.code !== 'PGRST116') throw cartError;
         
@@ -88,17 +87,14 @@ export async function POST(req: NextRequest) {
             cartId = newCart!.id;
         }
         
-        // Check for existing item
         const { data: existingItem } = await supabase.from('cart_items').select('id, quantity').eq('cart_id', cartId).eq('product_id', productId).single();
 
         let upsertedItem;
         if (existingItem) {
-            // Update quantity
             const { data, error } = await supabase.from('cart_items').update({ quantity: existingItem.quantity + quantity }).eq('id', existingItem.id).select('*, products(*)').single();
             if (error) throw error;
             upsertedItem = data;
         } else {
-            // Insert new item
             const { data, error } = await supabase.from('cart_items').insert({ cart_id: cartId, product_id: productId, quantity }).select('*, products(*)').single();
             if (error) throw error;
             upsertedItem = data;
