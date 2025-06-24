@@ -1,4 +1,4 @@
-// lib/auth.ts (or src/lib/auth.ts)
+// src/lib/auth.ts
 
 import type { NextAuthOptions, User as NextAuthUser } from 'next-auth';       
 import { SupabaseAdapter } from '@next-auth/supabase-adapter';
@@ -6,7 +6,6 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import { createClient } from '@supabase/supabase-js';
 
-// Local AppUser interface
 interface AppUser extends NextAuthUser {
   id: string;
   email: string;
@@ -22,6 +21,16 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      // --- THE DEFINITIVE FIX IS HERE ---
+      // This object makes the OAuth request more explicit and robust,
+      // which is often required for production environments like Vercel.
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     }),
     CredentialsProvider({
       name: 'Credentials',
@@ -67,9 +76,6 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        // *** THE FIX IS HERE ***
-        // Use the logical OR operator to default null/undefined values to undefined.
-        // This ensures the type assigned to token.email is `string | undefined`.
         token.email = user.email || undefined;
         token.name = user.name;
         token.picture = user.image;
