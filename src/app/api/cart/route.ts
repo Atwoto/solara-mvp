@@ -42,18 +42,13 @@ export async function GET(req: NextRequest) {
             return NextResponse.json([]); 
         }
 
-        // --- FIXED: Added proper type assertion ---
+        // --- FIXED: Simplified type assertion ---
         const validCartItems: AppCartItemType[] = data.cart_items
-            .filter((item): item is { products: AppProductType; quantity: number } => 
-                item && 
-                item.products && 
-                typeof item.products === 'object' &&
-                typeof item.quantity === 'number'
-            )
+            .filter(item => item && item.products) // Ensure item and its nested product exist
             .map(item => ({
-                ...item.products,
+                ...(item.products as AppProductType), // Direct type assertion
                 quantity: item.quantity,
-            }));
+            }) as AppCartItemType);
             
         return NextResponse.json(validCartItems);
 
