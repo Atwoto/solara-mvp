@@ -36,22 +36,23 @@ export async function GET(req: NextRequest) {
 
         if (error && error.code !== 'PGRST116') throw error;
         
-        if (!data) {
-            const { data: newCart, error: createError } = await supabase.from('cart').insert({ user_id: session.user.id }).select().single();
+        if (!data || !data.cart_items) {
+            // This also handles creating a cart for a new user if one doesn't exist
+            const { error: createError } = await supabase.from('cart').insert({ user_id: session.user.id });
             if (createError) throw createError;
-            return NextResponse.json([]);
+            return NextResponse.json([]); 
         }
 
         // --- THE DEFINITIVE FIX IS HERE ---
-        // We use a safe type-guarded mapping.
-        const cartItems: AppCartItemType[] = data.cart_items
-            .filter((item): item is { products: AppProductType; quantity: number } => item.products !== null) // Type guard
-            .map((item) => ({
-                ...item.products, // Now TypeScript knows this is a full Product
+        // We filter and map the raw data first, and only then assign it to our typed variable.
+        const validCartItems: AppCartItemType[] = data.cart_items
+            .filter(item => item.products !== null) // Ensure the joined product exists
+            .map(item => ({
+                ...(item.products as AppProductType), // Now TypeScript knows this is safe
                 quantity: item.quantity,
             }));
             
-        return NextResponse.json(cartItems);
+        return NextResponse.json(validCartItems);
 
     } catch (error: any) {
         console.error("GET /api/cart Error:", error.message);
