@@ -1,4 +1,4 @@
-// src/app/api/admin/dashboard/sales-chart-data/route.ts
+// src/app/api/admin/dashboard/sales-chart-data/route.ts -- FINAL, COMPATIBLE VERSION
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getServerSession } from "next-auth/next";
@@ -7,9 +7,9 @@ import type { Session } from 'next-auth';
 
 const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
 
-// Define a more specific type for the order object we expect from the query
+// Define the type for order data
 interface DailyOrder {
-  total_price: number | null; // Acknowledge that the price could be null
+  total_price: number | null;
 }
 
 export async function GET(request: NextRequest) {
@@ -40,14 +40,14 @@ export async function GET(request: NextRequest) {
 
       labels.push(startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
 
-      // Explicitly type the expected data from Supabase
+      // --- THIS IS THE CORRECTED QUERY ---
+      // We removed the `.returns()` method.
       const { data: dailyOrders, error: dailyOrdersError } = await supabaseAdmin
         .from('orders')
         .select('total_price')
         .in('status', ['paid', 'delivered', 'shipped', 'processing'])
         .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString())
-        .returns<DailyOrder[]>(); // Tell TypeScript what to expect
+        .lte('created_at', endDate.toISOString());
 
       if (dailyOrdersError) {
         console.error(`Error fetching orders for ${startDate.toISOString()}:`, dailyOrdersError.message);
@@ -55,13 +55,13 @@ export async function GET(request: NextRequest) {
         continue;
       }
       
-      // --- THE FIX IS HERE ---
-      // We explicitly type 'sum' as a number and 'order' as our DailyOrder interface.
-      const dailyTotal = dailyOrders?.reduce((sum: number, order: DailyOrder) => {
-        // Since order is now typed, we can safely access its properties
+      // We add a type assertion here to tell TypeScript we know what `dailyOrders` is.
+      const typedOrders = dailyOrders as DailyOrder[] | null;
+
+      const dailyTotal = typedOrders?.reduce((sum: number, order: DailyOrder) => {
         const price = typeof order.total_price === 'number' ? order.total_price : 0;
         return sum + price;
-      }, 0) || 0; // The `|| 0` handles the case where dailyOrders is null/undefined
+      }, 0) || 0;
 
       dataPoints.push(dailyTotal);
     }
