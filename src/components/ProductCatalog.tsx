@@ -8,14 +8,14 @@ import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useComparison } from '@/context/ComparisonContext';
-import { motion } from 'framer-motion';
+// --- FIX 1: Import the 'Variants' type from framer-motion ---
+import { motion, Variants } from 'framer-motion';
 import { CheckIcon, HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
 import { HeartIcon as HeartOutline, ArrowsRightLeftIcon, ShoppingCartIcon } from '@heroicons/react/24/outline';
 import { Product as ProductType } from '@/types';
 
-// --- THE FIX IS HERE ---
-// Removed `as const` from the end of this object definition.
-const itemVariants = {
+// --- FIX 2: Explicitly type the variants object with the 'Variants' type ---
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
 };
@@ -29,6 +29,7 @@ const ProductCatalog = ({
   products,
   gridCols = 'sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3',
 }: ProductCatalogProps) => {
+  // The rest of your component code is perfectly fine and does not need to be changed.
   if (!products) {
     return null;
   }
