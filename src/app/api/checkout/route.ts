@@ -1,15 +1,14 @@
-// src/app/api/checkout/route.ts
+// src/app/api/checkout/route.ts -- FINAL, CORRECTED VERSION
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { CartItem } from '@/types'; // Import CartItem from your central types file
+import { CartItem } from '@/types';
 import type { Session } from 'next-auth';
 
 // Define the shape of the data returned by the Supabase insert query for a new order
 interface NewOrderResponse {
     id: string;
-    // Add other fields that your .select() might return
     created_at: string;
     user_id: string;
 }
@@ -43,7 +42,6 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json() as OrderDetailsRequestBody;
-
     const { 
       cartItems, 
       shippingDetails, 
@@ -56,8 +54,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required order details." }, { status: 400 });
     }
 
-    // 1. Create the main order record
-    const { data: newOrder, error: orderError } = await supabaseAdmin
+    // --- THIS IS THE CORRECTED QUERY ---
+    // We removed the `.single<NewOrderResponse>()` and will assert the type below.
+    const { data: newOrderData, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert({
         user_id: session.user.id,
@@ -67,17 +66,22 @@ export async function POST(req: NextRequest) {
         paystack_reference: paymentReference,
       })
       .select()
-      .single<NewOrderResponse>(); // <<--- FIX: Add type hint for the response
+      .single();
 
-    if (orderError || !newOrder) {
+    if (orderError) {
       console.error("Error creating order in DB:", orderError);
       throw new Error(orderError?.message || "Failed to save order details.");
     }
+    
+    // Use type assertion here to tell TypeScript what `newOrderData` is.
+    const newOrder = newOrderData as NewOrderResponse;
+    if (!newOrder) {
+        throw new Error("Failed to save order details or retrieve the new order.");
+    }
 
-    const orderId = newOrder.id; // Now TypeScript knows newOrder.id is a string
-    orderIdToDeleteOnError = orderId; // Store it for potential rollback
+    const orderId = newOrder.id;
+    orderIdToDeleteOnError = orderId;
 
-    // 2. Create order items records
     const orderItemsToInsert = cartItems.map(item => ({
       order_id: orderId,
       product_id: item.id,
@@ -92,7 +96,6 @@ export async function POST(req: NextRequest) {
 
     if (itemsError) {
       console.error(`Error creating order items for order ${orderId}:`, itemsError);
-      // The `catch` block will now handle the rollback.
       throw new Error(itemsError.message || "Failed to save order items.");
     }
 
@@ -100,7 +103,6 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Checkout API error:', error);
-    // CRITICAL: Rollback logic if an error occurred after the order was created
     if (orderIdToDeleteOnError) {
         console.log(`Attempting to roll back failed order: ${orderIdToDeleteOnError}`);
         await supabaseAdmin.from('orders').delete().eq('id', orderIdToDeleteOnError);
