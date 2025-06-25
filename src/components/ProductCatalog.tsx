@@ -32,7 +32,8 @@ const ProductCatalog = ({
   }
 
   const { addToCart } = useCart();
-  // --- FIX 1: Use the correct variable name `wishlistIds` ---
+  // --- THE FIX IS HERE ---
+  // We are now destructuring `wishlistIds` from the context, which is correct.
   const { wishlistIds, addToWishlist, removeFromWishlist, isLoading: isWishlistLoading } = useWishlist();
   const { comparisonItems, toggleComparison, isInComparison, MAX_COMPARISON_ITEMS } = useComparison(); 
   const { data: session } = useSession();
@@ -52,7 +53,7 @@ const ProductCatalog = ({
       router.push('/login');
       return;
     }
-    // --- FIX 2: Check for inclusion in `wishlistIds` ---
+    // We check for inclusion in the correct `wishlistIds` array.
     wishlistIds.includes(productId) ? removeFromWishlist(productId) : addToWishlist(productId);
   };
 
@@ -68,7 +69,7 @@ const ProductCatalog = ({
   return (
     <div className={`grid grid-cols-1 gap-6 md:gap-8 ${gridCols}`}>
       {products.map((product, index) => {
-        // --- FIX 3 (already implied by Fix 2): Check `wishlistIds` ---
+        // The check for `inWishlist` now uses the correct `wishlistIds` array.
         const inWishlist = wishlistIds.includes(product.id);
         const isComparing = isInComparison(product.id);
 
