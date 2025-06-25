@@ -1,4 +1,3 @@
-// src/hooks/useChatbotLogic.ts
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -37,92 +36,78 @@ export const useChatbotLogic = () => {
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
     const { cartItems, addToCart, removeFromCart, clearCart } = useCart();
-    const { wishlist, addToWishlist, removeFromWishlist, clearWishlist } = useWishlist();
+    // --- THE FIX IS HERE ---
+    // We are now destructuring `wishlistIds` which is the correct name from the context.
+    const { wishlistIds, addToWishlist, removeFromWishlist, clearWishlist } = useWishlist();
 
     const showNotificationMessage = useCallback((message: string, type: 'success' | 'error' | 'info') => {
         setShowNotification({ message, type });
         setTimeout(() => setShowNotification(null), 4000);
     }, []);
 
-    
-
-const handleActionClick = useCallback(async (actionType: string, productIdOrMarker: string) => {
-    console.log("Chatbot action received:", { actionType, productIdOrMarker });
-
-    // --- START OF FIX: Normalize the actionType ---
-    let normalizedActionType = actionType;
-    if (actionType.includes('_')) {
-        // Convert snake_case to camelCase (e.g., "add_to_cart" becomes "addToCart")
-        normalizedActionType = actionType.replace(/_([a-z])/g, g => g[1].toUpperCase());
-        console.log(`Normalized actionType from '${actionType}' to '${normalizedActionType}'`);
-    }
-    // --- END OF FIX ---
-
-    // Validate that for product-specific actions, the ID is valid
-    const productSpecificActions = ['addToCart', 'addToWishlist', 'removeFromCart', 'removeFromWishlist'];
-    if (productSpecificActions.includes(normalizedActionType)) {
-        if (!productIdOrMarker || productIdOrMarker.toLowerCase() === 'undefined' || productIdOrMarker === 'NONE') {
-            const errorMessage = "I couldn't identify the specific product for that action. Could you please clarify which one you mean?";
-            console.error("handleActionClick error:", errorMessage, { actionType, productIdOrMarker });
-            showNotificationMessage("Could not identify the product.", 'error');
-            return;
-        }
-    }
-
-    try {
-        // Use the NORMALIZED action type in the switch or if/else chain
-        switch (normalizedActionType) {
-            case 'addToCart': {
-                const product = await getProductDetails(productIdOrMarker);
-                if (!product) throw new Error(`Could not find product details to add to cart.`);
-                await addToCart(product, 1);
-                showNotificationMessage(`"${product.name}" was added to your cart!`, 'success');
-                break;
-            }
-            case 'addToWishlist': {
-                await addToWishlist(productIdOrMarker);
-                const product = await getProductDetails(productIdOrMarker);
-                showNotificationMessage(`"${product?.name || 'Item'}" added to wishlist!`, 'success');
-                break;
-            }
-            case 'removeFromCart': {
-                await removeFromCart(productIdOrMarker);
-                showNotificationMessage(`Item removed from cart.`, 'success');
-                break;
-            }
-            case 'removeFromWishlist': {
-                await removeFromWishlist(productIdOrMarker);
-                showNotificationMessage(`Item removed from wishlist.`, 'success');
-                break;
-            }
-            case 'clearCart': {
-                await clearCart();
-                showNotificationMessage('Cart has been cleared!', 'success');
-                break;
-            }
-            case 'clearWishlist': {
-                await clearWishlist();
-                showNotificationMessage('Wishlist has been cleared!', 'success');
-                break;
-            }
-            default: {
-                throw new Error(`Unknown action type: '${actionType}'`);
+    const handleActionClick = useCallback(async (actionType: string, productIdOrMarker: string) => {
+        let normalizedActionType = actionType.replace(/_([a-z])/g, g => g[1].toUpperCase());
+        const productSpecificActions = ['addToCart', 'addToWishlist', 'removeFromCart', 'removeFromWishlist'];
+        if (productSpecificActions.includes(normalizedActionType)) {
+            if (!productIdOrMarker || productIdOrMarker.toLowerCase() === 'undefined' || productIdOrMarker === 'NONE') {
+                showNotificationMessage("Could not identify the product.", 'error');
+                return;
             }
         }
-    } catch (err: any) {
-        console.error(`Error performing chatbot action '${actionType}':`, err.message);
-        showNotificationMessage(err.message || "An error occurred while performing the action.", 'error');
-    }
-}, [addToCart, addToWishlist, clearCart, clearWishlist, removeFromCart, removeFromWishlist, showNotificationMessage]);
 
-
+        try {
+            switch (normalizedActionType) {
+                case 'addToCart': {
+                    const product = await getProductDetails(productIdOrMarker);
+                    if (!product) throw new Error(`Could not find product details to add to cart.`);
+                    await addToCart(product, 1);
+                    showNotificationMessage(`"${product.name}" was added to your cart!`, 'success');
+                    break;
+                }
+                case 'addToWishlist': {
+                    await addToWishlist(productIdOrMarker);
+                    const product = await getProductDetails(productIdOrMarker);
+                    showNotificationMessage(`"${product?.name || 'Item'}" added to wishlist!`, 'success');
+                    break;
+                }
+                case 'removeFromCart': {
+                    await removeFromCart(productIdOrMarker);
+                    showNotificationMessage(`Item removed from cart.`, 'success');
+                    break;
+                }
+                case 'removeFromWishlist': {
+                    await removeFromWishlist(productIdOrMarker);
+                    showNotificationMessage(`Item removed from wishlist.`, 'success');
+                    break;
+                }
+                case 'clearCart': {
+                    await clearCart();
+                    showNotificationMessage('Cart has been cleared!', 'success');
+                    break;
+                }
+                case 'clearWishlist': {
+                    await clearWishlist();
+                    showNotificationMessage('Wishlist has been cleared!', 'success');
+                    break;
+                }
+                default: {
+                    throw new Error(`Unknown action type: '${actionType}'`);
+                }
+            }
+        } catch (err: any) {
+            console.error(`Error performing chatbot action '${actionType}':`, err.message);
+            showNotificationMessage(err.message || "An error occurred while performing the action.", 'error');
+        }
+    }, [addToCart, addToWishlist, clearCart, clearWishlist, removeFromCart, removeFromWishlist, showNotificationMessage]);
 
     const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } =
         useChat({
           api: "/api/chat",
           body: {
             cart: cartItems.map(item => ({ id: item.id, name: item.name, quantity: item.quantity })),
-            wishlist: wishlist,
+            // --- AND THE FIX IS HERE ---
+            // We pass the correctly named `wishlistIds` to the API body.
+            wishlist: wishlistIds,
           },
           onFinish: (message) => {
             const executeRegex = /EXECUTE_ACTION\[([^|]+)\|([^\]]+)\]/;
@@ -163,7 +148,6 @@ const handleActionClick = useCallback(async (actionType: string, productIdOrMark
         isLoading,
         error,
         handleActionClick,
-        // Refs
         messagesEndRef,
         inputRef,
         chatContainerRef
