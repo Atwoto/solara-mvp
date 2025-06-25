@@ -13,6 +13,8 @@ import { CheckIcon, HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
 import { HeartIcon as HeartOutline, ArrowsRightLeftIcon, ShoppingCartIcon } from '@heroicons/react/24/outline';
 import { Product as ProductType } from '@/types';
 
+// --- THE FIX IS HERE ---
+// Removed `as const` from the end of this object definition.
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
@@ -32,8 +34,6 @@ const ProductCatalog = ({
   }
 
   const { addToCart } = useCart();
-  // --- THE FIX IS HERE ---
-  // We are now destructuring `wishlistIds` from the context, which is correct.
   const { wishlistIds, addToWishlist, removeFromWishlist, isLoading: isWishlistLoading } = useWishlist();
   const { comparisonItems, toggleComparison, isInComparison, MAX_COMPARISON_ITEMS } = useComparison(); 
   const { data: session } = useSession();
@@ -53,7 +53,6 @@ const ProductCatalog = ({
       router.push('/login');
       return;
     }
-    // We check for inclusion in the correct `wishlistIds` array.
     wishlistIds.includes(productId) ? removeFromWishlist(productId) : addToWishlist(productId);
   };
 
@@ -69,7 +68,6 @@ const ProductCatalog = ({
   return (
     <div className={`grid grid-cols-1 gap-6 md:gap-8 ${gridCols}`}>
       {products.map((product, index) => {
-        // The check for `inWishlist` now uses the correct `wishlistIds` array.
         const inWishlist = wishlistIds.includes(product.id);
         const isComparing = isInComparison(product.id);
 
