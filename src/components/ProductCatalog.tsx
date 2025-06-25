@@ -1,4 +1,3 @@
-// src/components/ProductCatalog.tsx
 'use client';
 
 import { useState } from 'react';
@@ -11,16 +10,16 @@ import { useWishlist } from '@/context/WishlistContext';
 import { useComparison } from '@/context/ComparisonContext';
 import { motion } from 'framer-motion';
 import { CheckIcon, HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
-import { HeartIcon as HeartOutline, ArrowsRightLeftIcon, ShoppingCartIcon } from '@heroicons/react/24/outline'; // Corrected import
+import { HeartIcon as HeartOutline, ArrowsRightLeftIcon, ShoppingCartIcon } from '@heroicons/react/24/outline';
 import { Product as ProductType } from '@/types';
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
-} as const;
+};
 
 interface ProductCatalogProps {
-  products: ProductType[]; // It now accepts a 'products' array directly.
+  products: ProductType[];
   gridCols?: string;
 }
 
@@ -28,13 +27,13 @@ const ProductCatalog = ({
   products,
   gridCols = 'sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3',
 }: ProductCatalogProps) => {
-  // THE FIX: Add a guard clause to handle when 'products' prop is not yet available.
   if (!products) {
-    return null; // Or return a loading skeleton if you prefer
+    return null;
   }
 
   const { addToCart } = useCart();
-  const { wishlist, addToWishlist, removeFromWishlist, isLoading: isWishlistLoading } = useWishlist();
+  // --- FIX 1: Use the correct variable name `wishlistIds` ---
+  const { wishlistIds, addToWishlist, removeFromWishlist, isLoading: isWishlistLoading } = useWishlist();
   const { comparisonItems, toggleComparison, isInComparison, MAX_COMPARISON_ITEMS } = useComparison(); 
   const { data: session } = useSession();
   const router = useRouter();
@@ -53,7 +52,8 @@ const ProductCatalog = ({
       router.push('/login');
       return;
     }
-    wishlist.includes(productId) ? removeFromWishlist(productId) : addToWishlist(productId);
+    // --- FIX 2: Check for inclusion in `wishlistIds` ---
+    wishlistIds.includes(productId) ? removeFromWishlist(productId) : addToWishlist(productId);
   };
 
   const handleCompareToggle = (e: React.MouseEvent, product: ProductType) => {
@@ -68,7 +68,8 @@ const ProductCatalog = ({
   return (
     <div className={`grid grid-cols-1 gap-6 md:gap-8 ${gridCols}`}>
       {products.map((product, index) => {
-        const inWishlist = wishlist.includes(product.id);
+        // --- FIX 3 (already implied by Fix 2): Check `wishlistIds` ---
+        const inWishlist = wishlistIds.includes(product.id);
         const isComparing = isInComparison(product.id);
 
         return (
