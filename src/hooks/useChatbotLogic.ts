@@ -36,8 +36,7 @@ export const useChatbotLogic = () => {
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
     const { cartItems, addToCart, removeFromCart, clearCart } = useCart();
-    // --- THE FIX IS HERE ---
-    // We are now destructuring `wishlistIds` which is the correct name from the context.
+    // --- CORRECTED DESTRUCTURING ---
     const { wishlistIds, addToWishlist, removeFromWishlist, clearWishlist } = useWishlist();
 
     const showNotificationMessage = useCallback((message: string, type: 'success' | 'error' | 'info') => {
@@ -46,8 +45,9 @@ export const useChatbotLogic = () => {
     }, []);
 
     const handleActionClick = useCallback(async (actionType: string, productIdOrMarker: string) => {
-        let normalizedActionType = actionType.replace(/_([a-z])/g, g => g[1].toUpperCase());
+        const normalizedActionType = actionType.replace(/_([a-z])/g, g => g[1].toUpperCase());
         const productSpecificActions = ['addToCart', 'addToWishlist', 'removeFromCart', 'removeFromWishlist'];
+        
         if (productSpecificActions.includes(normalizedActionType)) {
             if (!productIdOrMarker || productIdOrMarker.toLowerCase() === 'undefined' || productIdOrMarker === 'NONE') {
                 showNotificationMessage("Could not identify the product.", 'error');
@@ -59,7 +59,7 @@ export const useChatbotLogic = () => {
             switch (normalizedActionType) {
                 case 'addToCart': {
                     const product = await getProductDetails(productIdOrMarker);
-                    if (!product) throw new Error(`Could not find product details to add to cart.`);
+                    if (!product) throw new Error(`Could not find product details.`);
                     await addToCart(product, 1);
                     showNotificationMessage(`"${product.name}" was added to your cart!`, 'success');
                     break;
@@ -70,33 +70,28 @@ export const useChatbotLogic = () => {
                     showNotificationMessage(`"${product?.name || 'Item'}" added to wishlist!`, 'success');
                     break;
                 }
-                case 'removeFromCart': {
+                case 'removeFromCart':
                     await removeFromCart(productIdOrMarker);
                     showNotificationMessage(`Item removed from cart.`, 'success');
                     break;
-                }
-                case 'removeFromWishlist': {
+                case 'removeFromWishlist':
                     await removeFromWishlist(productIdOrMarker);
                     showNotificationMessage(`Item removed from wishlist.`, 'success');
                     break;
-                }
-                case 'clearCart': {
+                case 'clearCart':
                     await clearCart();
                     showNotificationMessage('Cart has been cleared!', 'success');
                     break;
-                }
-                case 'clearWishlist': {
+                case 'clearWishlist':
                     await clearWishlist();
                     showNotificationMessage('Wishlist has been cleared!', 'success');
                     break;
-                }
-                default: {
+                default:
                     throw new Error(`Unknown action type: '${actionType}'`);
-                }
             }
         } catch (err: any) {
             console.error(`Error performing chatbot action '${actionType}':`, err.message);
-            showNotificationMessage(err.message || "An error occurred while performing the action.", 'error');
+            showNotificationMessage(err.message || "An error occurred.", 'error');
         }
     }, [addToCart, addToWishlist, clearCart, clearWishlist, removeFromCart, removeFromWishlist, showNotificationMessage]);
 
@@ -105,8 +100,7 @@ export const useChatbotLogic = () => {
           api: "/api/chat",
           body: {
             cart: cartItems.map(item => ({ id: item.id, name: item.name, quantity: item.quantity })),
-            // --- AND THE FIX IS HERE ---
-            // We pass the correctly named `wishlistIds` to the API body.
+            // --- CORRECTED VARIABLE ---
             wishlist: wishlistIds,
           },
           onFinish: (message) => {
