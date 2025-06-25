@@ -1,62 +1,43 @@
-// src/app/login/LoginClientPage.tsx
 'use client'; 
 
 import { useState, FormEvent } from 'react';
-import { signIn } from 'next-auth/react'; // We still use this for Credentials
+import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from "next/link";
-import { FcGoogle } from "react-icons/fc";
 import { ArrowPathIcon, ExclamationCircleIcon } from '@heroicons/react/24/solid';
-
-// THE NEW, CRITICAL IMPORT
-import { createSupabaseBrowserClient } from '@/lib/supabaseClient';
 
 export default function LoginClientPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isCredentialsLoading, setIsCredentialsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/';
 
-  // This function for email/password login remains the same
   const handleCredentialsSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-    setIsCredentialsLoading(true);
+    setIsLoading(true);
+
+    // This calls the 'authorize' function in your auth.ts
     const result = await signIn('credentials', {
       redirect: false, 
       email: email,
       password: password,
     });
-    setIsCredentialsLoading(false);
+    
+    setIsLoading(false);
     if (result?.error) {
       setError('Invalid email or password. Please try again.');
-    } else {
+    } else if (result?.ok) {
       router.push(callbackUrl);
+      router.refresh(); // Refresh to update server components like the header
+    } else {
+      setError('An unknown error occurred. Please try again.');
     }
   };
-
-  // --- THE DEFINITIVE FIX IS HERE ---
-  // This function now uses the Supabase Auth Helper directly
-  const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true);
-    const supabase = createSupabaseBrowserClient();
-    
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        // This tells Google where to send the user back to after they log in.
-        // It must be one of the URLs you authorized in your Google Cloud console.
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-  };
-
-  const isLoading = isCredentialsLoading || isGoogleLoading;
 
   return (
     <div className="w-full max-w-md space-y-8">
@@ -68,18 +49,6 @@ export default function LoginClientPage() {
             Create an account
           </Link>
         </p>
-      </div>
-      
-      <div className="space-y-6">
-          <button
-              onClick={handleGoogleSignIn} // This now calls our new, robust function
-              type="button"
-              disabled={isLoading}
-              className="w-full flex items-center justify-center py-3 px-4 border border-gray-300 rounded-xl shadow-sm bg-white text-md font-semibold text-graphite hover:bg-gray-50 transition-all disabled:opacity-60"
-          >
-            {isGoogleLoading ? <ArrowPathIcon className="h-5 w-5 mr-3 animate-spin" /> : <FcGoogle className="h-6 w-6 mr-3" />}
-            {isGoogleLoading ? 'Redirecting...' : 'Continue with Google'}
-          </button>
       </div>
 
       <div className="relative flex py-2 items-center">
@@ -95,7 +64,6 @@ export default function LoginClientPage() {
               <span>{error}</span>
             </div>
           )}
-          {/* Your FormInput components remain the same */}
           <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email Address</label>
               <input id="email" name="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-solar-flare-end focus:ring-solar-flare-end"/>
@@ -109,7 +77,7 @@ export default function LoginClientPage() {
           </div>
           <div>
               <button type="submit" disabled={isLoading} className="w-full flex justify-center items-center bg-gradient-to-r from-solar-flare-start to-solar-flare-end py-3 font-semibold text-white rounded-xl shadow-lg hover:opacity-90 transition-all disabled:opacity-60">
-                {isCredentialsLoading ? <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" /> : 'Log In'}
+                {isLoading ? <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" /> : 'Log In'}
               </button>
           </div>
       </form>

@@ -1,8 +1,7 @@
-// src/app/wishlist/WishlistClientPage.tsx
 'use client'; 
 
 import { useEffect, useState } from 'react';
-import { useWishlist } from '@/context/WishlistContext';
+import { useWishlist } from '@/context/WishlistContext'; // Assuming this is where the hook comes from
 import { Product } from '@/types';
 import Link from 'next/link';
 import NextImage from 'next/image';
@@ -11,58 +10,37 @@ import { HeartIcon as HeartSolidIcon, CheckIcon } from '@heroicons/react/24/soli
 import { TrashIcon, ShoppingCartIcon } from '@heroicons/react/24/outline';
 import { useCart } from '@/context/CartContext';
 
-// --- Animation Variants ---
+// --- Animation Variants (These are fine) ---
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.1 } },
-} as const;
-
+};
 const itemVariants = {
   hidden: { opacity: 0, y: 20, scale: 0.98 },
   visible: { opacity: 1, y: 0, scale: 1 },
   exit: { opacity: 0, y: -20, scale: 0.98, transition: { duration: 0.3 } },
-} as const;
-
+};
 
 const WishlistClientPage = () => {
-  const { wishlist, isLoading: isWishlistLoading, removeFromWishlist } = useWishlist();
+  // --- THE FIX IS IN HOW WE USE THESE VALUES ---
+  // Let's get both the IDs and the pre-fetched products from the context
+  const { wishlistIds, wishlistProducts, isLoading: isWishlistLoading, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
   
-  const [wishlistProducts, setWishlistProducts] = useState<Product[]>([]);
-  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [movedToCartId, setMovedToCartId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchWishlistProducts = async () => {
-      if (isWishlistLoading) return setIsLoadingProducts(true);
-      if (wishlist.length === 0) {
-        setWishlistProducts([]);
-        return setIsLoadingProducts(false);
-      }
-      setIsLoadingProducts(true);
-      try {
-        const productDetailsPromises = wishlist.map(id => fetch(`/api/product-details?id=${id}`).then(res => res.ok ? res.json() : null));
-        const resolvedProducts = await Promise.all(productDetailsPromises);
-        setWishlistProducts(resolvedProducts.filter(p => p) as Product[]);
-      } catch (err) { 
-        setError("Could not load all wishlist items.");
-      } finally {
-        setIsLoadingProducts(false);
-      }
-    };
-    fetchWishlistProducts();
-  }, [wishlist, isWishlistLoading]);
+  // --- WE NO LONGER NEED A SEPARATE FETCH LOGIC HERE ---
+  // The WishlistContext is now responsible for fetching the full product details.
+  // This makes the page component much simpler and less prone to errors.
 
   const handleMoveToCart = (product: Product) => {
     addToCart(product, 1);
     removeFromWishlist(product.id);
     setMovedToCartId(product.id);
   };
-
-  const isLoadingPage = isWishlistLoading || isLoadingProducts;
-
-  if (isLoadingPage) {
+  
+  // The page is loading if the context is still loading.
+  if (isWishlistLoading) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
         <div className="animate-pulse flex flex-col items-center justify-center">
@@ -82,12 +60,9 @@ const WishlistClientPage = () => {
                 </h1>
                 <p className="mt-3 text-gray-600 max-w-xl mx-auto">Your personal collection of favorite solar products. Ready to make them yours?</p>
             </div>
-
-            {error && (
-                <div className="text-center bg-red-50 text-red-600 p-4 rounded-md" role="alert">{error}</div>
-            )}
             
-            {!error && wishlistProducts.length === 0 ? (
+            {/* We now check the length of `wishlistProducts` from the context */}
+            {wishlistProducts.length === 0 ? (
                 <div className="text-center bg-white rounded-2xl shadow-lg p-10 mt-8 max-w-lg mx-auto">
                     <HeartSolidIcon className="h-20 w-20 text-gray-200 mx-auto mb-6"/>
                     <h2 className="text-2xl font-semibold text-graphite mb-3">Your Wishlist is a Blank Canvas</h2>
@@ -104,6 +79,7 @@ const WishlistClientPage = () => {
                     className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8"
                 >
                     <AnimatePresence>
+                        {/* We map over `wishlistProducts` directly from the context */}
                         {wishlistProducts.map((product) => (
                             <motion.div 
                                 key={product.id} 
@@ -129,7 +105,6 @@ const WishlistClientPage = () => {
                                             className={`w-full flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white rounded-lg shadow-md transition-all duration-300 ${movedToCartId === product.id ? 'bg-green-500' : 'bg-gradient-to-r from-solar-flare-start to-solar-flare-end hover:opacity-90'}`}
                                         >
                                             {movedToCartId === product.id ? <CheckIcon className="h-5 w-5 mr-2"/> : <ShoppingCartIcon className="h-5 w-5 mr-2"/>}
-                                            {/* THE FIX: Corrected the variable name here */}
                                             {movedToCartId === product.id ? 'Moved!' : 'Move to Cart'}
                                         </button>
                                         <button 

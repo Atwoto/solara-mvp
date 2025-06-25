@@ -1,48 +1,69 @@
 // src/app/api/products/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient';
-import { Product as ProductType } from '@/types'; // Using the defined Product type
+import { createClient } from '@supabase/supabase-js'; // It's better to use the admin client for consistency
+import { Product as ProductType } from '@/types'; 
+
+// Use the secure admin client, which is best practice for all API routes.
+const supabase = createClient(
+  process.env.SUPABASE_URL!, 
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const categorySlug = searchParams.get('category'); // e.g., 'solar-panels', 'hybrid-inverters'
+  
+  // --- NEW LOGIC TO HANDLE FETCHING BY MULTIPLE IDs ---
+  // This is for the wishlist page.
+  const ids = searchParams.get('ids');
+  if (ids) {
+    try {
+      const idArray = ids.split(',');
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .in('id', idArray); // .in() is the Supabase function for 'WHERE id IN (...)
 
-  // console.log(`API received categorySlug: ${categorySlug}`); // For debugging
+      if (error) {
+        console.error('Supabase error fetching products by IDs:', error);
+        throw error;
+      }
+      return NextResponse.json(data as ProductType[] || []);
+
+    } catch (error: any) {
+      console.error('Error fetching products by IDs:', error.message);
+      return NextResponse.json({ message: `Failed to fetch products: ${error.message}` }, { status: 500 });
+    }
+  }
+
+  // --- YOUR EXISTING LOGIC FOR FETCHING BY CATEGORY ---
+  // This is for the main product catalog pages.
+  const categorySlug = searchParams.get('category');
 
   try {
     let query = supabase
-      .from('products') // Your table name
+      .from('products')
       .select('*');
 
     if (categorySlug) {
-      // This assumes your 'products.category' column stores values like 'solar-panels', 'hybrid-inverters', etc.
-      // directly matching the slugs from your Header.tsx links and PRODUCT_CATEGORY_SLUGS.
+      // Filter by category if the slug is provided
       query = query.eq('category', categorySlug); 
     }
-    
-    // Example: If you decided to use separate 'type' or 'technology' columns in DB
-    // const type = searchParams.get('type');
-    // if (type) {
-    //   query = query.eq('type', type); // Assumes a 'type' column
-    // }
-    // const technology = searchParams.get('technology');
-    // if (technology) {
-    //   query = query.eq('technology', technology); // Assumes a 'technology' column
-    // }
 
-    query = query.order('name', { ascending: true }); // Or by price, created_at, etc.
+    // You can add default sorting
+    query = query.order('name', { ascending: true });
 
-    const { data, error, count } = await query;
+    const { data, error } = await query;
 
     if (error) {
-      console.error('Supabase error fetching products:', error);
+      console.error('Supabase error fetching products by category:', error);
       throw error; 
     }
 
     return NextResponse.json(data as ProductType[] || []);
 
   } catch (error: any) {
-    console.error('Error fetching products:', error.message);
+    console.error('Error fetching products by category:', error.message);
     return NextResponse.json({ message: `Failed to fetch products: ${error.message}` }, { status: 500 });
   }
 }
