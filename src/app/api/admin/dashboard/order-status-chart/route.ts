@@ -1,6 +1,6 @@
 // src/app/api/admin/dashboard/order-status-chart/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin as supabase } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth"; // <<--- CORRECTED IMPORT PATH
 import type { Session } from 'next-auth';

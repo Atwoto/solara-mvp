@@ -1,6 +1,6 @@
 // src/app/api/admin/dashboard/recent-activity/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin as supabase } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import type { Session } from 'next-auth';
