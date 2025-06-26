@@ -2,7 +2,7 @@
 import { notFound } from 'next/navigation';
 import NextImage from 'next/image';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabaseClient';
+import { supabaseAdmin as supabase } from '@/lib/supabase/server';
 import PageHeader from '@/components/PageHeader';
 import { ServicePageData } from '@/types';
 import { CheckBadgeIcon, WrenchScrewdriverIcon, ArrowRightIcon } from '@heroicons/react/24/solid';
