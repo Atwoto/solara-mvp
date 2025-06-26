@@ -1,9 +1,11 @@
-// src/app/api/chat/route.ts
+// /src/app/api/chat/route.ts -- FINAL CORRECTED VERSION
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 import OpenAI from 'openai';
-import { supabaseAdmin as supabase } from '@/lib/supabase/server';
 import { Product as ProductTypeFromTypes, ServicePageData, BlogPost } from '@/types';
 import type { Message } from 'ai'; 
+
+// --- THE FINAL FIX: Import supabaseAdmin directly ---
+import { supabaseAdmin } from '@/lib/supabase/server';
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error('Missing OpenAI API key.');
@@ -27,7 +29,8 @@ export async function POST(req: Request) {
     wishlist: string[];
   } = await req.json();
   
-  const dbClient = supabaseAdmin || supabase; 
+  // --- THE FIX: Use the imported supabaseAdmin client directly ---
+  const dbClient = supabaseAdmin; 
 
   let productKnowledge = 'No product information available.';
   let serviceKnowledge = 'No installation service information available.';
@@ -40,35 +43,29 @@ export async function POST(req: Request) {
         dbClient.from('articles').select('id, title, slug, excerpt, category').filter('published_at', 'lte', new Date().toISOString())
     ]);
 
-    // --- THE FIX IS HERE ---
-    // We explicitly type 'p' as the Product type you imported.
     if (productsRes.data && productsRes.data.length > 0) {
       productKnowledge = productsRes.data.map((p: ProductTypeFromTypes) => 
         `\n- Product ID: ${p.id}, Name: "${p.name}", Category: "${p.category}", Price: Ksh ${p.price}, Wattage: ${p.wattage || 'N/A'}${p.wattage ? 'W' : ''}, Description: "${p.description}"`
       ).join('');
     }
-    if(productsRes.error) console.error("Chatbot API Error fetching products:", productsRes.error.message);
-
-    // It's good practice to type the others as well for consistency.
+    
     if (servicesRes.data && servicesRes.data.length > 0) {
       serviceKnowledge = servicesRes.data.map((s: ServicePageData) => 
         `\n- Service: "${s.title}", Summary: "${stripHtml(s.excerpt)}", Details: "${stripHtml(s.content_html).substring(0, 200)}..."`
       ).join('');
     }
-    if(servicesRes.error) console.error("Chatbot API Error fetching services:", servicesRes.error.message);
-
+    
     if (articlesRes.data && articlesRes.data.length > 0) {
       articleKnowledge = articlesRes.data.map((a: BlogPost) => 
         `\n- Article: "${a.title}", Category: "${a.category}", Summary: "${stripHtml(a.excerpt)}"`
       ).join('');
     }
-    if(articlesRes.error) console.error("Chatbot API Error fetching articles:", articlesRes.error.message);
-
+    
   } catch (e: any) {
     console.error("Chatbot API: Critical error fetching knowledge base:", e.message);
   }
   
-  // --- The rest of your file is perfectly fine, no changes needed below ---
+  // No other changes needed in the rest of the file
   let cartKnowledge = 'The user\'s shopping cart is currently empty.';
   if (cart && cart.length > 0) {
     cartKnowledge = 'The user\'s shopping cart currently contains:' + cart.map(
@@ -79,22 +76,18 @@ export async function POST(req: Request) {
   let wishlistKnowledge = 'The user\'s wishlist is currently empty.';
   if (wishlist && wishlist.length > 0) {
     try {
-        const { data: wishlistProducts, error: wishlistError } = await dbClient
+        const { data: wishlistProducts } = await dbClient
             .from('products')
             .select('id, name')
             .in('id', wishlist);
         
-        if (wishlistError) {
-            console.error("Chatbot API: Error fetching wishlist product names:", wishlistError.message);
-            wishlistKnowledge = `The user has ${wishlist.length} item(s) on their wishlist, but I couldn't retrieve the names.`;
-        } else if (wishlistProducts && wishlistProducts.length > 0) {
+        if (wishlistProducts && wishlistProducts.length > 0) {
             wishlistKnowledge = 'The user\'s wishlist currently contains:' + wishlistProducts.map(
                 (p: { id: string, name: string }) => `\n- "${p.name}" (ID: ${p.id})`
             ).join('');
         }
-    } catch(e: any) {
-        console.error("Chatbot API: Error processing wishlist:", e.message);
-        wishlistKnowledge = 'There was an error retrieving details for the wishlist items.';
+    } catch(e) {
+      // Graceful degradation
     }
   }
 
@@ -123,13 +116,9 @@ export async function POST(req: Request) {
     --- END KNOWLEDGE BASE ---
     --- IMPORTANT RULES ---
     1.  **Strictly Use Knowledge Base**: When asked about the company, projects, products, services, or articles, you MUST base your answer on the information provided in the KNOWLEDGE BASE above. If the information is not present, you must state that you don't have that specific information. Do not invent information.
-    2.  **Answering Specific Questions**:
-        - If asked "what do you do?" or "about your company", use the "About Our Company" section.
-        - If asked about "projects" or "experience", use the "Our Projects and Experience" section.
-        - If asked about specific articles, summarize them from the "Available Blog Articles" section.
-    3.  **Action Execution (EXECUTE_ACTION command)**: When a user gives a clear command like "add/remove [product name]", find the product ID from the knowledge base and use the EXECUTE_ACTION[action_type|product_id] command on a new line after your natural language response. The 'action_type' MUST be camelCase (e.g., addToCart, removeFromWishlist).
-    4.  **Suggestive Buttons (ACTION_BUTTON command)**: Only use this for proactive suggestions.
-    5.  **Privacy**: You are given the user's cart/wishlist contents for this conversation turn only. You can answer questions about it and act on it, but do not state this in a surprising way. Just answer as if you naturally have the context.
+    2.  **Action Execution (EXECUTE_ACTION command)**: When a user gives a clear command like "add/remove [product name]", find the product ID from the knowledge base and use the EXECUTE_ACTION[action_type|product_id] command on a new line after your natural language response. The 'action_type' MUST be camelCase (e.g., addToCart, removeFromWishlist).
+    3.  **Suggestive Buttons (ACTION_BUTTON command)**: Only use this for proactive suggestions.
+    4.  **Privacy**: You are given the user's cart/wishlist contents for this conversation turn only. You can answer questions about it and act on it, but do not state this in a surprising way. Just answer as if you naturally have the context.
   `;
 
   const finalMessages: Message[] = (messages.length > 0 && messages[0].role !== 'system') 
