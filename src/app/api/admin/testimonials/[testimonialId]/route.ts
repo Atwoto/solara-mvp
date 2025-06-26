@@ -1,6 +1,6 @@
 // src/app/api/admin/testimonials/[testimonialId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseClient';
+import { supabaseAdmin as supabase } from '@/lib/supabase/server';
 // BlogPost type might not be needed if not used for PUT,
 // but Testimonial type might be useful if you want to type testimonialData
 // import { Testimonial } from '@/types'; 

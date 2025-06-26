@@ -1,6 +1,6 @@
 // src/app/api/admin/services/[serviceId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseClient';
+import { supabaseAdmin as supabase } from '@/lib/supabase/server';
 import { ServicePageData } from '@/types';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";

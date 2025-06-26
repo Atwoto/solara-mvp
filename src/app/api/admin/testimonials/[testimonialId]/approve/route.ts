@@ -1,6 +1,6 @@
 // src/app/api/admin/testimonials/[testimonialId]/approve/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseClient';
+import { supabaseAdmin as supabase } from '@/lib/supabase/server';
 
 export async function PATCH(req: NextRequest, { params }: { params: { testimonialId: string } }) {
   if (!supabaseAdmin) {
