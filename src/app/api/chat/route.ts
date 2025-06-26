@@ -1,10 +1,9 @@
-// /src/app/api/chat/route.ts -- FINAL CORRECTED VERSION
+// /src/app/api/chat/route.ts -- FINAL FINAL CORRECTED VERSION
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 import OpenAI from 'openai';
 import { Product as ProductTypeFromTypes, ServicePageData, BlogPost } from '@/types';
 import type { Message } from 'ai'; 
 
-// --- THE FINAL FIX: Import supabaseAdmin directly ---
 import { supabaseAdmin } from '@/lib/supabase/server';
 
 if (!process.env.OPENAI_API_KEY) {
@@ -29,7 +28,6 @@ export async function POST(req: Request) {
     wishlist: string[];
   } = await req.json();
   
-  // --- THE FIX: Use the imported supabaseAdmin client directly ---
   const dbClient = supabaseAdmin; 
 
   let productKnowledge = 'No product information available.';
@@ -43,20 +41,22 @@ export async function POST(req: Request) {
         dbClient.from('articles').select('id, title, slug, excerpt, category').filter('published_at', 'lte', new Date().toISOString())
     ]);
 
+    // --- THE FIX IS HERE ---
+    // Change the type of 'p' from ProductTypeFromTypes to 'any'
     if (productsRes.data && productsRes.data.length > 0) {
-      productKnowledge = productsRes.data.map((p: ProductTypeFromTypes) => 
+      productKnowledge = productsRes.data.map((p: any) => 
         `\n- Product ID: ${p.id}, Name: "${p.name}", Category: "${p.category}", Price: Ksh ${p.price}, Wattage: ${p.wattage || 'N/A'}${p.wattage ? 'W' : ''}, Description: "${p.description}"`
       ).join('');
     }
     
     if (servicesRes.data && servicesRes.data.length > 0) {
-      serviceKnowledge = servicesRes.data.map((s: ServicePageData) => 
+      serviceKnowledge = servicesRes.data.map((s: any) => 
         `\n- Service: "${s.title}", Summary: "${stripHtml(s.excerpt)}", Details: "${stripHtml(s.content_html).substring(0, 200)}..."`
       ).join('');
     }
     
     if (articlesRes.data && articlesRes.data.length > 0) {
-      articleKnowledge = articlesRes.data.map((a: BlogPost) => 
+      articleKnowledge = articlesRes.data.map((a: any) => 
         `\n- Article: "${a.title}", Category: "${a.category}", Summary: "${stripHtml(a.excerpt)}"`
       ).join('');
     }
@@ -65,7 +65,6 @@ export async function POST(req: Request) {
     console.error("Chatbot API: Critical error fetching knowledge base:", e.message);
   }
   
-  // No other changes needed in the rest of the file
   let cartKnowledge = 'The user\'s shopping cart is currently empty.';
   if (cart && cart.length > 0) {
     cartKnowledge = 'The user\'s shopping cart currently contains:' + cart.map(
@@ -86,9 +85,7 @@ export async function POST(req: Request) {
                 (p: { id: string, name: string }) => `\n- "${p.name}" (ID: ${p.id})`
             ).join('');
         }
-    } catch(e) {
-      // Graceful degradation
-    }
+    } catch(e) { /* Graceful degradation */ }
   }
 
   const systemPrompt = `
