@@ -1,17 +1,15 @@
-import { createServerClient } from '@supabase/auth-helpers-nextjs';
+// /src/lib/supabase/server.ts -- FINAL CORRECTED IMPORT
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 
 export const createSupabaseServerClient = () => {
   const cookieStore = cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  // Use the correct function name here
+  return createServerComponentClient(
+    { cookies: () => cookieStore },
     {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     }
   );
 };
