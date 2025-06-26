@@ -1,10 +1,12 @@
-// src/context/UserContext.tsx
+// /src/context/UserContext.tsx -- FINAL CORRECTED VERSION
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
-import { createSupabaseBrowserClient } from '@/lib/supabaseClient';
 import type { User, SupabaseClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
+
+// --- THE FINAL FIX: Import the correct function for Client Components ---
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 type UserContextType = {
   user: User | null;
@@ -19,13 +21,22 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  // Create the browser-safe client once using the correct function
+  const supabase = useMemo(() => createClientComponentClient(), []);
 
   useEffect(() => {
+    const getInitialUser = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+        setIsLoading(false);
+    }
+    
+    getInitialUser();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       setIsLoading(false);
-      // This is the key: refresh the page on login/logout to re-fetch server data.
+      // Refresh the page on login/logout to ensure all server components re-render
       router.refresh();
     });
 
