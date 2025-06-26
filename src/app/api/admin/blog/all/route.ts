@@ -1,6 +1,6 @@
 // src/app/api/admin/blog/all/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseClient'; // Use admin client
+import { supabaseAdmin as supabase } from '@/lib/supabase/server'; // Use admin client
 import { BlogPost } from '@/types'; // Your BlogPost type
 // import { getToken } from 'next-auth/jwt'; 
 

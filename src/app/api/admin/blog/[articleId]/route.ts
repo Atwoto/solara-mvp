@@ -1,6 +1,6 @@
 // src/app/api/admin/blog/[articleId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseClient';
+import { supabaseAdmin as supabase } from '@/lib/supabase/server';
 import { BlogPost, BlogPostCategory } from '@/types'; // Ensure these are correctly defined in @/types
 import { v4 as uuidv4 } from 'uuid';
 

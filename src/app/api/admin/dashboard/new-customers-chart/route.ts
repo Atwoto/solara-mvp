@@ -1,6 +1,6 @@
 // src/app/api/admin/dashboard/new-customers-chart/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseClient';
+import { supabaseAdmin as supabase } from '@/lib/supabase/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth"; // <<--- CORRECTED IMPORT PATH
 import type { Session } from 'next-auth';
