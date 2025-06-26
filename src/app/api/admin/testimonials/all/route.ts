@@ -1,6 +1,6 @@
 // src/app/api/admin/testimonials/all/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin as supabase } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/server';
 import { Testimonial } from '@/types';
 
 export async function GET(req: NextRequest) {

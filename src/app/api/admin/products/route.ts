@@ -1,6 +1,6 @@
 // src/app/api/admin/products/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin as supabase } from '@/lib/supabase/server';// Use the admin client
+import { supabaseAdmin } from '@/lib/supabase/server';// Use the admin client
 import { Product } from '@/types'; // Import only Product for now
 import { v4 as uuidv4 } from 'uuid'; // For unique file names
 

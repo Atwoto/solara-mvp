@@ -1,7 +1,7 @@
 // src/app/api/chat/route.ts
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 import OpenAI from 'openai';
-import { supabaseAdmin as supabase } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/server';
 import { Product as ProductTypeFromTypes, ServicePageData, BlogPost } from '@/types';
 import type { Message } from 'ai'; 
 

@@ -1,6 +1,6 @@
 // src/app/api/blog/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin as supabase } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/server';
 import { BlogPost } from '@/types';
 
 export async function GET(req: NextRequest) {
