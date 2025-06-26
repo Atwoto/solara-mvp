@@ -1,7 +1,7 @@
 // src/app/api/admin/blog/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin as supabase } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from '@/lib/auth'; // Import from the central auth lib
 import type { Session } from 'next-auth';
