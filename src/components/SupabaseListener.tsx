@@ -1,30 +1,34 @@
-// src/components/SupabaseListener.tsx
+// /src/components/SupabaseListener.tsx -- FINAL, CORRECTED IMPORT
 'use client';
 
-import { useEffect, useMemo } from 'react'; // Import useMemo
+import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { createSupabaseBrowserClient } from '@/lib/supabaseClient';
-import { signIn, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
+
+// --- THE FIX: Import the CORRECT function for Client Components ---
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export default function SupabaseListener() {
   const router = useRouter();
-  
-  // THE FIX: Create the client instance once using useMemo.
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const { data: session } = useSession();
+
+  // THE FIX: Use the correct function name here.
+  // We use useMemo to ensure this only runs once per component mount.
+  const supabase = useMemo(() => createClientComponentClient(), []);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN') {
-        await signIn('credentials', { session: JSON.stringify(session), redirect: false });
-        router.refresh();
-      }
-      if (event === 'SIGNED_OUT') {
-        await signOut({ redirect: false });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, supabaseSession) => {
+      // This logic checks if the session token from Supabase is different
+      // from the one NextAuth has. If so, it refreshes the page to sync them.
+      if (supabaseSession?.access_token !== session?.accessToken) {
         router.refresh();
       }
     });
-    return () => { subscription.unsubscribe(); };
-  }, [supabase, router]);
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [session, router, supabase]);
 
   return null;
 }

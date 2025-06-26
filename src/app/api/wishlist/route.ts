@@ -1,60 +1,60 @@
-// /src/app/api/wishlist/route.ts -- FINAL, WORKING VERSION
+// /src/app/api/wishlist/route.ts
+// --- FINAL, CORRECTED VERSION using the working pattern ---
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth"; // Make sure this path is correct
 
-// Create ONE single, secure, server-side Supabase client with admin rights
-// This is the same pattern as your working cart API.
-const supabase = createClient(
-  process.env.SUPABASE_URL!, 
+// We create the same simple, direct admin client here.
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// GET /api/wishlist - Fetches the user's wishlist
-export async function GET() {
+// --- GET Function: Fetches the user's wishlist IDs ---
+export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    // A logged-out user has an empty wishlist. This is not an error.
-    return NextResponse.json([]);
+    return NextResponse.json([]); // A logged-out user has an empty wishlist.
   }
-  const userId = session.user.id;
 
   try {
-    const { data, error } = await supabase
+    // We use the user's ID from NextAuth to securely fetch their wishlist.
+    const { data, error } = await supabaseAdmin
       .from('wishlist_items')
       .select('product_id')
-      .eq('user_id', userId);
+      .eq('user_id', session.user.id);
 
     if (error) throw error;
     
-    // The frontend expects an array of product IDs, e.g., [1, 5, 12]
+    // The frontend expects a simple array of IDs, like ['id1', 'id2', ...]
     const wishlistIds = data ? data.map(item => item.product_id) : [];
     return NextResponse.json(wishlistIds);
-
   } catch (error: any) {
     console.error('Wishlist GET Error:', error.message);
     return NextResponse.json({ error: 'Failed to fetch wishlist' }, { status: 500 });
   }
 }
 
-// POST /api/wishlist - Adds an item to the user's wishlist
-export async function POST(req: NextRequest) {
+// --- POST Function: Adds an item to the wishlist ---
+export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const userId = session.user.id;
 
   try {
     const { productId } = await req.json();
-    if (!productId) return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
+    if (!productId) {
+      return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
+    }
     
-    // 'upsert' safely inserts the item and ignores duplicates.
-    const { error } = await supabase
+    // 'upsert' will safely insert the item. If it's already there, it does nothing.
+    // We provide both user_id and product_id to satisfy the table's columns.
+    const { error } = await supabaseAdmin
       .from('wishlist_items')
-      .upsert({ user_id: userId, product_id: productId });
+      .upsert({ user_id: session.user.id, product_id: productId });
 
     if (error) throw error;
 
@@ -65,22 +65,24 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// DELETE /api/wishlist - Removes an item from the user's wishlist
-export async function DELETE(req: NextRequest) {
+// --- DELETE Function: Removes an item from the wishlist ---
+export async function DELETE(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const userId = session.user.id;
 
   try {
     const { productId } = await req.json();
-    if (!productId) return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
+    if (!productId) {
+      return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
+    }
     
-    const { error } = await supabase
+    // We use .match() to ensure a user can ONLY delete an item from their OWN wishlist.
+    const { error } = await supabaseAdmin
       .from('wishlist_items')
       .delete()
-      .match({ user_id: userId, product_id: productId });
+      .match({ user_id: session.user.id, product_id: productId });
 
     if (error) throw error;
 

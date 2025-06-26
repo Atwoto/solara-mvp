@@ -1,17 +1,14 @@
-// src/context/CartContext.tsx
+// src/context/CartContext.tsx -- FINAL, TYPO-FIXED VERSION
 'use client';
 
 import { createContext, useState, useContext, useEffect, ReactNode, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { Product as AppProductType } from '@/types'; 
-import { useRouter } from 'next/navigation'; // Added for login redirect if needed
 
-// This interface is used throughout your app for items in the cart
 export interface CartItem extends AppProductType { 
   quantity: number;
 }
 
-// Defines the shape of the data and functions provided by the context
 interface CartContextType {
   cartItems: CartItem[];
   isLoading: boolean; 
@@ -35,104 +32,60 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // Start as true for initial load
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { data: session, status: authStatus } = useSession();
-  const router = useRouter();
 
-  // This function is the single source of truth for fetching an authenticated user's cart from the database.
   const fetchDbCart = useCallback(async () => {
     if (authStatus !== 'authenticated') {
         setCartItems([]);
         setIsLoading(false);
         return;
     }
-    
-    console.log("CART_CONTEXT: Fetching DB cart...");
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/cart'); // GET request
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `Failed to fetch cart (${response.status})`);
-      }
-      const dbCartItems: CartItem[] = await response.json();
-      console.log("CART_CONTEXT: Successfully fetched DB cart items:", dbCartItems);
-      setCartItems(dbCartItems);
+      const response = await fetch('/api/cart');
+      if (!response.ok) throw new Error(`Failed to fetch cart (${response.status})`);
+      setCartItems(await response.json());
     } catch (err: any) {
       console.error("CART_CONTEXT: Error fetching DB cart:", err);
       setError(err.message);
-      setCartItems([]); 
     } finally {
       setIsLoading(false);
     }
   }, [authStatus]);
 
-  // Load initial cart state based on authentication status
   useEffect(() => {
-    console.log(`CART_CONTEXT: Auth status changed to: ${authStatus}.`);
     if (authStatus === 'authenticated') {
       fetchDbCart();
     } else if (authStatus === 'unauthenticated') {
-      try {
-        const localCartJson = localStorage.getItem(GUEST_CART_STORAGE_KEY);
-        if (localCartJson) {
-          const parsedCart = JSON.parse(localCartJson);
-          if (Array.isArray(parsedCart)) {
-            console.log("CART_CONTEXT: Loading guest cart from localStorage.", parsedCart);
-            setCartItems(parsedCart);
-          }
-        } else {
-          setCartItems([]); 
-        }
-      } catch (e) {
-        console.error("CART_CONTEXT: Error loading guest cart from localStorage:", e);
-        localStorage.removeItem(GUEST_CART_STORAGE_KEY);
-        setCartItems([]);
-      }
+      const localCart = localStorage.getItem(GUEST_CART_STORAGE_KEY);
+      setCartItems(localCart ? JSON.parse(localCart) : []);
       setIsLoading(false);
     }
-    // If authStatus is 'loading', isLoading remains true
   }, [authStatus, fetchDbCart]);
 
-  // Sync guest cart to localStorage whenever it changes
   useEffect(() => {
-    if (authStatus === 'unauthenticated' && typeof window !== 'undefined') {
+    if (authStatus === 'unauthenticated') {
       localStorage.setItem(GUEST_CART_STORAGE_KEY, JSON.stringify(cartItems));
     }
   }, [cartItems, authStatus]);
-
-  // Merge guest cart to DB on login
+  
   useEffect(() => {
     const mergeCart = async () => {
         if (authStatus === 'authenticated') {
-            const localCartJson = localStorage.getItem(GUEST_CART_STORAGE_KEY);
-            if (localCartJson) {
-                const guestCartItems: CartItem[] = JSON.parse(localCartJson);
-                if (guestCartItems.length > 0) {
-                    console.log("CART_CONTEXT: Guest cart detected, merging with DB cart...");
-                    setIsLoading(true);
-                    try {
-                        // Use Promise.all to send all merge requests concurrently
-                        await Promise.all(guestCartItems.map(item => 
-                            fetch('/api/cart', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ productId: item.id, quantity: item.quantity }),
-                            })
-                        ));
-                        localStorage.removeItem(GUEST_CART_STORAGE_KEY);
-                        await fetchDbCart(); // Re-fetch the fully merged cart
-                        console.log("CART_CONTEXT: Guest cart merged and cleared.");
-                    } catch (mergeError) {
-                        console.error("CART_CONTEXT: Error merging guest cart to DB:", mergeError);
-                    } finally {
-                        setIsLoading(false);
-                    }
-                } else {
-                     localStorage.removeItem(GUEST_CART_STORAGE_KEY);
-                }
+            const guestCartItems: CartItem[] = JSON.parse(localStorage.getItem(GUEST_CART_STORAGE_KEY) || '[]');
+            if (guestCartItems.length > 0) {
+                await Promise.all(guestCartItems.map(item => 
+                    fetch('/api/cart', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ productId: item.id, quantity: item.quantity }),
+                    })
+                ));
+                localStorage.removeItem(GUEST_CART_STORAGE_KEY);
+                await fetchDbCart();
             }
         }
     };
@@ -140,10 +93,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [authStatus, fetchDbCart]);
 
 
-  const addToCart = async (product: AppProductType, quantityToAdd: number = 1) => {
+    const addToCart = async (product: AppProductType, quantityToAdd: number = 1) => {
     setError(null);
     if (authStatus === 'authenticated') {
-      setIsLoading(true);
       try {
         const response = await fetch('/api/cart', {
           method: 'POST',
@@ -151,25 +103,21 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           body: JSON.stringify({ productId: product.id, quantity: quantityToAdd }),
         });
         if (!response.ok) {
-            const errData = await response.json().catch(()=>({}));
-            throw new Error(errData.error || `Failed to add item (${response.status})`);
+            // Try to get a more specific error message from the server
+            const errorBody = await response.json().catch(() => ({}));
+            throw new Error(errorBody.error || `Server responded with ${response.status}`);
         }
-        await fetchDbCart(); // <<< FIX: Re-fetch the cart from the DB
+        // If the POST is successful, re-fetch the entire cart to ensure consistency
+        await fetchDbCart();
       } catch (err: any) {
         console.error("Error adding to DB cart:", err);
         setError(err.message);
-      } finally {
-        setIsLoading(false);
       }
-    } else { // Guest user logic
-      setCartItems((prevItems) => {
-        const existingItem = prevItems.find((item) => item.id === product.id);
-        if (existingItem) {
-          return prevItems.map((item) =>
-            item.id === product.id ? { ...item, quantity: item.quantity + quantityToAdd } : item
-          );
-        }
-        return [...prevItems, { ...product, quantity: quantityToAdd }];
+    } else { // Guest logic (this part works fine)
+      setCartItems((prev) => {
+        const existing = prev.find((i) => i.id === product.id);
+        if (existing) return prev.map((i) => i.id === product.id ? { ...i, quantity: i.quantity + quantityToAdd } : i);
+        return [...prev, { ...product, quantity: quantityToAdd }];
       });
     }
     openCart();
@@ -178,19 +126,19 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const removeFromCart = async (productId: string) => {
     setError(null);
     if (authStatus === 'authenticated') {
-      setIsLoading(true);
       try {
-        const response = await fetch(`/api/cart/item?productId=${productId}`, { method: 'DELETE' });
-        if (!response.ok) { throw new Error(`Failed to remove item (${response.status})`); }
-        await fetchDbCart(); // <<< FIX: Re-fetch the cart from the DB
+        const response = await fetch('/api/cart', { 
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId }),
+        });
+        if (!response.ok) throw new Error(`Failed to remove item (${response.status})`);
+        await fetchDbCart();
       } catch (err: any) {
-        console.error("Error removing from DB cart:", err);
         setError(err.message);
-      } finally {
-        setIsLoading(false);
       }
     } else {
-      setCartItems((prevItems) => prevItems.filter((item) => item.id !== productId));
+      setCartItems((prev) => prev.filter((item) => item.id !== productId));
     }
   };
 
@@ -201,43 +149,33 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     if (authStatus === 'authenticated') {
-      setIsLoading(true);
       try {
-        const response = await fetch('/api/cart/item', {
+        const response = await fetch('/api/cart', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ productId, newQuantity }),
         });
-        if (!response.ok) { throw new Error(`Failed to update quantity (${response.status})`); }
-        await fetchDbCart(); // <<< FIX: Re-fetch the cart from the DB
+        if (!response.ok) throw new Error(`Failed to update quantity (${response.status})`);
+        await fetchDbCart();
       } catch (err: any) {
-        console.error("Error updating DB cart item quantity:", err);
         setError(err.message);
-      } finally {
-        setIsLoading(false);
       }
     } else {
-      setCartItems((prevItems) =>
-        prevItems.map((item) =>
-          item.id === productId ? { ...item, quantity: newQuantity } : item
-        )
-      );
+      setCartItems((prev) => prev.map((item) => item.id === productId ? { ...item, quantity: newQuantity } : item));
     }
   };
 
   const clearCart = async () => {
     setError(null);
     if (authStatus === 'authenticated') {
-      setIsLoading(true);
       try {
-        const response = await fetch('/api/cart', { method: 'DELETE' });
-        if (!response.ok) { throw new Error(`Failed to clear cart (${response.status})`); }
-        setCartItems([]); // Clear local state immediately after DB success
+        const response = await fetch('/api/cart', { 
+            method: 'DELETE',
+        }); 
+        if (!response.ok) throw new Error(`Failed to clear cart (${response.status})`);
+        setCartItems([]);
       } catch (err: any) {
-        console.error("Error clearing DB cart:", err);
         setError(err.message);
-      } finally {
-        setIsLoading(false);
       }
     } else { 
       setCartItems([]);
@@ -246,7 +184,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const getCartTotal = () => cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const getTotalItems = () => cartItems.reduce((sum, item) => sum + item.quantity, 0);
-
   const openCart = () => setIsCartOpen(true);
   const closeCart = () => setIsCartOpen(false);
   const toggleCart = () => setIsCartOpen(prevState => !prevState);

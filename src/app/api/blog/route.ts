@@ -1,6 +1,6 @@
 // src/app/api/blog/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient'; // Use the public anon client
+import { supabaseAdmin as supabase } from '@/lib/supabase/server';
 import { BlogPost } from '@/types';
 
 export async function GET(req: NextRequest) {
