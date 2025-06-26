@@ -1,6 +1,6 @@
 // src/app/api/checkout/route.ts -- FINAL, CORRECTED VERSION
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseClient';
+import { supabaseAdmin as supabase } from '@/lib/supabase/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { CartItem } from '@/types';

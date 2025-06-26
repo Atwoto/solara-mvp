@@ -1,6 +1,6 @@
 // src/app/api/product-details/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient'; // Use the public (anon key) client
+import { supabaseAdmin as supabase } from '@/lib/supabase/server';// Use the public (anon key) client
 import { Product as ProductType } from '@/types';
 
 export async function GET(request: NextRequest) {

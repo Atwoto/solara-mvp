@@ -1,7 +1,7 @@
 // src/app/api/paystack/webhook/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto'; // Node.js crypto module for verifying webhook signature
-import { supabaseAdmin } from '@/lib/supabaseClient'; // Use admin client to update DB
+import { supabaseAdmin as supabase } from '@/lib/supabase/server';// Use admin client to update DB
 
 const PAYSTACK_WEBHOOK_SECRET = process.env.PAYSTACK_WEBHOOK_SECRET;
 

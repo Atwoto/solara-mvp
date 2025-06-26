@@ -1,6 +1,6 @@
 // src/app/api/testimonials/submit/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseClient'; // Use admin client for inserts
+import { supabaseAdmin as supabase } from '@/lib/supabase/server'; // Use admin client for inserts
 import { Testimonial } from '@/types'; // Your Testimonial type
 import { v4 as uuidv4 } from 'uuid';
 
