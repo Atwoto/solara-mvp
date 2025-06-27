@@ -21,7 +21,7 @@ export interface ActivityItem {
 interface OrderData {
   id: string;
   created_at: string;
-  total_price: number;
+  total_amount: number;
   user_id: string;
   status: string;
   shipping_address?: {
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch all data sources concurrently for better performance
     const [ordersRes, usersRes, productsRes, articlesRes, testimonialsRes] = await Promise.all([
-      supabaseAdmin.from('orders').select('id, created_at, total_price, user_id, status, shipping_address').order('created_at', { ascending: false }).limit(ACTIVITY_LIMIT),
+      supabaseAdmin.from('orders').select('id, created_at, total_amount, user_id, status, shipping_address').order('created_at', { ascending: false }).limit(ACTIVITY_LIMIT),
       supabaseAdmin.rpc('get_recent_users', { limit_count: ACTIVITY_LIMIT }),
       supabaseAdmin.from('products').select('id, name, created_at, category').order('created_at', { ascending: false }).limit(ACTIVITY_LIMIT),
       supabaseAdmin.from('articles').select('id, title, created_at, category, published_at').order('created_at', { ascending: false }).limit(ACTIVITY_LIMIT),
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
         type: 'order' as const,
         timestamp: String(order.created_at),
         title: `Order #${String(order.id).substring(0,8)} placed`,
-        description: `Status: ${order.status}, Total: Ksh ${order.total_price.toLocaleString()}. By: ${order.shipping_address?.fullName || 'Guest'}`,
+        description: `Status: ${order.status}, Total: Ksh ${order.total_amount.toLocaleString()}. By: ${order.shipping_address?.fullName || 'Guest'}`,
         link: `/admin/orders/${order.id}`,
       })));
     }
