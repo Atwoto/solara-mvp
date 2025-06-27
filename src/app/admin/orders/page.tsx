@@ -13,11 +13,12 @@ const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
 interface Order {
   id: string;
   created_at: string;
-  total_price: number;
+  total_amount: number; // Corrected from total_price
   status: string;
-  user_id: string; // Assuming user_id is available directly
-  // If you need user details like email/name, you might need to join or fetch separately
-  // user?: { email?: string | null; name?: string | null; }; 
+  user_id: string; 
+  users: { // This will hold the user's email
+    email: string | null;
+  } | null;
 }
 
 const statusStyles: { [key: string]: string } = {
@@ -56,7 +57,7 @@ const AdminOrdersPage = () => {
       setFetchError(null);
       try {
         // Ensure this API endpoint exists and returns all orders for admin
-        const response = await fetch('/api/admin/orders/all'); // Or your specific endpoint
+        const response = await fetch('/api/admin/orders');  // Or your specific endpoint
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || 'Failed to fetch orders');
@@ -127,8 +128,8 @@ const AdminOrdersPage = () => {
                     {/* Link to order details page */}
                     <a href={`/admin/orders/${order.id}`} title={order.id}>{order.id.substring(0, 8)}...</a> 
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap font-mono text-xs text-gray-500" title={order.user_id}>
-                    {order.user_id ? `${order.user_id.substring(0, 8)}...` : 'Guest'}
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600" title={order.user_id}>
+                    {order.users?.email || 'N/A'}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(order.created_at).toLocaleDateString()}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">Ksh {order.total_price.toLocaleString()}</td>
