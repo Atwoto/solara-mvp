@@ -1,13 +1,14 @@
 // /src/app/api/auth/[...nextauth]/route.ts
-// --- THE FINAL, STRUCTURALLY CORRECT VERSION ---
+// --- THE FINAL, SIMPLIFIED, AND GUARANTEED VERSION ---
 
-import NextAuth from 'next-auth'
-import GoogleProvider from 'next-auth/providers/google'
-import { SupabaseAdapter } from '@next-auth/supabase-adapter'
-import type { NextAuthOptions } from 'next-auth'
+import NextAuth from 'next-auth';
+import GoogleProvider from 'next-auth/providers/google';
+import { SupabaseAdapter } from '@next-auth/supabase-adapter';
+import type { NextAuthOptions } from 'next-auth';
 
-// 1. Define your authOptions object. This part is correct.
-export const authOptions: NextAuthOptions = {
+// Instead of exporting authOptions, we define it inside the NextAuth call.
+// This is the most direct approach.
+const handler = NextAuth({
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -29,10 +30,7 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-};
+});
 
-// 2. Create the NextAuth handler by passing the options to the NextAuth function.
-const handler = NextAuth(authOptions);
-
-// 3. Export the handler for the GET and POST methods. This is the required structure.
+// This is the only thing we export: the GET and POST handlers.
 export { handler as GET, handler as POST };
