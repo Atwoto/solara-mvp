@@ -1,18 +1,18 @@
 // /src/app/api/paystack/initialize/route.ts -- FINAL, ROBUST VERSION
 
 import { NextRequest, NextResponse } from 'next/server';
-import Paystack from 'paystack-node';
 import { v4 as uuidv4 } from 'uuid';
 
-// We do NOT initialize the client here in the global scope.
+// --- THE FINAL FIX: Use require() to import the library ---
+// This handles module compatibility issues common in serverless environments.
+const Paystack = require('paystack-node');
 
-// We tell Vercel to use the Node.js runtime, which is correct.
+// We are telling Vercel to use the Node.js runtime, which is correct.
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
-    // --- THE FINAL FIX: Initialize the Paystack client INSIDE the function ---
-    // This guarantees it has access to the environment variables at runtime.
+    // Initialize the Paystack client INSIDE the function.
     const paystack = new Paystack(process.env.PAYSTACK_SECRET_KEY!);
 
     const { amount, email, metadata } = await req.json();
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     const amountInSmallestUnit = Math.round(amount * 100);
     const reference = `BOS_${metadata?.db_order_id || 'ORDER'}_${uuidv4()}`;
 
-    // This will now work because 'paystack' is guaranteed to be defined.
+    // This will now work because 'paystack' is correctly initialized.
     const transaction = await paystack.transaction.initialize({
       amount: amountInSmallestUnit,
       email: email,
