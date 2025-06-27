@@ -132,7 +132,7 @@ const AdminOrdersPage = () => {
                     {order.users?.email || 'N/A'}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(order.created_at).toLocaleDateString()}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">Ksh {order.total_price.toLocaleString()}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">Ksh {order.total_amount.toLocaleString()}</td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${statusStyles[order.status.toLowerCase().replace(/ /g, '_')] || 'bg-gray-100 text-gray-800'}`}>
                       {order.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
