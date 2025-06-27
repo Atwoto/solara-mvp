@@ -1,16 +1,15 @@
-import NextAuth from 'next-auth'
-import GoogleProvider from 'next-auth/providers/google'
-import CredentialsProvider from 'next-auth/providers/credentials'
-import { createClient } from '@supabase/supabase-js'
-import type { NextAuthOptions } from 'next-auth'
+// /src/app/api/auth/[...nextauth]/route.ts
+// --- FINAL, STRUCTURALLY CORRECT VERSION FOR VERCEL ---
 
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import NextAuth from 'next-auth';
+import GoogleProvider from 'next-auth/providers/google';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { createClient } from '@supabase/supabase-js';
+import type { NextAuthOptions } from 'next-auth';
 
-// --- THE FIX: The 'export' keyword has been REMOVED from this line ---
-const authOptions: NextAuthOptions = {
+// This is the only thing we export.
+// We define the options directly inside the NextAuth() function call.
+const handler = NextAuth({
   session: {
     strategy: 'jwt',
   },
@@ -24,6 +23,7 @@ const authOptions: NextAuthOptions = {
         credentials: { email: { label: "Email", type: "text" }, password: { label: "Password", type: "password" } },
         async authorize(credentials) {
             if (!credentials?.email || !credentials?.password) return null;
+            const supabaseAdmin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
             const { data: user } = await supabaseAdmin.from('users').select('*').eq('email', credentials.email).single();
             if (user) return { id: user.id, name: user.name, email: user.email, image: user.image };
             return null;
@@ -34,12 +34,10 @@ const authOptions: NextAuthOptions = {
     async signIn({ user, account }) {
       if (account?.provider === 'google') {
         try {
-          const { data: { users } } = await supabaseAdmin.auth.admin.listUsers({
-              // @ts-ignore
-              email: user.email!,
-          });
-          
-          let authUser = users[0];
+          const supabaseAdmin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+          // The code inside this block is your working logic
+          const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
+          let authUser = users.find(u => u.email === user.email);
 
           if (!authUser) {
               const { data: { user: newAuthUser }, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -78,8 +76,6 @@ const authOptions: NextAuthOptions = {
       return session;
     },
   },
-};
+});
 
-// These two lines correctly export what Vercel needs
-const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
