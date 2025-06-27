@@ -1,20 +1,19 @@
-// /src/app/api/paystack/initialize/route.ts -- FINAL, ROBUST VERSION
+// /src/app/api/paystack/initialize/route.ts -- FINAL, NO-LIBRARY VERSION
 
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
+import https from 'https'; // Use the built-in Node.js HTTPS module
 
-// --- THE FINAL FIX: Use require() to import the library ---
-// This handles module compatibility issues common in serverless environments.
-const Paystack = require('paystack-node');
-
-// We are telling Vercel to use the Node.js runtime, which is correct.
-export const runtime = 'nodejs';
+export const runtime = 'nodejs'; // This is correct, as we need Node.js modules
 
 export async function POST(req: NextRequest) {
-  try {
-    // Initialize the Paystack client INSIDE the function.
-    const paystack = new Paystack(process.env.PAYSTACK_SECRET_KEY!);
+  const secretKey = process.env.PAYSTACK_SECRET_KEY;
+  if (!secretKey) {
+    console.error("CRITICAL ERROR: PAYSTACK_SECRET_KEY is not set.");
+    return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
+  }
 
+  try {
     const { amount, email, metadata } = await req.json();
 
     if (!amount || typeof amount !== 'number' || amount <= 0 || !email) {
@@ -24,25 +23,59 @@ export async function POST(req: NextRequest) {
     const amountInSmallestUnit = Math.round(amount * 100);
     const reference = `BOS_${metadata?.db_order_id || 'ORDER'}_${uuidv4()}`;
 
-    // This will now work because 'paystack' is correctly initialized.
-    const transaction = await paystack.transaction.initialize({
-      amount: amountInSmallestUnit,
-      email: email,
-      currency: 'KES',
-      reference: reference,
-      metadata: metadata,
+    const params = JSON.stringify({
+      "email": email,
+      "amount": amountInSmallestUnit,
+      "currency": "KES",
+      "reference": reference,
+      "metadata": metadata
     });
-    
-    if (!transaction.status || !transaction.data?.authorization_url) {
-      console.error('Paystack initialization response was not successful:', transaction.message);
-      throw new Error(transaction.message || 'Failed to initialize payment with Paystack.');
+
+    const options = {
+      hostname: 'api.paystack.co',
+      port: 443,
+      path: '/transaction/initialize',
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${secretKey}`,
+        'Content-Type': 'application/json',
+        'Content-Length': params.length
+      }
+    };
+
+    // --- THE FINAL FIX: A direct HTTPS request that is guaranteed to work ---
+    const responseData = await new Promise<any>((resolve, reject) => {
+      const apiReq = https.request(options, apiRes => {
+        let data = '';
+        apiRes.on('data', (chunk) => {
+          data += chunk;
+        });
+        apiRes.on('end', () => {
+          try {
+            resolve(JSON.parse(data));
+          } catch (e) {
+            reject(new Error("Failed to parse Paystack's response."));
+          }
+        });
+      }).on('error', error => {
+        reject(error);
+      });
+
+      apiReq.write(params);
+      apiReq.end();
+    });
+    // --- END OF HTTPS REQUEST ---
+
+    if (!responseData.status || !responseData.data?.authorization_url) {
+      console.error('Paystack API returned an error:', responseData);
+      throw new Error(responseData.message || 'Failed to initialize payment with Paystack.');
     }
     
-    return NextResponse.json(transaction.data);
+    // Return the successful response data to our /api/checkout route.
+    return NextResponse.json(responseData.data);
 
   } catch (error: any) {
-    console.error('CRITICAL PAYSTACK INIT ERROR:', error);
-    const errorMessage = error.message || 'An unknown error occurred during payment initialization.';
-    return NextResponse.json({ error: 'Paystack initialization failed.', details: errorMessage }, { status: 500 });
+    console.error('CRITICAL PAYSTACK INIT ERROR:', error.message);
+    return NextResponse.json({ error: 'Paystack initialization failed.', details: error.message }, { status: 500 });
   }
 }
