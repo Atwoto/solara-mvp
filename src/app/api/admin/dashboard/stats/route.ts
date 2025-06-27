@@ -1,47 +1,39 @@
-// src/app/api/admin/dashboard/stats/route.ts -- FINAL, CORRECTED VERSION
+// /src/app/api/admin/dashboard/stats/route.ts -- FINAL, CORRECTED VERSION
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import type { Session } from 'next-auth';
 
 const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
 
 // Define the type for the specific data we are selecting
 interface RevenueOrder {
-  total_price: number | null;
+  total_amount: number | null;
 }
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions) as Session | null;
+  const session = await getServerSession(authOptions);
 
-  if (!session || !session.user || session.user.email !== ADMIN_EMAIL) {
+  if (!session?.user?.email || session.user.email !== ADMIN_EMAIL) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
-  }
-  if (!supabaseAdmin) {
-    return NextResponse.json({ message: 'Server configuration error' }, { status: 500 });
   }
 
   try {
-    const { data: revenueOrders, error: revenueQueryError } = await supabaseAdmin
+    // --- Fetch Total Revenue ---
+    const { data: revenueOrders, error: revenueError } = await supabaseAdmin
       .from('orders')
-      .select('total_price')
+      .select('total_amount') // <-- FIX: Changed from total_price
       .in('status', ['paid', 'delivered', 'shipped', 'processing']);
       
-    if (revenueQueryError) {
-      console.error("API STATS: Supabase error fetching revenue orders:", JSON.stringify(revenueQueryError, null, 2));
-      // Throw an error to be caught by the main catch block
-      throw new Error(`Failed to fetch revenue: ${revenueQueryError.message}`);
-    }
+    if (revenueError) throw new Error(`Failed to fetch revenue: ${revenueError.message}`);
     
-    // --- THE FIX IS HERE ---
-    // We explicitly type 'sum' as a number and 'order' as our RevenueOrder interface.
     const totalRevenue = (revenueOrders as RevenueOrder[])?.reduce((sum: number, order: RevenueOrder) => {
-      const price = typeof order.total_price === 'number' ? order.total_price : 0;
-      return sum + price;
+      // <-- FIX: Changed from total_price
+      const amount = typeof order.total_amount === 'number' ? order.total_amount : 0;
+      return sum + amount;
     }, 0) || 0;
     
-    // --- Continue fetching other stats ---
+    // --- Fetch Other Stats ---
     const startOfMonthISO = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
     
     const { count: newOrdersCount, error: newOrdersError } = await supabaseAdmin
@@ -50,13 +42,13 @@ export async function GET(request: NextRequest) {
       .gte('created_at', startOfMonthISO);
     if (newOrdersError) throw new Error(`Failed to fetch new orders count: ${newOrdersError.message}`);
 
-    const { data: newCustomersThisMonth, error: newCustomersRpcError } = await supabaseAdmin
+    const { data: newCustomersThisMonth, error: newCustomersError } = await supabaseAdmin
       .rpc('count_new_users_this_month');
-    if (newCustomersRpcError) throw new Error(`Failed to fetch new customers count: ${newCustomersRpcError.message}`);
+    if (newCustomersError) throw new Error(`Failed to fetch new customers count: ${newCustomersError.message}`);
 
-    const { data: totalOverallCustomers, error: totalCustomersRpcError } = await supabaseAdmin
+    const { data: totalOverallCustomers, error: totalCustomersError } = await supabaseAdmin
       .rpc('count_total_users');
-    if (totalCustomersRpcError) throw new Error(`Failed to fetch total customers: ${totalCustomersRpcError.message}`);
+    if (totalCustomersError) throw new Error(`Failed to fetch total customers: ${totalCustomersError.message}`);
 
     const { count: totalProducts, error: productsError } = await supabaseAdmin
       .from('products')
@@ -69,7 +61,7 @@ export async function GET(request: NextRequest) {
     if (articlesError) throw new Error(`Failed to fetch total articles: ${articlesError.message}`);
 
     const stats = {
-      totalRevenue: totalRevenue,
+      totalRevenue,
       newOrdersCount: newOrdersCount || 0,
       newCustomersThisMonth: newCustomersThisMonth || 0,
       totalOverallCustomers: totalOverallCustomers || 0,
