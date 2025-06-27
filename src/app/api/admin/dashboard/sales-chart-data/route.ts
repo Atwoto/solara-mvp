@@ -9,7 +9,7 @@ const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
 
 // Define the type for order data
 interface DailyOrder {
-  total_price: number | null;
+  total_amount: number | null;
 }
 
 export async function GET(request: NextRequest) {
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       // We removed the `.returns()` method.
       const { data: dailyOrders, error: dailyOrdersError } = await supabaseAdmin
         .from('orders')
-        .select('total_price')
+        .select('total_amount')
         .in('status', ['paid', 'delivered', 'shipped', 'processing'])
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       const typedOrders = dailyOrders as DailyOrder[] | null;
 
       const dailyTotal = typedOrders?.reduce((sum: number, order: DailyOrder) => {
-        const price = typeof order.total_price === 'number' ? order.total_price : 0;
+        const price = typeof order.total_amount === 'number' ? order.total_amount : 0;
         return sum + price;
       }, 0) || 0;
 
