@@ -1,7 +1,9 @@
 // src/app/api/admin/products/[productId]/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server'; // Adjust path if needed
+// *** THE FIX IS HERE: Correct this import path to match your project's structure! ***
+// Look for where you define your Supabase server client and use that path.
+import { createClient } from '@/utils/supabase/server'; // <--- CHANGE THIS LINE
 import { Product } from '@/types';
 
 // This is your PUT handler for updating a product
@@ -20,7 +22,6 @@ export async function PUT(
     const category = formData.get('category') as string;
     const description = formData.get('description') as string;
 
-    // This is the data we will update in Supabase
     const dataToUpdate: Partial<Product> & { image_url?: string[] } = {
       name,
       price,
@@ -34,9 +35,11 @@ export async function PUT(
 
     if (imageFile) {
       // Logic to upload a new image and get its URL
-      const filePath = `product-images/${productId}/${Date.now()}-${imageFile.name}`;
+      const filePath = `product-image/${productId}/${Date.now()}-${imageFile.name}`;
+      
+      // *** IMPORTANT: Make sure to replace 'your-bucket-name' with your actual Supabase storage bucket name! ***
       const { error: uploadError } = await supabase.storage
-        .from('product-images') // <== REPLACE with your bucket name
+        .from('product-image') // <== REPLACE with your bucket name if different
         .upload(filePath, imageFile);
 
       if (uploadError) {
@@ -44,18 +47,16 @@ export async function PUT(
       }
 
       const { data: urlData } = supabase.storage
-        .from('product-images') // <== REPLACE with your bucket name
+        .from('product-image') // <== REPLACE with your bucket name if different
         .getPublicUrl(filePath);
       
       dataToUpdate.image_url = [urlData.publicUrl]; // Wrap the new URL in an array
 
     } else if (currentImageUrl) {
-      // *** THIS IS THE FIX FOR YOUR ERROR ***
-      // The form sent a string. Wrap it in an array to match the `text[]` column type.
+      // This wraps the existing image URL string in an array to match the database
       dataToUpdate.image_url = [currentImageUrl]; 
     }
     
-    // Now, update the product in the database
     const { data: updatedProduct, error } = await supabase
       .from('products')
       .update(dataToUpdate)
@@ -64,7 +65,6 @@ export async function PUT(
       .single();
 
     if (error) {
-      // The original error you saw was thrown from here
       console.error('Supabase error updating product:', error);
       throw error;
     }
