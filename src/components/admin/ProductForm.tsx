@@ -6,11 +6,12 @@ import { useRouter } from 'next/navigation';
 import { Product, PRODUCT_CATEGORY_SLUGS, ProductCategorySlug } from '@/types';
 import Image from 'next/image';
 
-// *** FIX #1: Omit 'image_url' instead of 'imageUrl'. ***
+// This type definition is good. It separates the form's state from the raw database model.
 export type ProductFormData = Omit<Product, 'id' | 'created_at' | 'image_url'> & { 
   category: ProductCategorySlug | ''; 
   imageFile?: File | null; 
-  currentImageUrl?: string | null;
+  // Storing the current image URL as a single string is correct for the form's logic.
+  currentImageUrl?: string | null; 
 };
 
 interface ProductFormProps {
@@ -28,25 +29,26 @@ const ProductForm = ({ initialData, onSubmitSuccess }: ProductFormProps) => {
     category: (initialData?.category as ProductCategorySlug) || '',
     description: initialData?.description || '',
     imageFile: null,
-    // *** FIX #2: Use 'image_url' from initialData. ***
-    currentImageUrl: initialData?.image_url || null,
+    // **IMPROVEMENT**: Get the first image from the array for the initial state.
+    currentImageUrl: initialData?.image_url?.[0] || null, 
   });
 
-  // *** FIX #3: Use 'image_url' for initial state. ***
   const [productData, setProductData] = useState<ProductFormData>(getInitialFormData());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.image_url || null);
+  // **IMPROVEMENT**: The preview should also come from the first image in the array.
+  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.image_url?.[0] || null);
 
   useEffect(() => {
-    // *** FIX #4: Use 'image_url' when resetting form. ***
+    // This effect correctly resets the form if the initialData changes.
     setProductData(getInitialFormData());
-    setImagePreview(initialData?.image_url || null);
+    // **IMPROVEMENT**: Ensure the preview is also reset correctly from the array.
+    setImagePreview(initialData?.image_url?.[0] || null);
   }, [initialData]);
 
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectE_lement>) => {
     const { name, value } = e.target;
     setProductData(prev => ({
       ...prev,
@@ -68,8 +70,8 @@ const ProductForm = ({ initialData, onSubmitSuccess }: ProductFormProps) => {
       reader.readAsDataURL(file);
     } else {
       setProductData(prev => ({ ...prev, imageFile: null }));
-      // *** FIX #5: Use 'image_url' when reverting. ***
-      setImagePreview(initialData?.image_url || null);
+      // Revert preview to the original image if the file selection is cancelled.
+      setImagePreview(initialData?.image_url?.[0] || null);
     }
   };
 
@@ -85,6 +87,7 @@ const ProductForm = ({ initialData, onSubmitSuccess }: ProductFormProps) => {
     setError(null);
     setSuccessMessage(null);
 
+    // Using FormData is correct for handling file uploads.
     const formDataToSubmit = new FormData();
     formDataToSubmit.append('name', productData.name);
     formDataToSubmit.append('price', productData.price.toString());
@@ -95,10 +98,10 @@ const ProductForm = ({ initialData, onSubmitSuccess }: ProductFormProps) => {
     if (productData.imageFile) {
       formDataToSubmit.append('imageFile', productData.imageFile);
     }
+    // This correctly sends the existing URL if no new file is chosen for an update.
     if (initialData && productData.currentImageUrl && !productData.imageFile) {
         formDataToSubmit.append('currentImageUrl', productData.currentImageUrl);
     }
-
 
     try {
       const endpoint = initialData?.id 
@@ -123,20 +126,20 @@ const ProductForm = ({ initialData, onSubmitSuccess }: ProductFormProps) => {
       if (onSubmitSuccess) {
         onSubmitSuccess(successMsg);
       } else {
-        if (!initialData) {
+        if (!initialData) { // After creating a new product
             setProductData(getInitialFormData()); 
             setImagePreview(null);
             const fileInput = document.getElementById('imageFile') as HTMLInputElement;
             if (fileInput) fileInput.value = "";
-        } else if (result.product) {
+        } else if (result.product) { // After updating an existing product
             const updatedProduct = result.product as Product;
-            // *** FIX #6: Use 'image_url' when updating state after submission. ***
             setProductData(prev => ({
                 ...prev,
-                currentImageUrl: updatedProduct.image_url,
+                // **IMPROVEMENT**: Update state from the first element of the returned array.
+                currentImageUrl: updatedProduct.image_url?.[0] || null,
                 imageFile: null,
             }));
-            setImagePreview(updatedProduct.image_url || null);
+            setImagePreview(updatedProduct.image_url?.[0] || null);
         }
       }
       
@@ -147,8 +150,10 @@ const ProductForm = ({ initialData, onSubmitSuccess }: ProductFormProps) => {
     }
   };
 
+  // ... a JSX for the form remains the same
   return (
     <form onSubmit={handleSubmit} className="bg-white shadow-xl rounded-lg p-6 sm:p-8 space-y-6">
+        {/* The rest of your JSX form is perfect and doesn't need changes. */}
         {error && <div className="p-3 bg-red-100 text-red-700 border border-red-300 rounded-md text-sm">{error}</div>}
         {successMessage && <div className="p-3 bg-green-100 text-green-700 border border-green-300 rounded-md text-sm">{successMessage}</div>}
 
