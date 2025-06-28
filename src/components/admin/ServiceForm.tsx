@@ -1,4 +1,3 @@
-// src/components/admin/ServiceForm.tsx
 'use client';
 
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
@@ -6,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import TipTapEditor from '@/components/admin/TipTapEditor';
 import { ServicePageData } from '@/types'; 
 import Image from 'next/image';
+import { serviceOptions } from '@/lib/serviceOptions'; // Import our service options
 
 interface ServiceFormProps {
   initialData?: ServicePageData | null;
@@ -54,31 +54,29 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
     }
   }, [initialData]);
 
-  const titleToSlug = (titleString: string) => {
-    return titleString.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/--+/g, '-');
-  };
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTitle = e.target.value;
-    setFormData(prev => ({
-        ...prev,
-        title: newTitle,
-        slug: (!prev.slug || prev.slug === titleToSlug(prev.title)) ? titleToSlug(newTitle) : prev.slug
-    }));
+  // New handler for the Service Title dropdown
+  const handleServiceSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedSlug = e.target.value;
+    const selectedService = serviceOptions.find(opt => opt.value === selectedSlug);
+    
+    if (selectedService) {
+        setFormData(prev => ({
+            ...prev,
+            title: selectedService.label, // Set the human-readable title
+            slug: selectedService.value,   // Set the slug from our options
+        }));
+    } else {
+        setFormData(prev => ({ ...prev, title: '', slug: '' }));
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-     if (name === 'slug') {
-        setFormData(prev => ({ ...prev, slug: titleToSlug(value) }));
+    if (name === 'display_order') {
+        const numValue = parseInt(value, 10);
+        setFormData(prev => ({ ...prev, [name]: isNaN(numValue) ? 0 : numValue }));
     } else {
-        // Handle number inputs specifically
-        if (name === 'display_order') {
-            const numValue = parseInt(value, 10);
-            setFormData(prev => ({ ...prev, [name]: isNaN(numValue) ? 0 : numValue }));
-        } else {
-            setFormData(prev => ({ ...prev, [name]: value }));
-        }
+        setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
 
@@ -137,8 +135,6 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
     if (formData.call_to_action_label) dataToSubmit.append('call_to_action_label', formData.call_to_action_label.trim());
     if (formData.call_to_action_link) dataToSubmit.append('call_to_action_link', formData.call_to_action_link.trim());
     
-    // *** THE FIX IS HERE ***
-    // Only append display_order if it's a valid number.
     if (typeof formData.display_order === 'number' && !isNaN(formData.display_order)) {
         dataToSubmit.append('display_order', formData.display_order.toString());
     }
@@ -156,18 +152,13 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
         : '/api/admin/services';
       const method = initialData?.id ? 'PUT' : 'POST';
 
-      const response = await fetch(endpoint, {
-        method: method,
-        body: dataToSubmit, 
-      });
+      const response = await fetch(endpoint, { method, body: dataToSubmit });
       const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.message || `Failed to ${initialData?.id ? 'update' : 'create'} service`);
-      }
+      if (!response.ok) throw new Error(result.message);
+
       setSuccessMessage(result.message || `Service ${initialData?.id ? 'updated' : 'created'} successfully!`);
-      if (onSubmitSuccess) {
-          onSubmitSuccess();
-      }
+      if (onSubmitSuccess) onSubmitSuccess();
+      
       if (!initialData) {
           setFormData(getInitialFormState()); 
           setImagePreview(null);
@@ -178,7 +169,7 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
               const updatedService = result.service as ServicePageData;
               setFormData(prev => ({
                   ...prev,
-                  ...updatedService, // This will update all fields from the returned service
+                  ...updatedService,
                   featuresJson: updatedService.features ? JSON.stringify(updatedService.features, null, 2) : '[]',
                   currentImageUrl: updatedService.hero_image_url || null,
                   imageFile: null, 
@@ -199,8 +190,36 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
       {successMessage && <div className="p-3 mb-4 text-sm text-green-700 bg-green-100 rounded-lg" role="alert">{successMessage}</div>}
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div><label htmlFor="title" className="block text-sm font-medium text-gray-700">Service Title <span className="text-red-500">*</span></label><input type="text" name="title" id="title" value={formData.title} onChange={handleTitleChange} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" /></div>
-        <div><label htmlFor="slug" className="block text-sm font-medium text-gray-700">Slug (URL) <span className="text-red-500">*</span></label><input type="text" name="slug" id="slug" value={formData.slug} onChange={handleInputChange} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" placeholder="e.g., residential-solar" /></div>
+        <div>
+            <label htmlFor="service-title-select" className="block text-sm font-medium text-gray-700">Service Title <span className="text-red-500">*</span></label>
+            <select
+                id="service-title-select"
+                name="title"
+                value={formData.slug} // The dropdown's value is controlled by the slug
+                onChange={handleServiceSelectChange}
+                required
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm"
+            >
+                <option value="" disabled>-- Select a service --</option>
+                {serviceOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                        {option.label}
+                    </option>
+                ))}
+            </select>
+        </div>
+        <div>
+            <label htmlFor="slug" className="block text-sm font-medium text-gray-700">Slug (URL) <span className="text-red-500">*</span></label>
+            <input 
+                type="text" 
+                name="slug" 
+                id="slug" 
+                value={formData.slug} 
+                required 
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-600 focus:outline-none sm:text-sm" 
+                readOnly // Make the slug read-only to enforce consistency
+            />
+        </div>
       </div>
 
       <div><label htmlFor="content_html" className="block text-sm font-medium text-gray-700 mb-1">Service Content <span className="text-red-500">*</span></label><TipTapEditor content={formData.content_html} onChange={handleContentChange} /></div>
