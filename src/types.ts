@@ -10,7 +10,7 @@ export interface Product {
   price: number;
   wattage?: number | null;     
   
-   image_url: string | null; // <-- Add this line
+   image_url: string[] | null;
   category?: string | null; 
   description?: string | null; 
 }

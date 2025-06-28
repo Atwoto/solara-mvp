@@ -1,17 +1,15 @@
 // src/app/api/admin/products/[productId]/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-// *** FIX 1: Import the 'supabaseAdmin' client that is actually exported. ***
 import { supabaseAdmin } from '@/lib/supabase/server';
-import { Product } from '@/types';
+import { Product } from '@/types'; // It's still good to import this
 
 // This is your PUT handler for updating a product
 export async function PUT(
   request: NextRequest,
   { params }: { params: { productId: string } }
 ) {
-  // *** FIX 2: Use the imported 'supabaseAdmin' client directly. ***
-  const supabase = supabaseAdmin; 
+  const supabase = supabaseAdmin;
   const productId = params.productId;
 
   try {
@@ -22,7 +20,9 @@ export async function PUT(
     const category = formData.get('category') as string;
     const description = formData.get('description') as string;
 
-    const dataToUpdate: Partial<Product> & { image_url?: string[] } = {
+    // *** FIX: We are making the type of this object very clear to TypeScript ***
+    // This removes the confusing '&' intersection type that caused the error.
+    const dataToUpdate: { [key: string]: any } = {
       name,
       price,
       wattage,
@@ -34,11 +34,10 @@ export async function PUT(
     const currentImageUrl = formData.get('currentImageUrl') as string | null;
 
     if (imageFile) {
-      // Logic to upload a new image and get its URL
       const filePath = `product-image/${productId}/${Date.now()}-${imageFile.name}`;
       
       const { error: uploadError } = await supabase.storage
-        .from('product-image') // Make sure this is your bucket name
+        .from('product-image')
         .upload(filePath, imageFile, {
             cacheControl: '3600',
             upsert: false
@@ -49,13 +48,14 @@ export async function PUT(
       }
 
       const { data: urlData } = supabase.storage
-        .from('product-image') // Make sure this is your bucket name
+        .from('product-image')
         .getPublicUrl(filePath);
       
-      dataToUpdate.image_url = [urlData.publicUrl]; // Wrap the new URL in an array
+      // Now this assignment will work without a type error.
+      dataToUpdate.image_url = [urlData.publicUrl];
 
     } else if (currentImageUrl) {
-      // This wraps the existing image URL string in an array to match the database
+      // This assignment will also work.
       dataToUpdate.image_url = [currentImageUrl]; 
     }
     
