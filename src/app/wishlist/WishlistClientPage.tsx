@@ -1,7 +1,8 @@
+// src/app/wishlist/WishlistClientPage.tsx
 'use client'; 
 
 import { useEffect, useState } from 'react';
-import { useWishlist } from '@/context/WishlistContext'; // Assuming this is where the hook comes from
+import { useWishlist } from '@/context/WishlistContext';
 import { Product } from '@/types';
 import Link from 'next/link';
 import NextImage from 'next/image';
@@ -10,7 +11,6 @@ import { HeartIcon as HeartSolidIcon, CheckIcon } from '@heroicons/react/24/soli
 import { TrashIcon, ShoppingCartIcon } from '@heroicons/react/24/outline';
 import { useCart } from '@/context/CartContext';
 
-// --- Animation Variants (These are fine) ---
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.1 } },
@@ -22,16 +22,9 @@ const itemVariants = {
 };
 
 const WishlistClientPage = () => {
-  // --- THE FIX IS IN HOW WE USE THESE VALUES ---
-  // Let's get both the IDs and the pre-fetched products from the context
-  const { wishlistIds, wishlistProducts, isLoading: isWishlistLoading, removeFromWishlist } = useWishlist();
+  const { wishlistProducts, isLoading: isWishlistLoading, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
-  
   const [movedToCartId, setMovedToCartId] = useState<string | null>(null);
-
-  // --- WE NO LONGER NEED A SEPARATE FETCH LOGIC HERE ---
-  // The WishlistContext is now responsible for fetching the full product details.
-  // This makes the page component much simpler and less prone to errors.
 
   const handleMoveToCart = (product: Product) => {
     addToCart(product, 1);
@@ -39,7 +32,6 @@ const WishlistClientPage = () => {
     setMovedToCartId(product.id);
   };
   
-  // The page is loading if the context is still loading.
   if (isWishlistLoading) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
@@ -61,7 +53,6 @@ const WishlistClientPage = () => {
                 <p className="mt-3 text-gray-600 max-w-xl mx-auto">Your personal collection of favorite solar products. Ready to make them yours?</p>
             </div>
             
-            {/* We now check the length of `wishlistProducts` from the context */}
             {wishlistProducts.length === 0 ? (
                 <div className="text-center bg-white rounded-2xl shadow-lg p-10 mt-8 max-w-lg mx-auto">
                     <HeartSolidIcon className="h-20 w-20 text-gray-200 mx-auto mb-6"/>
@@ -79,7 +70,6 @@ const WishlistClientPage = () => {
                     className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8"
                 >
                     <AnimatePresence>
-                        {/* We map over `wishlistProducts` directly from the context */}
                         {wishlistProducts.map((product) => (
                             <motion.div 
                                 key={product.id} 
@@ -89,8 +79,9 @@ const WishlistClientPage = () => {
                                 className="group flex flex-col bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300"
                             >
                                 <Link href={`/products/${product.id}`} className="block relative w-full h-60 bg-gray-100">
-                                    {product.image_url && (
-                                        <NextImage src={product.image_url} alt={product.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
+                                    {/* *** THIS IS THE FIX: Check for and use the FIRST image from the array *** */}
+                                    {product.image_url && product.image_url[0] && (
+                                        <NextImage src={product.image_url[0]} alt={product.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
                                     )}
                                 </Link>
                                 <div className="p-5 flex flex-col flex-grow">
