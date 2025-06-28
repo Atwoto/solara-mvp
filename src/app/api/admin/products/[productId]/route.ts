@@ -3,6 +3,46 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { v4 as uuidv4 } from 'uuid';
 
+// --- NEW: The GET handler to fetch a single product for the edit page ---
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { productId: string } }
+) {
+  const supabase = supabaseAdmin;
+  const { productId } = params;
+
+  if (!productId) {
+    return NextResponse.json({ message: 'Product ID is required.' }, { status: 400 });
+  }
+
+  try {
+    const { data: product, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', productId)
+      .single(); // Use .single() to get one object, not an array
+
+    if (error) {
+      if (error.code === 'PGRST116') { // Code for "No rows found"
+        return NextResponse.json({ message: 'Product not found.' }, { status: 404 });
+      }
+      throw error;
+    }
+
+    if (!product) {
+        return NextResponse.json({ message: 'Product not found.' }, { status: 404 });
+    }
+
+    return NextResponse.json(product);
+
+  } catch (error: any) {
+    console.error('Error fetching product:', error.message);
+    return NextResponse.json({ message: `Error fetching product: ${error.message}` }, { status: 500 });
+  }
+}
+
+
+// --- EXISTING: The PUT handler for updating a product ---
 export async function PUT(
   request: NextRequest,
   { params }: { params: { productId: string } }
@@ -32,18 +72,13 @@ export async function PUT(
       });
       const uploadResults = await Promise.all(uploadPromises);
 
-      // --- THIS IS THE GUARANTEED FIX ---
-      // Loop through each result and check for an error individually.
       for (const result of uploadResults) {
         if (result.error) {
-          // This structure is undeniable to TypeScript.
-          // If we are in here, result.error MUST exist.
           throw new Error(`Failed to upload new image(s): ${result.error.message}`);
         }
       }
       
       newImageUrls = uploadResults.map(result => {
-        // We know there are no errors here, so we can safely access result.data
         return supabase.storage.from('product-images').getPublicUrl(result.data!.path).data.publicUrl;
       });
     }
@@ -76,8 +111,7 @@ export async function PUT(
       product: updatedProduct 
     });
 
-  } catch (error: any)
-  {
+  } catch (error: any) {
     return NextResponse.json(
       { message: error.message || 'Failed. Please check server logs.' }, 
       { status: 500 }
