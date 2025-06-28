@@ -1,3 +1,4 @@
+// /src/components/ProductCatalog.tsx
 'use client';
 
 import { useState } from 'react';
@@ -8,13 +9,11 @@ import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useComparison } from '@/context/ComparisonContext';
-// --- FIX 1: Import the 'Variants' type from framer-motion ---
 import { motion, Variants } from 'framer-motion';
 import { CheckIcon, HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
 import { HeartIcon as HeartOutline, ArrowsRightLeftIcon, ShoppingCartIcon } from '@heroicons/react/24/outline';
 import { Product as ProductType } from '@/types';
 
-// --- FIX 2: Explicitly type the variants object with the 'Variants' type ---
 const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
@@ -29,7 +28,6 @@ const ProductCatalog = ({
   products,
   gridCols = 'sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3',
 }: ProductCatalogProps) => {
-  // The rest of your component code is perfectly fine and does not need to be changed.
   if (!products) {
     return null;
   }
@@ -76,8 +74,9 @@ const ProductCatalog = ({
           <motion.div key={product.id} variants={itemVariants}>
             <Link href={`/products/${product.id}`} className="block relative group rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300">
               <div className="relative w-full h-72 bg-gray-200">
-                {product.image_url && (
-                  <Image src={product.image_url} alt={product.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" priority={index < 4} />
+                {/* *** FIX: Use the first image from the array *** */}
+                {product.image_url && product.image_url[0] && (
+                  <Image src={product.image_url[0]} alt={product.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" priority={index < 4} />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                 <div className="absolute bottom-0 left-0 p-5">

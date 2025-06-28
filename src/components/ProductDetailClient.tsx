@@ -52,9 +52,10 @@ export default function ProductDetailClient({ product, initialIsWishlisted }: Pr
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
         {/* Image Gallery Column */}
         <div className="relative w-full h-96 md:h-[500px] rounded-2xl overflow-hidden shadow-lg">
-          {product.image_url && (
+          {/* *** FIX: Use the first image from the array *** */}
+          {product.image_url && product.image_url[0] && (
             <Image
-              src={product.image_url}
+              src={product.image_url[0]}
               alt={product.name}
               fill
               className="object-cover"

@@ -8,7 +8,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { XMarkIcon, ShoppingBagIcon, PlusIcon, MinusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { SparklesIcon } from '@heroicons/react/24/solid';
 
-// --- Animation Variants ---
 const backdropVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.3 } },
@@ -34,7 +33,7 @@ const itemVariants = {
 const CartSidebar = () => {
   const { cartItems, removeFromCart, clearCart, updateItemQuantity, getCartTotal, isCartOpen, closeCart } = useCart(); 
   const subtotal = getCartTotal();
-  const SHIPPING_THRESHOLD = 10000; // Example: Free shipping over Ksh 10,000
+  const SHIPPING_THRESHOLD = 10000;
   const remainingForFreeShipping = SHIPPING_THRESHOLD - subtotal;
   const shippingProgress = Math.min((subtotal / SHIPPING_THRESHOLD) * 100, 100);
 
@@ -56,7 +55,6 @@ const CartSidebar = () => {
             onClick={(e) => e.stopPropagation()}
             aria-modal="true" role="dialog"
           >
-            {/* --- Polished Header --- */}
             <header className="flex items-center justify-between border-b border-gray-200 p-5 sticky top-0 bg-white z-10">
               <h2 className="text-xl font-semibold text-graphite flex items-center">
                 <ShoppingBagIcon className="h-6 w-6 mr-2.5 text-solar-flare-end"/> Your Cart
@@ -66,7 +64,6 @@ const CartSidebar = () => {
               </button>
             </header>
 
-            {/* --- Main Content with Staggered Animations --- */}
             <div className="flex-grow overflow-y-auto">
               {cartItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center px-6">
@@ -83,7 +80,8 @@ const CartSidebar = () => {
                     {cartItems.map((item) => (
                       <motion.li key={item.id} variants={itemVariants} exit="exit" layout className="flex items-center py-5">
                         <div className="relative h-20 w-20 rounded-md overflow-hidden border bg-gray-50 flex-shrink-0">
-                          {item.image_url && <NextImage src={item.image_url} alt={item.name} fill className="object-cover" />}
+                          {/* *** THIS IS THE FIX: Use the FIRST image from the array *** */}
+                          {item.image_url && item.image_url[0] && <NextImage src={item.image_url[0]} alt={item.name} fill className="object-cover" />}
                         </div>
                         <div className="ml-4 flex-grow">
                           <Link href={`/products/${item.id}`} onClick={closeCart} className="text-sm font-medium text-graphite hover:text-solar-flare-start line-clamp-2">{item.name}</Link>
@@ -105,10 +103,8 @@ const CartSidebar = () => {
               )}
             </div>
 
-            {/* --- Checkout Footer with "Wow" Shipping Goal --- */}
             {cartItems.length > 0 && (
                 <footer className="border-t border-gray-200 p-5 bg-gray-50/80 sticky bottom-0 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.05)]">
-                    {/* NEW: Interactive shipping goal */}
                     <div className="mb-4 text-center text-xs text-gray-600">
                         {remainingForFreeShipping > 0 ? (
                             <p>You're <span className="font-bold text-solar-flare-end">Ksh {remainingForFreeShipping.toLocaleString()}</span> away from free shipping!</p>
