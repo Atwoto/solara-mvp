@@ -1,9 +1,8 @@
 // src/app/api/admin/products/[productId]/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-// *** THE FIX IS HERE: Correct this import path to match your project's structure! ***
-// Look for where you define your Supabase server client and use that path.
-import { createClient } from '@/utils/supabase/server'; // <--- CHANGE THIS LINE
+// *** THIS LINE IS NOW CORRECTED TO MATCH YOUR FILE STRUCTURE ***
+import { createClient } from '@/lib/supabase/server';
 import { Product } from '@/types';
 
 // This is your PUT handler for updating a product
@@ -37,10 +36,13 @@ export async function PUT(
       // Logic to upload a new image and get its URL
       const filePath = `product-image/${productId}/${Date.now()}-${imageFile.name}`;
       
-      // *** IMPORTANT: Make sure to replace 'your-bucket-name' with your actual Supabase storage bucket name! ***
+      // *** REMINDER: Make sure 'product-image' is your actual Supabase storage bucket name! ***
       const { error: uploadError } = await supabase.storage
         .from('product-image') // <== REPLACE with your bucket name if different
-        .upload(filePath, imageFile);
+        .upload(filePath, imageFile, {
+            cacheControl: '3600',
+            upsert: false
+        });
 
       if (uploadError) {
         throw new Error(`Image upload failed: ${uploadError.message}`);
