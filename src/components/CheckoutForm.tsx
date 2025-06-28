@@ -9,7 +9,6 @@ import Link from 'next/link';
 import NextImage from 'next/image';
 import { LockClosedIcon, ExclamationTriangleIcon, ShoppingBagIcon, UserIcon, EnvelopeIcon, PhoneIcon, MapPinIcon } from '@heroicons/react/24/outline';
 
-// Declare PaystackPop for TypeScript
 declare global {
     interface Window {
         PaystackPop?: {
@@ -37,7 +36,6 @@ export default function CheckoutForm() {
   const shippingCost = subtotal > 0 ? 500 : 0; 
   const total = subtotal + shippingCost;
 
-  // Load the Paystack script
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://js.paystack.co/v1/inline.js';
@@ -46,7 +44,6 @@ export default function CheckoutForm() {
     return () => { document.body.removeChild(script); };
   }, []);
 
-  // Redirect unauthenticated users and pre-fill form for logged-in users
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login?callbackUrl=/checkout');
@@ -70,7 +67,6 @@ export default function CheckoutForm() {
     setFormError('');
 
     try {
-      // 1. Call our secure /api/checkout endpoint to create the order in our DB first
       const checkoutResponse = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,7 +84,6 @@ export default function CheckoutForm() {
       
       const paystackData = checkoutData.paystack;
 
-      // 2. Use the data from our API to open the Paystack popup
       if (!window.PaystackPop) throw new Error("Paystack JS not loaded.");
 
       const handler = window.PaystackPop.setup({
@@ -100,7 +95,7 @@ export default function CheckoutForm() {
         onClose: () => {
           setFormError('Payment popup closed. Your order is pending payment.');
           setIsProcessingPayment(false);
-          router.push(`/order-confirmation?orderId=${checkoutData.orderId}`); // Redirect to show status
+          router.push(`/order-confirmation?orderId=${checkoutData.orderId}`);
         },
         callback: (response: any) => { 
           clearCart();
@@ -140,7 +135,6 @@ export default function CheckoutForm() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
             <div className="lg:col-span-2 bg-white p-6 sm:p-8 rounded-xl shadow-lg">
               <h2 className="text-2xl font-semibold text-graphite mb-6 border-b pb-4">Shipping Information</h2>
-              {/* Your form fields from the original file go here */}
               <div className="space-y-6">
                  <div><label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">Full Name <span className="text-red-500">*</span></label><div className="relative mt-1"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><UserIcon className="h-5 w-5 text-gray-400" /></div><input type="text" name="fullName" id="fullName" value={formData.fullName} onChange={handleInputChange} className="block w-full rounded-md border-gray-300 shadow-sm p-3 pl-10 focus:border-solar-flare-start focus:ring-solar-flare-start sm:text-sm" required /></div></div>
                  <div><label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label><div className="relative mt-1"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><EnvelopeIcon className="h-5 w-5 text-gray-400" /></div><input type="email" id="email" value={session?.user?.email || ''} className="block w-full rounded-md border-gray-300 shadow-sm p-3 pl-10 bg-gray-100 text-gray-500 cursor-not-allowed sm:text-sm" readOnly /></div></div>
@@ -152,9 +146,24 @@ export default function CheckoutForm() {
             <div className="lg:col-span-1">
                 <div className="rounded-xl border bg-white p-6 shadow-lg sticky top-28">
                     <h2 className="text-xl sm:text-2xl font-semibold text-graphite mb-6 pb-4 border-b">Your Order</h2>
-                    {/* Your order summary JSX from the original file goes here */}
                      <div className="space-y-3 max-h-60 overflow-y-auto mb-4 pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"> 
-                       {cartItems.map(item => ( <div key={item.id} className="flex items-center justify-between text-sm"> <div className="flex items-center"> <div className="relative h-14 w-14 rounded border bg-gray-100 overflow-hidden mr-3 flex-shrink-0"> {item.image_url ? (<NextImage src={item.image_url} alt={item.name} fill className="object-cover"/>) : <div className="w-full h-full bg-gray-200"></div>} </div><div> <span className="font-medium text-graphite block line-clamp-1">{item.name}</span> <span className="text-gray-500 text-xs">Qty: {item.quantity}</span> </div></div> <span className="font-medium text-graphite whitespace-nowrap">Ksh {(item.price * item.quantity).toLocaleString()}</span> </div> ))}
+                       {cartItems.map(item => ( 
+                         <div key={item.id} className="flex items-center justify-between text-sm">
+                            <div className="flex items-center">
+                               {/* *** THIS IS THE FIX: Use the first image from the array *** */}
+                               <div className="relative h-14 w-14 rounded border bg-gray-100 overflow-hidden mr-3 flex-shrink-0">
+                                   {item.image_url && item.image_url[0] ? (
+                                       <NextImage src={item.image_url[0]} alt={item.name} fill className="object-cover"/>
+                                   ) : <div className="w-full h-full bg-gray-200"></div>}
+                               </div>
+                               <div>
+                                   <span className="font-medium text-graphite block line-clamp-1">{item.name}</span>
+                                   <span className="text-gray-500 text-xs">Qty: {item.quantity}</span>
+                               </div>
+                            </div>
+                            <span className="font-medium text-graphite whitespace-nowrap">Ksh {(item.price * item.quantity).toLocaleString()}</span>
+                         </div> 
+                       ))}
                      </div>
                      <div className="py-4 border-t border-b border-gray-200 space-y-1.5 text-sm"> <div className="flex justify-between text-gray-600"> <span>Subtotal</span> <span>Ksh {subtotal.toLocaleString()}</span> </div> <div className="flex justify-between text-gray-600"> <span>Shipping</span> <span>Ksh {shippingCost.toLocaleString()}</span> </div> </div>
                      <div className="flex justify-between text-lg font-bold text-graphite pt-4 pb-5"> <span>Total</span> <span>Ksh {total.toLocaleString()}</span> </div>
