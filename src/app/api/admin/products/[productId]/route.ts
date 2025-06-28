@@ -1,8 +1,8 @@
 // src/app/api/admin/products/[productId]/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-// *** THIS LINE IS NOW CORRECTED TO MATCH YOUR FILE STRUCTURE ***
-import { createClient } from '@/lib/supabase/server';
+// *** FIX 1: Import the 'supabaseAdmin' client that is actually exported. ***
+import { supabaseAdmin } from '@/lib/supabase/server';
 import { Product } from '@/types';
 
 // This is your PUT handler for updating a product
@@ -10,7 +10,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { productId: string } }
 ) {
-  const supabase = createClient();
+  // *** FIX 2: Use the imported 'supabaseAdmin' client directly. ***
+  const supabase = supabaseAdmin; 
   const productId = params.productId;
 
   try {
@@ -36,9 +37,8 @@ export async function PUT(
       // Logic to upload a new image and get its URL
       const filePath = `product-image/${productId}/${Date.now()}-${imageFile.name}`;
       
-      // *** REMINDER: Make sure 'product-image' is your actual Supabase storage bucket name! ***
       const { error: uploadError } = await supabase.storage
-        .from('product-image') // <== REPLACE with your bucket name if different
+        .from('product-image') // Make sure this is your bucket name
         .upload(filePath, imageFile, {
             cacheControl: '3600',
             upsert: false
@@ -49,7 +49,7 @@ export async function PUT(
       }
 
       const { data: urlData } = supabase.storage
-        .from('product-image') // <== REPLACE with your bucket name if different
+        .from('product-image') // Make sure this is your bucket name
         .getPublicUrl(filePath);
       
       dataToUpdate.image_url = [urlData.publicUrl]; // Wrap the new URL in an array
