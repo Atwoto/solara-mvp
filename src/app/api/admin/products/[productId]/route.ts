@@ -32,7 +32,8 @@ export async function PUT(
       });
       const uploadResults = await Promise.all(uploadPromises);
 
-      // --- THE GUARANTEED FIX ---
+      // --- THIS IS THE GUARANTEED FIX ---
+      // Loop through each result and check for an error individually.
       for (const result of uploadResults) {
         if (result.error) {
           // This structure is undeniable to TypeScript.
@@ -42,6 +43,7 @@ export async function PUT(
       }
       
       newImageUrls = uploadResults.map(result => {
+        // We know there are no errors here, so we can safely access result.data
         return supabase.storage.from('product-images').getPublicUrl(result.data!.path).data.publicUrl;
       });
     }
@@ -74,7 +76,8 @@ export async function PUT(
       product: updatedProduct 
     });
 
-  } catch (error: any) {
+  } catch (error: any)
+  {
     return NextResponse.json(
       { message: error.message || 'Failed. Please check server logs.' }, 
       { status: 500 }
