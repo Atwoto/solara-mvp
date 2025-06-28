@@ -7,7 +7,6 @@ import Image from 'next/image';
 import { XMarkIcon, TrashIcon, ScaleIcon } from '@heroicons/react/24/solid';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// --- Animation Variants ---
 const modalVariants = {
   hidden: { opacity: 0, scale: 0.95 },
   visible: { opacity: 1, scale: 1, transition: { duration: 0.3, ease: 'easeOut' } },
@@ -55,13 +54,11 @@ const ComparisonModal = ({ isOpen, onClose }: ComparisonModalProps) => {
             variants={modalVariants} initial="hidden" animate="visible" exit="hidden"
             className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden"
           >
-            {/* Modal Header */}
             <header className="flex items-center justify-between p-5 border-b">
               <h2 className="text-xl font-bold text-deep-night flex items-center gap-3"><ScaleIcon className="h-6 w-6 text-solar-flare-end"/> Compare Products ({comparisonItems.length})</h2>
               <button onClick={onClose} className="p-2 rounded-full text-gray-400 hover:bg-gray-100 transition-colors" aria-label="Close comparison modal"><XMarkIcon className="h-6 w-6" /></button>
             </header>
 
-            {/* Modal Content */}
             {comparisonItems.length === 0 ? (
               <div className="p-10 text-center flex-grow flex flex-col items-center justify-center">
                 <ScaleIcon className="h-20 w-20 text-gray-300 mb-4" />
@@ -72,13 +69,17 @@ const ComparisonModal = ({ isOpen, onClose }: ComparisonModalProps) => {
             ) : (
               <div className="flex-grow overflow-auto p-1 sm:p-2">
                 <div className="min-w-[700px]">
-                  {/* --- Product Headers Row --- */}
                   <motion.div layout className="grid grid-cols-4 gap-4 p-4 sticky top-0 bg-white/80 backdrop-blur-sm z-10">
-                    <div className="col-span-1"></div> {/* Spacer for attribute labels */}
+                    <div className="col-span-1"></div>
                     <AnimatePresence>
                       {comparisonItems.map(product => (
                         <motion.div layout variants={colVariants} initial="hidden" animate="visible" exit="hidden" key={product.id} className="col-span-1 flex flex-col items-center text-center">
-                          <div className="relative w-24 h-24 mb-3 rounded-lg overflow-hidden"><Image src={product.image_url || '/images/default-avatar.png'} alt={product.name} fill className="object-cover" /></div>
+                          {/* *** THIS IS THE FIX: Use the first image from the array *** */}
+                          <div className="relative w-24 h-24 mb-3 rounded-lg overflow-hidden">
+                            {product.image_url && product.image_url[0] ? (
+                              <Image src={product.image_url[0]} alt={product.name} fill className="object-cover" />
+                            ) : null}
+                          </div>
                           <h3 className="text-sm font-bold text-graphite line-clamp-2">{product.name}</h3>
                           <button onClick={() => removeFromComparison(product.id)} className="mt-2 text-xs text-red-500 hover:underline flex items-center gap-1"><TrashIcon className="h-3 w-3" />Remove</button>
                         </motion.div>
@@ -86,7 +87,6 @@ const ComparisonModal = ({ isOpen, onClose }: ComparisonModalProps) => {
                     </AnimatePresence>
                   </motion.div>
 
-                  {/* --- Attribute Rows --- */}
                   <motion.div layout variants={tableVariants} initial="hidden" animate="visible" className="divide-y divide-gray-200">
                     {attributes.map(attr => {
                       const highlightValue = getHighlightValue(attr.key as keyof Product, attr.highlight as 'min' | 'max');
@@ -114,7 +114,6 @@ const ComparisonModal = ({ isOpen, onClose }: ComparisonModalProps) => {
               </div>
             )}
 
-            {/* Modal Footer */}
             {comparisonItems.length > 0 && (
               <footer className="p-4 border-t flex justify-end items-center gap-3 bg-gray-50/70">
                  <button onClick={clearComparison} className="px-5 py-2 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-full transition-colors">Clear All</button>
