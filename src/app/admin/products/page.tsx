@@ -159,7 +159,7 @@ const AdminProductsPage = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.category || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                     {/* *** THIS IS THE FIX: Correct the link structure *** */}
-                    <Link href={`/admin/products/edit/${product.id}`} className="text-indigo-600 hover:text-indigo-800 p-1 inline-flex items-center" title="Edit">
+                    <Link href={`/admin/products/${product.id}/edit`} className="text-indigo-600 hover:text-indigo-800 p-1 inline-flex items-center" title="Edit">
                       <PencilSquareIcon className="h-5 w-5"/>
                     </Link>
                     <button 

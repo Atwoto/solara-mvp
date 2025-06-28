@@ -4,73 +4,57 @@ import { supabaseAdmin } from '@/lib/supabase/server';
 import { Product } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
-type ProductCategory = string;
-
 export async function POST(req: NextRequest) {
   if (!supabaseAdmin) {
-    console.error("Supabase admin client is not initialized.");
     return NextResponse.json({ message: 'Server configuration error.' }, { status: 500 });
   }
 
-  let uploadedImagePath: string | null = null;
-
   try {
     const formData = await req.formData();
-
+    
+    // --- Get form data ---
     const name = formData.get('name') as string;
-    const priceString = formData.get('price') as string;
-    const wattageString = formData.get('wattage') as string | null;
-    const category = formData.get('category') as ProductCategory;
+    const price = parseFloat(formData.get('price') as string);
+    const wattage = formData.get('wattage') ? parseFloat(formData.get('wattage') as string) : null;
+    const category = formData.get('category') as string;
     const description = formData.get('description') as string | null;
-    const imageFile = formData.get('imageFile') as File | null;
+    
+    // --- UPGRADE: Get all uploaded files ---
+    const imageFiles = formData.getAll('imageFiles') as File[];
 
-    if (!name || !priceString || !category || !imageFile) {
-      return NextResponse.json({ message: 'Missing required fields.' }, { status: 400 });
+    if (!name || !price || !category || imageFiles.length === 0) {
+      return NextResponse.json({ message: 'Missing required fields. Name, price, category, and at least one image are required.' }, { status: 400 });
     }
 
-    const price = parseFloat(priceString);
-    if (isNaN(price) || price <= 0) {
-      return NextResponse.json({ message: 'Invalid price.' }, { status: 400 });
+    // --- UPGRADE: Upload all files in parallel ---
+    const uploadPromises = imageFiles.map(file => {
+      const fileExt = file.name.split('.').pop();
+      const filePath = `public/${uuidv4()}.${fileExt}`;
+      return supabaseAdmin.storage.from('product-images').upload(filePath, file);
+    });
+
+    const uploadResults = await Promise.all(uploadPromises);
+
+    // --- Check for any upload errors ---
+    const uploadErrors = uploadResults.filter(result => result.error);
+    if (uploadErrors.length > 0) {
+      // Basic cleanup: attempt to remove successfully uploaded files if one fails
+      const successfulPaths = uploadResults.filter(r => r.data?.path).map(r => r.data.path);
+      if (successfulPaths.length > 0) await supabaseAdmin.storage.from('product-images').remove(successfulPaths);
+      throw new Error(`Failed to upload one or more images: ${uploadErrors[0].error.message}`);
     }
 
-    let wattage: number | null = null;
-    if (wattageString) {
-      const parsedWattage = parseFloat(wattageString);
-      if (!isNaN(parsedWattage) && parsedWattage >= 0) {
-        wattage = parsedWattage;
-      } else if (wattageString.trim() !== "") {
-        return NextResponse.json({ message: 'Invalid wattage.' }, { status: 400 });
-      }
-    }
+    // --- Get public URLs for all uploaded files ---
+    const imageUrls = uploadResults.map(result => {
+        return supabaseAdmin.storage.from('product-images').getPublicUrl(result.data!.path).data.publicUrl;
+    });
 
-    const fileExt = imageFile.name.split('.').pop();
-    const uniqueFileName = `${uuidv4()}.${fileExt}`;
-    const filePath = `public/${uniqueFileName}`;
-    uploadedImagePath = filePath;
-
-    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-      .from('product-images') // YOUR BUCKET NAME
-      .upload(filePath, imageFile);
-
-    if (uploadError) {
-      throw new Error(`Failed to upload image: ${uploadError.message}`);
-    }
-
-    const { data: publicUrlData } = supabaseAdmin.storage
-      .from('product-images') // YOUR BUCKET NAME
-      .getPublicUrl(uploadData.path);
-      
-    if (!publicUrlData?.publicUrl) {
-      throw new Error('Failed to get public URL for the uploaded image.');
-    }
-    const imageUrl = publicUrlData.publicUrl;
-
-    // *** THIS IS THE FIX: Wrap the single URL in an array ***
+    // --- Insert into database ---
     const productToInsert: Omit<Product, 'id' | 'created_at'> = {
       name,
       price,
       wattage,
-      image_url: [imageUrl], // <-- CORRECTED
+      image_url: imageUrls, // <-- Save the array of URLs
       category,
       description: description || null,
     };
@@ -82,22 +66,12 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (insertError) {
-      if (uploadedImagePath) {
-         await supabaseAdmin.storage.from('product-images').remove([uploadedImagePath]);
-      }
-      throw new Error(`Failed to add product to database: ${insertError.message}`);
+      throw insertError;
     }
     
     return NextResponse.json({ message: 'Product added successfully!', product: insertedProductData }, { status: 201 });
 
   } catch (error: any) {
-    if (uploadedImagePath) {
-        try {
-            await supabaseAdmin.storage.from('product-images').remove([uploadedImagePath]);
-        } catch (cleanupError: any) {
-            console.error("Failed to rollback storage upload:", cleanupError.message);
-        }
-    }
     return NextResponse.json({ message: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

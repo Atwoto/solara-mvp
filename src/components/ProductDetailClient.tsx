@@ -10,6 +10,7 @@ import { useWishlist } from '@/context/WishlistContext';
 import { Product as ProductType } from '@/types';
 import { CheckIcon, HeartIcon as HeartSolid, ShoppingCartIcon } from '@heroicons/react/24/solid';
 import { HeartIcon as HeartOutline } from '@heroicons/react/24/outline';
+import { motion, AnimatePresence } from 'framer-motion'; // For smooth image transitions
 
 interface ProductDetailClientProps {
   product: ProductType;
@@ -21,6 +22,9 @@ export default function ProductDetailClient({ product, initialIsWishlisted }: Pr
   const router = useRouter();
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isLoading: isWishlistLoading } = useWishlist();
+
+  // --- UPGRADE: State to manage the currently selected image ---
+  const [selectedImageUrl, setSelectedImageUrl] = useState(product.image_url?.[0] || '');
 
   const [addedToCart, setAddedToCart] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(initialIsWishlisted);
@@ -50,21 +54,56 @@ export default function ProductDetailClient({ product, initialIsWishlisted }: Pr
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-        {/* Image Gallery Column */}
-        <div className="relative w-full h-96 md:h-[500px] rounded-2xl overflow-hidden shadow-lg">
-          {/* *** FIX: Use the first image from the array *** */}
-          {product.image_url && product.image_url[0] && (
-            <Image
-              src={product.image_url[0]}
-              alt={product.name}
-              fill
-              className="object-cover"
-              priority
-            />
+        {/* --- UPGRADED: Image Gallery Column --- */}
+        <div className="flex flex-col gap-4">
+          {/* Main Image Display */}
+          <div className="relative w-full h-96 md:h-[500px] rounded-2xl overflow-hidden shadow-lg bg-gray-100">
+            <AnimatePresence mode="wait">
+              {selectedImageUrl && (
+                <motion.div
+                  key={selectedImageUrl} // Animate when the URL changes
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-full h-full"
+                >
+                  <Image
+                    src={selectedImageUrl}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                    priority
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Thumbnail Strip */}
+          {product.image_url && product.image_url.length > 1 && (
+            <div className="flex space-x-3 overflow-x-auto p-2">
+              {product.image_url.map((url) => (
+                <button
+                  key={url}
+                  onClick={() => setSelectedImageUrl(url)}
+                  className={`relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 transition-all duration-200
+                    ${selectedImageUrl === url ? 'ring-2 ring-solar-flare-start ring-offset-2' : 'hover:opacity-80'}`
+                  }
+                >
+                  <Image
+                    src={url}
+                    alt={`${product.name} thumbnail`}
+                    fill
+                    className="object-cover"
+                  />
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Details Column */}
+        {/* Details Column (no changes needed here) */}
         <div className="flex flex-col">
           <h1 className="text-3xl md:text-4xl font-bold text-deep-night mb-4">{product.name}</h1>
           <p className="text-3xl font-bold text-solar-flare-end mb-6">
@@ -74,22 +113,15 @@ export default function ProductDetailClient({ product, initialIsWishlisted }: Pr
             <p>{product.description}</p>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex items-center space-x-4 mt-auto pt-8 border-t">
             <button
               onClick={handleAddToCart}
               disabled={addedToCart}
               className={`w-full px-6 py-3 text-md font-semibold text-white rounded-lg shadow-md flex items-center justify-center gap-2 transition-colors ${
-                addedToCart
-                  ? 'bg-green-500'
-                  : 'bg-gradient-to-r from-solar-flare-start to-solar-flare-end hover:opacity-90'
+                addedToCart ? 'bg-green-500' : 'bg-gradient-to-r from-solar-flare-start to-solar-flare-end hover:opacity-90'
               }`}
             >
-              {addedToCart ? (
-                <CheckIcon className="h-6 w-6" />
-              ) : (
-                <ShoppingCartIcon className="h-6 w-6" />
-              )}
+              {addedToCart ? <CheckIcon className="h-6 w-6" /> : <ShoppingCartIcon className="h-6 w-6" />}
               {addedToCart ? 'Added to Cart' : 'Add to Cart'}
             </button>
             <button
@@ -98,11 +130,7 @@ export default function ProductDetailClient({ product, initialIsWishlisted }: Pr
               title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
               className="p-3 rounded-full border-2 hover:bg-red-50 disabled:opacity-50"
             >
-              {isWishlisted ? (
-                <HeartSolid className="h-6 w-6 text-red-500" />
-              ) : (
-                <HeartOutline className="h-6 w-6 text-gray-500" />
-              )}
+              {isWishlisted ? <HeartSolid className="h-6 w-6 text-red-500" /> : <HeartOutline className="h-6 w-6 text-gray-500" />}
             </button>
           </div>
         </div>

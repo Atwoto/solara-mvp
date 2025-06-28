@@ -1,10 +1,9 @@
 // src/app/api/admin/products/[productId]/route.ts
-
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
-import { Product } from '@/types'; // It's still good to import this
+import { Product } from '@/types';
+import { v4 as uuidv4 } from 'uuid';
 
-// This is your PUT handler for updating a product
 export async function PUT(
   request: NextRequest,
   { params }: { params: { productId: string } }
@@ -14,51 +13,53 @@ export async function PUT(
 
   try {
     const formData = await request.formData();
+    
+    // --- Get form data ---
     const name = formData.get('name') as string;
     const price = parseFloat(formData.get('price') as string);
-    const wattage = parseInt(formData.get('wattage') as string, 10);
+    const wattage = formData.get('wattage') ? parseFloat(formData.get('wattage') as string) : null;
     const category = formData.get('category') as string;
-    const description = formData.get('description') as string;
+    const description = formData.get('description') as string | null;
 
-    // *** FIX: We are making the type of this object very clear to TypeScript ***
-    // This removes the confusing '&' intersection type that caused the error.
-    const dataToUpdate: { [key: string]: any } = {
+    // --- UPGRADE: Get arrays of new files and existing URLs ---
+    const imageFiles = formData.getAll('imageFiles') as File[];
+    const currentImageUrls = formData.getAll('currentImageUrls') as string[];
+
+    let newImageUrls: string[] = [];
+
+    // --- 1. Handle new file uploads ---
+    if (imageFiles.length > 0) {
+      const uploadPromises = imageFiles.map(file => {
+        const fileExt = file.name.split('.').pop();
+        const filePath = `public/${uuidv4()}.${fileExt}`;
+        return supabase.storage.from('product-images').upload(filePath, file);
+      });
+      const uploadResults = await Promise.all(uploadPromises);
+
+      const uploadErrors = uploadResults.filter(result => result.error);
+      if (uploadErrors.length > 0) {
+          throw new Error(`Failed to upload new image(s): ${uploadErrors[0].error.message}`);
+      }
+      
+      newImageUrls = uploadResults.map(result => {
+        return supabase.storage.from('product-images').getPublicUrl(result.data!.path).data.publicUrl;
+      });
+    }
+
+    // --- 2. Combine old and new URLs for the final array ---
+    const finalImageUrls = [...currentImageUrls, ...newImageUrls];
+
+    // --- 3. Construct the update object ---
+    const dataToUpdate = {
       name,
       price,
       wattage,
       category,
       description,
+      image_url: finalImageUrls, // <-- The final, combined array
     };
     
-    const imageFile = formData.get('imageFile') as File | null;
-    const currentImageUrl = formData.get('currentImageUrl') as string | null;
-
-    if (imageFile) {
-      const filePath = `product-image/${productId}/${Date.now()}-${imageFile.name}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('product-image')
-        .upload(filePath, imageFile, {
-            cacheControl: '3600',
-            upsert: false
-        });
-
-      if (uploadError) {
-        throw new Error(`Image upload failed: ${uploadError.message}`);
-      }
-
-      const { data: urlData } = supabase.storage
-        .from('product-image')
-        .getPublicUrl(filePath);
-      
-      // Now this assignment will work without a type error.
-      dataToUpdate.image_url = [urlData.publicUrl];
-
-    } else if (currentImageUrl) {
-      // This assignment will also work.
-      dataToUpdate.image_url = [currentImageUrl]; 
-    }
-    
+    // --- 4. Update the database ---
     const { data: updatedProduct, error } = await supabase
       .from('products')
       .update(dataToUpdate)
