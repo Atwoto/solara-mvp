@@ -1,7 +1,6 @@
 // src/app/api/admin/products/[productId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
-import { Product } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function PUT(
@@ -33,12 +32,12 @@ export async function PUT(
       });
       const uploadResults = await Promise.all(uploadPromises);
 
-      // --- THIS IS THE FIX ---
-      // We check specifically for the existence of the error object.
-      const uploadErrors = uploadResults.filter(result => result.error);
-      if (uploadErrors.length > 0 && uploadErrors[0].error) {
-          // This check guarantees to TypeScript that .error is not null.
-          throw new Error(`Failed to upload new image(s): ${uploadErrors[0].error.message}`);
+      // --- THIS IS THE BULLETPROOF FIX ---
+      // Find the first result that has an error.
+      const firstError = uploadResults.find(result => result.error);
+      if (firstError) {
+        // If we found one, we know its .error property exists and we can throw.
+        throw new Error(`Failed to upload new image(s): ${firstError.error.message}`);
       }
       
       newImageUrls = uploadResults.map(result => {
