@@ -12,21 +12,18 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     
-    // --- Get form data ---
     const name = formData.get('name') as string;
     const price = parseFloat(formData.get('price') as string);
     const wattage = formData.get('wattage') ? parseFloat(formData.get('wattage') as string) : null;
     const category = formData.get('category') as string;
     const description = formData.get('description') as string | null;
     
-    // --- UPGRADE: Get all uploaded files ---
     const imageFiles = formData.getAll('imageFiles') as File[];
 
     if (!name || !price || !category || imageFiles.length === 0) {
       return NextResponse.json({ message: 'Missing required fields. Name, price, category, and at least one image are required.' }, { status: 400 });
     }
 
-    // --- UPGRADE: Upload all files in parallel ---
     const uploadPromises = imageFiles.map(file => {
       const fileExt = file.name.split('.').pop();
       const filePath = `public/${uuidv4()}.${fileExt}`;
@@ -35,26 +32,24 @@ export async function POST(req: NextRequest) {
 
     const uploadResults = await Promise.all(uploadPromises);
 
-    // --- Check for any upload errors ---
+    // --- THIS IS THE FIX ---
     const uploadErrors = uploadResults.filter(result => result.error);
-    if (uploadErrors.length > 0) {
-      // Basic cleanup: attempt to remove successfully uploaded files if one fails
-      const successfulPaths = uploadResults.filter(r => r.data?.path).map(r => r.data.path);
+    if (uploadErrors.length > 0 && uploadErrors[0].error) {
+      // This check guarantees to TypeScript that .error is not null.
+      const successfulPaths = uploadResults.filter(r => r.data?.path).map(r => r.data!.path);
       if (successfulPaths.length > 0) await supabaseAdmin.storage.from('product-images').remove(successfulPaths);
       throw new Error(`Failed to upload one or more images: ${uploadErrors[0].error.message}`);
     }
 
-    // --- Get public URLs for all uploaded files ---
     const imageUrls = uploadResults.map(result => {
         return supabaseAdmin.storage.from('product-images').getPublicUrl(result.data!.path).data.publicUrl;
     });
 
-    // --- Insert into database ---
     const productToInsert: Omit<Product, 'id' | 'created_at'> = {
       name,
       price,
       wattage,
-      image_url: imageUrls, // <-- Save the array of URLs
+      image_url: imageUrls,
       category,
       description: description || null,
     };

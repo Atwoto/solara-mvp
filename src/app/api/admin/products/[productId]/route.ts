@@ -14,20 +14,17 @@ export async function PUT(
   try {
     const formData = await request.formData();
     
-    // --- Get form data ---
     const name = formData.get('name') as string;
     const price = parseFloat(formData.get('price') as string);
     const wattage = formData.get('wattage') ? parseFloat(formData.get('wattage') as string) : null;
     const category = formData.get('category') as string;
     const description = formData.get('description') as string | null;
 
-    // --- UPGRADE: Get arrays of new files and existing URLs ---
     const imageFiles = formData.getAll('imageFiles') as File[];
     const currentImageUrls = formData.getAll('currentImageUrls') as string[];
 
     let newImageUrls: string[] = [];
 
-    // --- 1. Handle new file uploads ---
     if (imageFiles.length > 0) {
       const uploadPromises = imageFiles.map(file => {
         const fileExt = file.name.split('.').pop();
@@ -36,8 +33,11 @@ export async function PUT(
       });
       const uploadResults = await Promise.all(uploadPromises);
 
+      // --- THIS IS THE FIX ---
+      // We check specifically for the existence of the error object.
       const uploadErrors = uploadResults.filter(result => result.error);
-      if (uploadErrors.length > 0) {
+      if (uploadErrors.length > 0 && uploadErrors[0].error) {
+          // This check guarantees to TypeScript that .error is not null.
           throw new Error(`Failed to upload new image(s): ${uploadErrors[0].error.message}`);
       }
       
@@ -46,20 +46,17 @@ export async function PUT(
       });
     }
 
-    // --- 2. Combine old and new URLs for the final array ---
     const finalImageUrls = [...currentImageUrls, ...newImageUrls];
 
-    // --- 3. Construct the update object ---
     const dataToUpdate = {
       name,
       price,
       wattage,
       category,
       description,
-      image_url: finalImageUrls, // <-- The final, combined array
+      image_url: finalImageUrls,
     };
     
-    // --- 4. Update the database ---
     const { data: updatedProduct, error } = await supabase
       .from('products')
       .update(dataToUpdate)
