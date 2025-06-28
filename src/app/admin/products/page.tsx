@@ -9,7 +9,7 @@ import Image from 'next/image';
 import { Product } from '@/types';
 import PageHeader from '@/components/admin/PageHeader'; 
 import PageLoader from '@/components/PageLoader';     
-import { PencilSquareIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline'; // <<--- ADDED PlusIcon HERE
+import { PencilSquareIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
 
@@ -105,7 +105,7 @@ const AdminProductsPage = () => {
         description="View, add, edit, or delete products from the catalog."
       >
         <Link href="/admin/products/new" className="bg-solar-flare-start hover:bg-solar-flare-end text-white font-semibold py-2 px-4 rounded-md shadow-sm transition-colors duration-150 inline-flex items-center">
-          <PlusIcon className="h-5 w-5 mr-1.5 -ml-0.5" /> {/* Icon is now defined */}
+          <PlusIcon className="h-5 w-5 mr-1.5 -ml-0.5" />
           Add New Product
         </Link>
       </PageHeader>
@@ -149,8 +149,9 @@ const AdminProductsPage = () => {
               {products.map((product) => (
                 <tr key={product.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {product.image_url ? (
-                      <Image src={product.image_url} alt={product.name} width={40} height={40} className="h-10 w-10 object-cover rounded" />
+                    {/* *** THIS IS THE FIX: Use the first image from the array *** */}
+                    {product.image_url && product.image_url[0] ? (
+                      <Image src={product.image_url[0]} alt={product.name} width={40} height={40} className="h-10 w-10 object-cover rounded" />
                     ) : (
                       <div className="h-10 w-10 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-400">No Img</div>
                     )}
@@ -160,7 +161,7 @@ const AdminProductsPage = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.wattage ? `${product.wattage}W` : 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.category || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
-                    <Link href={`/admin/products/${product.id}/edit`} className="text-indigo-600 hover:text-indigo-800 p-1 inline-flex items-center" title="Edit">
+                    <Link href={`/admin/products/edit/${product.id}`} className="text-indigo-600 hover:text-indigo-800 p-1 inline-flex items-center" title="Edit">
                       <PencilSquareIcon className="h-5 w-5"/>
                     </Link>
                     <button 
