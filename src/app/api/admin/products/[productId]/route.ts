@@ -32,12 +32,13 @@ export async function PUT(
       });
       const uploadResults = await Promise.all(uploadPromises);
 
-      // --- THIS IS THE BULLETPROOF FIX ---
-      // Find the first result that has an error.
-      const firstError = uploadResults.find(result => result.error);
-      if (firstError) {
-        // If we found one, we know its .error property exists and we can throw.
-        throw new Error(`Failed to upload new image(s): ${firstError.error.message}`);
+      // --- THE GUARANTEED FIX ---
+      for (const result of uploadResults) {
+        if (result.error) {
+          // This structure is undeniable to TypeScript.
+          // If we are in here, result.error MUST exist.
+          throw new Error(`Failed to upload new image(s): ${result.error.message}`);
+        }
       }
       
       newImageUrls = uploadResults.map(result => {
@@ -75,7 +76,7 @@ export async function PUT(
 
   } catch (error: any) {
     return NextResponse.json(
-      { message: error.message || 'Failed to update product.' }, 
+      { message: error.message || 'Failed. Please check server logs.' }, 
       { status: 500 }
     );
   }

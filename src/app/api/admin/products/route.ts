@@ -32,17 +32,18 @@ export async function POST(req: NextRequest) {
 
     const uploadResults = await Promise.all(uploadPromises);
 
-    // --- THIS IS THE BULLETPROOF FIX ---
-    const firstError = uploadResults.find(result => result.error);
-    if (firstError) {
-      // If an error occurred, attempt to clean up any files that did succeed.
-      const successfulPaths = uploadResults
-        .filter(r => r.data?.path)
-        .map(r => r.data!.path);
-      if (successfulPaths.length > 0) {
-        await supabaseAdmin.storage.from('product-images').remove(successfulPaths);
-      }
-      throw new Error(`Failed to upload one or more images: ${firstError.error.message}`);
+    // --- THE GUARANTEED FIX ---
+    for (const result of uploadResults) {
+        if (result.error) {
+            // If an error occurred, attempt to clean up any files that did succeed.
+            const successfulPaths = uploadResults
+                .filter(r => r.data?.path)
+                .map(r => r.data!.path);
+            if (successfulPaths.length > 0) {
+                await supabaseAdmin.storage.from('product-images').remove(successfulPaths);
+            }
+            throw new Error(`Failed to upload one or more images: ${result.error.message}`);
+        }
     }
 
     const imageUrls = uploadResults.map(result => {
