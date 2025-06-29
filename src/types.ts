@@ -77,3 +77,32 @@ export interface ServicePageData {
   created_at?: string; 
   updated_at?: string; 
 }
+
+
+
+// --- SERVICE PAGE RELATED TYPES --- 
+export interface ServicePageData { 
+  id?: string; 
+  slug: string;
+  title: string;
+  // ... other properties
+  image_urls?: string[] | null;
+  // ... other properties
+}
+
+// --- NEW: PROJECT RELATED TYPES ---
+export const projectCategories = ['Residential', 'Commercial', 'Industrial', 'Water Pump Installation'] as const;
+export type ProjectCategory = typeof projectCategories[number];
+
+export interface Project {
+  id: string;
+  created_at: string;
+  title: string;
+  description?: string | null;
+  category: ProjectCategory;
+  type: 'image' | 'video';
+  media_url: string;      // For image URL or YouTube embed URL
+  thumbnail_url?: string | null; // Optional: for video thumbnails
+  display_order?: number;
+  is_published?: boolean;
+}

@@ -3,24 +3,20 @@
 
 import Link from 'next/link';
 import { 
-    ChartBarIcon, 
-    ShoppingBagIcon, 
-    UsersIcon, // Consider CubeIcon or TagIcon for Products
-    Cog6ToothIcon, 
-    NewspaperIcon,
-    ChatBubbleBottomCenterTextIcon,
-    WrenchScrewdriverIcon // <<--- NEW ICON for Services
+    ChartBarIcon, ShoppingBagIcon, CubeIcon, NewspaperIcon,
+    WrenchScrewdriverIcon, ChatBubbleBottomCenterTextIcon, 
+    PhotoIcon // <-- NEW ICON for Projects
 } from '@heroicons/react/24/outline';
 import { usePathname } from 'next/navigation';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: ChartBarIcon },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingBagIcon },
-  { name: 'Products', href: '/admin/products', icon: UsersIcon }, 
+  { name: 'Products', href: '/admin/products', icon: CubeIcon }, 
+  { name: 'Services', href: '/admin/services', icon: WrenchScrewdriverIcon },
+  { name: 'Projects', href: '/admin/projects', icon: PhotoIcon }, // <-- ADDED THIS LINE
   { name: 'Articles', href: '/admin/blog', icon: NewspaperIcon },
-  { name: 'Services', href: '/admin/services', icon: WrenchScrewdriverIcon }, // <<--- NEW "Services" LINK
   { name: 'Testimonials', href: '/admin/testimonials', icon: ChatBubbleBottomCenterTextIcon },
-  // { name: 'Settings', href: '/admin/settings', icon: Cog6ToothIcon },
 ];
 
 const AdminSidebar = () => {
