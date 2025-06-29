@@ -1,31 +1,25 @@
 // src/app/services/[serviceSlug]/page.tsx
 import { notFound } from 'next/navigation';
-import NextImage from 'next/image';
 import Link from 'next/link';
 import { supabaseAdmin as supabase } from '@/lib/supabase/server';
 import { ServicePageData } from '@/types';
 import { CheckBadgeIcon, WrenchScrewdriverIcon, ArrowRightIcon } from '@heroicons/react/24/solid';
+// --- NEW: Import our new client component ---
+import ServiceDetailClient from '@/components/ServiceDetailClient';
 
-// Type for our breadcrumb generation
 interface Breadcrumb { name: string; href: string; }
 
-// --- Data Fetching Functions ---
+// --- Data Fetching Functions (No changes needed) ---
 async function getServiceData(slug: string): Promise<ServicePageData | null> {
   const { data, error } = await supabase.from('service_pages').select('*').eq('slug', slug).eq('status', 'published').single();
   if (error) { console.error(`Error fetching service '${slug}':`, error); return null; }
-  
-  // --- DEBUGGING: Log the fetched data on the server ---
-  console.log(`[Service Page Data for ${slug}]:`, JSON.stringify(data, null, 2));
-
   return data;
 }
-
 async function getAllServices(): Promise<Pick<ServicePageData, 'slug' | 'title' | 'parent_service_slug'>[]> {
   const { data, error } = await supabase.from('service_pages').select('slug, title, parent_service_slug').eq('status', 'published');
-  if (error) { console.error('Error fetching all services for breadcrumbs:', error); return []; }
+  if (error) { return []; }
   return data;
 }
-
 async function generateBreadcrumbs(currentSlug: string): Promise<Breadcrumb[]> {
   const allServices = await getAllServices();
   const serviceMap = new Map(allServices.map(s => [s.slug, s]));
@@ -40,7 +34,7 @@ async function generateBreadcrumbs(currentSlug: string): Promise<Breadcrumb[]> {
   return path;
 }
 
-// Metadata Generation
+// Metadata Generation (No changes needed)
 export async function generateMetadata({ params }: { params: { serviceSlug: string } }) {
   const service = await getServiceData(params.serviceSlug);
   if (!service) return { title: 'Service Not Found' };
@@ -61,14 +55,11 @@ export default async function ServiceDetailPage({ params }: { params: { serviceS
   ]);
 
   if (!service) { notFound(); }
-
-  const mainImageUrl = service.image_urls?.[0] || '/images/default-placeholder.jpg'; // Have a reliable fallback
   
   return (
     <>
       <div className="bg-white pt-10 pb-16">
         <div className="container mx-auto px-4">
-            {/* Breadcrumbs */}
             <nav className="mb-8 text-sm text-gray-500">
                 {breadcrumbs.map((crumb, index) => (
                     <span key={crumb.href}>
@@ -81,34 +72,11 @@ export default async function ServiceDetailPage({ params }: { params: { serviceS
             </nav>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-start">
-                {/* --- ROBUST Image Gallery --- */}
-                <div className="flex flex-col gap-4 sticky top-24">
-                    <div className="relative w-full h-80 md:h-96 rounded-lg overflow-hidden shadow-lg border bg-gray-100">
-                        <NextImage
-                            src={mainImageUrl}
-                            alt={`Main image for ${service.title}`}
-                            fill
-                            className="object-cover"
-                            priority
-                        />
-                    </div>
-                    {/* Thumbnails */}
-                    {service.image_urls && service.image_urls.length > 1 && (
-                        <div className="grid grid-cols-5 gap-3">
-                        {service.image_urls.map((url) => (
-                            <div key={url} className="relative aspect-square rounded-md overflow-hidden border-2 border-transparent hover:border-solar-flare-start transition-all">
-                                <NextImage
-                                    src={url}
-                                    alt={`${service.title} thumbnail`}
-                                    fill
-                                    className="object-cover"
-                                />
-                                <a href={url} target="_blank" rel="noopener noreferrer" className="absolute inset-0" aria-label="View full image"></a>
-                            </div>
-                        ))}
-                        </div>
-                    )}
-                </div>
+                {/* --- USE THE NEW CLIENT COMPONENT --- */}
+                <ServiceDetailClient 
+                  imageUrls={service.image_urls} 
+                  serviceTitle={service.title} 
+                />
 
                 {/* Text Content */}
                 <div>
@@ -119,7 +87,7 @@ export default async function ServiceDetailPage({ params }: { params: { serviceS
         </div>
       </div>
       
-      {/* Main Content & Features Section */}
+      {/* Main Content & Features Section (No changes needed here) */}
       <div className="bg-gray-50 border-t">
         <div className="container mx-auto px-4 py-16">
           <div className="flex flex-col lg:flex-row lg:gap-12">
