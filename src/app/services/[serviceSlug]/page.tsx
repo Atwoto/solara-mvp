@@ -1,3 +1,4 @@
+// src/app/services/[serviceSlug]/page.tsx
 import { notFound } from 'next/navigation';
 import NextImage from 'next/image';
 import Link from 'next/link';
@@ -5,13 +6,17 @@ import { supabaseAdmin as supabase } from '@/lib/supabase/server';
 import { ServicePageData } from '@/types';
 import { CheckBadgeIcon, WrenchScrewdriverIcon, ArrowRightIcon } from '@heroicons/react/24/solid';
 
-// --- Type for our breadcrumb generation ---
+// Type for our breadcrumb generation
 interface Breadcrumb { name: string; href: string; }
 
-// --- Data Fetching Functions (No changes needed here) ---
+// --- Data Fetching Functions ---
 async function getServiceData(slug: string): Promise<ServicePageData | null> {
   const { data, error } = await supabase.from('service_pages').select('*').eq('slug', slug).eq('status', 'published').single();
   if (error) { console.error(`Error fetching service '${slug}':`, error); return null; }
+  
+  // --- DEBUGGING: Log the fetched data on the server ---
+  console.log(`[Service Page Data for ${slug}]:`, JSON.stringify(data, null, 2));
+
   return data;
 }
 
@@ -35,7 +40,7 @@ async function generateBreadcrumbs(currentSlug: string): Promise<Breadcrumb[]> {
   return path;
 }
 
-// --- Metadata Generation (Updated to use new column name) ---
+// Metadata Generation
 export async function generateMetadata({ params }: { params: { serviceSlug: string } }) {
   const service = await getServiceData(params.serviceSlug);
   if (!service) return { title: 'Service Not Found' };
@@ -43,7 +48,7 @@ export async function generateMetadata({ params }: { params: { serviceSlug: stri
     title: `${service.meta_title || service.title} | Bills On Solar`,
     description: service.meta_description || service.excerpt,
     openGraph: {
-      images: service.image_urls?.[0] ? [service.image_urls[0]] : [], // Use first image for social sharing
+      images: service.image_urls?.[0] ? [service.image_urls[0]] : [],
     },
   };
 }
@@ -57,68 +62,69 @@ export default async function ServiceDetailPage({ params }: { params: { serviceS
 
   if (!service) { notFound(); }
 
-  // Use the first image as the default "main" image
-  const mainImageUrl = service.image_urls?.[0] || '/images/projects-hero-bg.jpg';
+  const mainImageUrl = service.image_urls?.[0] || '/images/default-placeholder.jpg'; // Have a reliable fallback
   
   return (
     <>
-      {/* --- UPGRADED HERO SECTION with Image Gallery --- */}
-      <div className="bg-deep-night text-white pt-10 pb-20">
+      <div className="bg-white pt-10 pb-16">
         <div className="container mx-auto px-4">
             {/* Breadcrumbs */}
-            <nav className="mb-6 text-sm">
+            <nav className="mb-8 text-sm text-gray-500">
                 {breadcrumbs.map((crumb, index) => (
                     <span key={crumb.href}>
-                        <Link href={crumb.href} className="text-gray-300 hover:text-white transition-colors">
+                        <Link href={crumb.href} className="hover:text-solar-flare-start transition-colors">
                             {crumb.name}
                         </Link>
-                        {index < breadcrumbs.length - 1 && <span className="mx-2 text-gray-500">/</span>}
+                        {index < breadcrumbs.length - 1 && <span className="mx-2">/</span>}
                     </span>
                 ))}
             </nav>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-                {/* Text Content */}
-                <div>
-                    <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-4">{service.title}</h1>
-                    <p className="text-lg text-gray-300 max-w-2xl">{service.excerpt || `Comprehensive details about our ${service.title} offering.`}</p>
-                </div>
-                {/* Image Gallery */}
-                <div className="w-full">
-                    <div className="relative aspect-video rounded-xl overflow-hidden shadow-2xl">
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-start">
+                {/* --- ROBUST Image Gallery --- */}
+                <div className="flex flex-col gap-4 sticky top-24">
+                    <div className="relative w-full h-80 md:h-96 rounded-lg overflow-hidden shadow-lg border bg-gray-100">
                         <NextImage
                             src={mainImageUrl}
-                            alt={service.title}
+                            alt={`Main image for ${service.title}`}
                             fill
                             className="object-cover"
                             priority
                         />
                     </div>
-                     {/* Thumbnails */}
+                    {/* Thumbnails */}
                     {service.image_urls && service.image_urls.length > 1 && (
-                        <div className="flex space-x-3 overflow-x-auto mt-4 p-1">
+                        <div className="grid grid-cols-5 gap-3">
                         {service.image_urls.map((url) => (
-                            <div key={url} className="relative w-24 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 border-transparent hover:border-solar-flare-start transition-all">
+                            <div key={url} className="relative aspect-square rounded-md overflow-hidden border-2 border-transparent hover:border-solar-flare-start transition-all">
                                 <NextImage
                                     src={url}
                                     alt={`${service.title} thumbnail`}
                                     fill
                                     className="object-cover"
                                 />
-                                <Link href={url} target="_blank" className="absolute inset-0" aria-label="View full image"></Link>
+                                <a href={url} target="_blank" rel="noopener noreferrer" className="absolute inset-0" aria-label="View full image"></a>
                             </div>
                         ))}
                         </div>
                     )}
                 </div>
+
+                {/* Text Content */}
+                <div>
+                    <h1 className="text-3xl lg:text-4xl font-extrabold text-deep-night mb-3">{service.title}</h1>
+                    <p className="text-base text-gray-600 leading-relaxed">{service.excerpt}</p>
+                </div>
             </div>
         </div>
       </div>
       
-      {/* --- Main Content Section (Same as before) --- */}
-      <div className="bg-gray-50">
+      {/* Main Content & Features Section */}
+      <div className="bg-gray-50 border-t">
         <div className="container mx-auto px-4 py-16">
           <div className="flex flex-col lg:flex-row lg:gap-12">
             <article className="w-full lg:w-2/3">
+              <h2 className="text-2xl font-bold text-deep-night mb-4">Service Details</h2>
               {service.content_html && (
                 <div 
                   className="prose lg:prose-lg max-w-none text-gray-700"
@@ -127,7 +133,7 @@ export default async function ServiceDetailPage({ params }: { params: { serviceS
               )}
             </article>
             <aside className="w-full lg:w-1/3 mt-12 lg:mt-0">
-              <div className="sticky top-28 space-y-8">
+              <div className="sticky top-24 space-y-8">
                 {service.features && Array.isArray(service.features) && service.features.length > 0 && (
                     <div className="bg-white p-6 rounded-2xl shadow-lg border">
                         <h3 className="text-lg font-bold text-deep-night flex items-center gap-2 mb-4"><WrenchScrewdriverIcon className="h-5 w-5 text-solar-flare-end"/> Key Features</h3>
