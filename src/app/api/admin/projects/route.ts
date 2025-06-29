@@ -21,8 +21,11 @@ export async function GET() {
 }
 
 
-// --- POST Handler: Creates a new project ---
-// (This is the same code from the previous step)
+// src/app/api/admin/projects/route.ts
+
+// ... (keep the GET handler and other imports as they are)
+
+// --- FINAL POST Handler: Correctly handles thumbnail uploads ---
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -32,24 +35,27 @@ export async function POST(request: NextRequest) {
     const type = formData.get('type') as 'image' | 'video';
     const is_published = formData.get('is_published') === 'true';
     const display_order = parseInt(formData.get('display_order') as string, 10);
+    
     const mediaFile = formData.get('mediaFile') as File | null;
     const thumbnailFile = formData.get('thumbnailFile') as File | null;
     let media_url = formData.get('media_url') as string;
     let thumbnail_url: string | null = null;
+    
+    // Helper function for uploads
+    const uploadFile = async (file: File) => {
+        const fileName = `${uuidv4()}.${file.name.split('.').pop()}`;
+        const { data, error } = await supabaseAdmin.storage.from('project-media').upload(`public/${fileName}`, file);
+        if (error) throw new Error(`Storage Error: ${error.message}`);
+        return supabaseAdmin.storage.from('project-media').getPublicUrl(data.path).data.publicUrl;
+    };
 
     if (type === 'image' && mediaFile) {
-      const fileExtension = mediaFile.name.split('.').pop();
-      const fileName = `${uuidv4()}.${fileExtension}`;
-      const { data, error } = await supabaseAdmin.storage.from(SUPABASE_PROJECTS_IMAGE_BUCKET).upload(`public/${fileName}`, mediaFile);
-      if (error) throw new Error(`Storage upload failed: ${error.message}`);
-      media_url = supabaseAdmin.storage.from(SUPABASE_PROJECTS_IMAGE_BUCKET).getPublicUrl(data.path).data.publicUrl;
+      media_url = await uploadFile(mediaFile);
     }
+
+    // --- THIS IS THE FIX: Actually upload the thumbnail file ---
     if (thumbnailFile) {
-      const fileExtension = thumbnailFile.name.split('.').pop();
-      const fileName = `${uuidv4()}.${fileExtension}`;
-      const { data, error } = await supabaseAdmin.storage.from(SUPABASE_PROJECTS_IMAGE_BUCKET).upload(`public/${fileName}`, thumbnailFile);
-      if (error) throw new Error(`Thumbnail upload failed: ${error.message}`);
-      thumbnail_url = supabaseAdmin.storage.from(SUPABASE_PROJECTS_IMAGE_BUCKET).getPublicUrl(data.path).data.publicUrl;
+      thumbnail_url = await uploadFile(thumbnailFile);
     }
 
     const newProjectData = { title, description, category, type, is_published, display_order, media_url, thumbnail_url };
