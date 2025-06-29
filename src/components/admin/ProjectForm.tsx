@@ -6,12 +6,14 @@ import { useRouter } from 'next/navigation';
 import { Project, ProjectCategory, projectCategories } from '@/types';
 import Image from 'next/image';
 
+// ... (interface and other states remain the same)
 interface ProjectFormProps {
   initialData?: Project | null;
 }
 
 export default function ProjectForm({ initialData }: ProjectFormProps) {
   const router = useRouter();
+  // ... (all other state hooks remain the same)
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
     description: initialData?.description || '',
@@ -31,6 +33,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ... (handleFileChange remains the same)
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>, fileType: 'media' | 'thumbnail') => {
     const file = e.target.files?.[0];
     if (file) {
@@ -45,11 +48,26 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     }
   };
 
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsSubmitting(true);
-
+    
+    // --- NEW: Sanitize iframe code before submitting ---
+    if (formData.type === 'video' && formData.media_url) {
+        // Simple regex to extract just the src URL from the iframe tag
+        const srcMatch = formData.media_url.match(/src="([^"]+)"/);
+        if (!srcMatch || !srcMatch[1]) {
+            setError('Invalid iframe code. Please paste the full embed code from YouTube.');
+            setIsSubmitting(false);
+            return;
+        }
+        // We will now ONLY store the src URL, which is safer and more flexible.
+        // The frontend will be responsible for wrapping it in an iframe.
+        formData.media_url = srcMatch[1];
+    }
+    
     const dataToSubmit = new FormData();
     Object.entries(formData).forEach(([key, value]) => {
       dataToSubmit.append(key, String(value));
@@ -79,6 +97,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 md:p-8 rounded-lg shadow-md">
       {error && <div className="p-3 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">{error}</div>}
       
+      {/* ... (other form fields like title, description, etc. are unchanged) ... */}
       <div>
         <label htmlFor="title" className="block text-sm font-medium text-gray-700">Project Title</label>
         <input type="text" id="title" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" />
@@ -105,13 +124,20 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         </div>
       </div>
       
+      {/* --- THIS SECTION IS UPDATED --- */}
       {formData.type === 'video' ? (
         <div>
-          <label htmlFor="media_url" className="block text-sm font-medium text-gray-700">YouTube Embed URL</label>
-          <input type="url" id="media_url" value={formData.media_url} onChange={(e) => setFormData({...formData, media_url: e.target.value})} placeholder="e.g., https://www.youtube.com/embed/your_video_id" required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" />
-          <p className="mt-1 text-xs text-gray-500">Go to YouTube  Share Embed, and copy only the URL from the `src="..."` attribute.</p>
+          <label htmlFor="media_url" className="block text-sm font-medium text-gray-700">YouTube Embed Code</label>
+          <textarea id="media_url" value={formData.media_url} 
+            onChange={(e) => setFormData({...formData, media_url: e.target.value})} 
+            placeholder='Paste the full <iframe ...> code from YouTube Share -> Embed' 
+            required 
+            rows={4}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm font-mono" />
+          <p className="mt-1 text-xs text-gray-500">We will automatically extract the correct URL for you.</p>
         </div>
       ) : (
+        // Image upload remains the same
         <div>
           <label htmlFor="mediaFile" className="block text-sm font-medium text-gray-700">Project Image</label>
           {mediaPreview && <Image src={mediaPreview} alt="Media preview" width={200} height={150} className="mt-2 rounded-md border object-cover" />}
@@ -119,6 +145,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         </div>
       )}
 
+      {/* ... (rest of the form remains the same) ... */}
       <div>
         <label htmlFor="thumbnailFile" className="block text-sm font-medium text-gray-700">Thumbnail Image</label>
         <p className="text-xs text-gray-500">Required for videos. Optional for images.</p>
