@@ -1,4 +1,3 @@
-// /src/app/api/admin/services/route.ts -- FINAL CORRECTED VERSION
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
@@ -9,20 +8,18 @@ import { v4 as uuidv4 } from 'uuid';
 const ADMIN_EMAIL = 'ndekeharrison8@gmail.com'; 
 const SUPABASE_SERVICES_IMAGE_BUCKET = 'service-images';
 
-// --- GET Handler: Fetches all services for the admin panel ---
+// GET Handler remains the same - it correctly fetches all services
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email || session.user.email !== ADMIN_EMAIL) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
-
   try {
     const { data, error } = await supabaseAdmin
       .from('service_pages')
       .select('*')
-      // --- THIS IS THE FIX ---
-      .order('display_order', { ascending: true, nullsFirst: false }) // Puts null display_order values at the end
-      .order('created_at', { ascending: false }); // Then sorts by newest
+      .order('display_order', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
     return NextResponse.json(data || []);
@@ -31,7 +28,7 @@ export async function GET() {
   }
 }
 
-// --- POST Handler: Creates a new service ---
+// --- UPGRADED POST Handler: Creates a new service with multiple images ---
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email || session.user.email !== ADMIN_EMAIL) {
@@ -41,56 +38,67 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     
+    // Extract all form data
     const title = formData.get('title') as string;
     const slug = formData.get('slug') as string;
     const content_html = formData.get('content_html') as string;
-    const imageFile = formData.get('imageFile') as File | null;
     const status = (formData.get('status') as ServicePageData['status']) || 'draft';
     const excerpt = formData.get('excerpt') as string | null;
+    const featuresJson = formData.get('featuresJson') as string | null;
+    // ... extract other fields as needed ...
+    
+    // --- UPGRADE: Get all uploaded image files ---
+    const imageFiles = formData.getAll('imageFiles') as File[];
 
     if (!title || !slug || !content_html) {
       return NextResponse.json({ message: 'Title, Slug, and Content are required.' }, { status: 400 });
     }
+    if (imageFiles.length === 0) {
+        return NextResponse.json({ message: 'At least one image is required.' }, { status: 400 });
+    }
 
     const { data: existingService, error: slugCheckError } = await supabaseAdmin
-      .from('service_pages')
-      .select('slug')
-      .eq('slug', slug)
-      .maybeSingle();
-
+      .from('service_pages').select('slug').eq('slug', slug).maybeSingle();
     if (slugCheckError) throw slugCheckError;
     if (existingService) {
       return NextResponse.json({ message: `A service with the slug "${slug}" already exists.` }, { status: 409 });
     }
 
-    let imageUrl: string | null = null;
-    
-    if (imageFile) {
-      const fileExtension = imageFile.name.split('.').pop();
-      const fileName = `${uuidv4()}.${fileExtension}`;
-      const filePath = `public/${fileName}`;
+    // --- UPGRADE: Upload all images in parallel ---
+    let imageUrls: string[] = [];
+    if (imageFiles.length > 0) {
+        const uploadPromises = imageFiles.map(file => {
+            const fileExtension = file.name.split('.').pop();
+            const fileName = `${uuidv4()}.${fileExtension}`;
+            const filePath = `public/${fileName}`;
+            return supabaseAdmin.storage.from(SUPABASE_SERVICES_IMAGE_BUCKET).upload(filePath, file);
+        });
+        const uploadResults = await Promise.all(uploadPromises);
 
-      const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-        .from(SUPABASE_SERVICES_IMAGE_BUCKET)
-        .upload(filePath, imageFile);
+        for (const result of uploadResults) {
+            if (result.error) throw new Error(`Image upload failed: ${result.error.message}`);
+        }
         
-      if (uploadError) throw new Error(`Failed to upload image: ${uploadError.message}`);
-      
-      imageUrl = supabaseAdmin.storage.from(SUPABASE_SERVICES_IMAGE_BUCKET).getPublicUrl(uploadData.path).data.publicUrl;
+        imageUrls = uploadResults.map(result => 
+            supabaseAdmin.storage.from(SUPABASE_SERVICES_IMAGE_BUCKET).getPublicUrl(result.data!.path).data.publicUrl
+        );
     }
 
-    const newService = {
+    const newServiceData = {
       title,
       slug,
       content_html,
-      hero_image_url: imageUrl,
       status,
       excerpt,
+      features: featuresJson ? JSON.parse(featuresJson) : [],
+      // --- UPGRADE: Use the new database column name and save the array ---
+      image_urls: imageUrls, 
+      // ... add other fields from formData here if they exist ...
     };
     
     const { data: createdService, error: insertError } = await supabaseAdmin
       .from('service_pages')
-      .insert(newService)
+      .insert(newServiceData)
       .select()
       .single();
 
@@ -99,6 +107,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Service created successfully!', service: createdService }, { status: 201 });
   } catch (error: any) {
     console.error('API Error creating service:', error);
-    return NextResponse.json({ error: 'Failed to create service.', details: error.message }, { status: 500 });
+    return NextResponse.json({ message: `Failed to create service: ${error.message}` }, { status: 500 });
   }
 }

@@ -1,7 +1,5 @@
 // src/types.ts
 
-
-
 // --- PRODUCT RELATED TYPES ---
 export interface Product {
   id: string;                 
@@ -9,8 +7,7 @@ export interface Product {
   name: string;
   price: number;
   wattage?: number | null;     
-  
-   image_url: string[] | null;
+  image_url: string[] | null;
   category?: string | null; 
   description?: string | null; 
 }
@@ -57,7 +54,7 @@ export interface Order {
     order_items: CartItem[];
 }
 
-// --- SERVICE PAGE RELATED TYPES --- <--- MAKE SURE THIS IS PRESENT AND EXPORTED
+// --- SERVICE PAGE RELATED TYPES --- 
 export interface ServicePageData { 
   id?: string; 
   slug: string;
@@ -66,7 +63,10 @@ export interface ServicePageData {
   status: 'draft' | 'published' | 'archived';
   excerpt?: string | null;
   content_html: string; 
-  hero_image_url?: string | null;
+  
+  // *** THIS IS THE FIX: Changed from single string to array of strings ***
+  image_urls?: string[] | null; // Renamed from 'hero_image_url' to match the database
+
   icon_svg?: string | null; 
   meta_title?: string | null;
   meta_description?: string | null;
