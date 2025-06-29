@@ -11,25 +11,23 @@ interface ServiceImageGalleryProps {
 }
 
 export default function ServiceDetailClient({ imageUrls, serviceTitle }: ServiceImageGalleryProps) {
-  // If there are no images, render nothing.
   if (!imageUrls || imageUrls.length === 0) {
     return (
         <div className="relative aspect-video w-full rounded-lg bg-gray-200 shadow-lg">
-            {/* Optional: Placeholder */}
+            {/* Placeholder for when no images exist */}
         </div>
     );
   }
 
-  // State to track the currently selected image. Default to the first one.
   const [selectedImageUrl, setSelectedImageUrl] = useState(imageUrls[0]);
 
   return (
     <div className="flex flex-col gap-4 sticky top-24">
-      {/* Main Image Display */}
+      {/* Main Image Display (This part is working correctly) */}
       <div className="relative w-full h-80 md:h-96 rounded-lg overflow-hidden shadow-lg bg-gray-100">
         <AnimatePresence mode="wait">
           <motion.div
-            key={selectedImageUrl} // This key is crucial for the animation to trigger
+            key={selectedImageUrl}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -47,14 +45,17 @@ export default function ServiceDetailClient({ imageUrls, serviceTitle }: Service
         </AnimatePresence>
       </div>
 
-      {/* Thumbnail Strip - only show if there's more than one image */}
+      {/* --- THIS IS THE CORRECTED THUMBNAIL SECTION --- */}
+      {/* Only show if there's more than one image */}
       {imageUrls.length > 1 && (
-        <div className="grid grid-cols-5 gap-3">
+        // Use a flex container that can scroll horizontally if needed
+        <div className="flex space-x-3 overflow-x-auto p-1">
           {imageUrls.map((url) => (
             <button
               key={url}
               onClick={() => setSelectedImageUrl(url)}
-              className={`relative aspect-square rounded-md overflow-hidden transition-all duration-200
+              // Give the button an explicit width and height, and make it a flex-shrink-0 so it doesn't get squashed
+              className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden transition-all duration-200
                 ${selectedImageUrl === url ? 'ring-2 ring-solar-flare-start ring-offset-2' : 'hover:opacity-80'}`
               }
             >
@@ -63,6 +64,7 @@ export default function ServiceDetailClient({ imageUrls, serviceTitle }: Service
                 alt={`${serviceTitle} thumbnail`}
                 fill
                 className="object-cover"
+                sizes="(max-width: 768px) 10vw, 5vw" // Helps Next.js optimize image loading
               />
             </button>
           ))}
