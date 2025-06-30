@@ -21,44 +21,49 @@ export async function GET() {
 }
 
 
-// src/app/api/admin/projects/route.ts
+// src/app/api/admin/proje
 
-// ... (keep the GET handler and other imports as they are)
-
-// --- FINAL POST Handler: Correctly handles thumbnail uploads ---
+// --- FINAL CORRECTED POST Handler ---
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const title = formData.get('title') as string;
-    const description = formData.get('description') as string;
-    const category = formData.get('category') as string;
-    const type = formData.get('type') as 'image' | 'video';
-    const is_published = formData.get('is_published') === 'true';
-    const display_order = parseInt(formData.get('display_order') as string, 10);
-    
-    const mediaFile = formData.get('mediaFile') as File | null;
-    const thumbnailFile = formData.get('thumbnailFile') as File | null;
-    let media_url = formData.get('media_url') as string;
-    let thumbnail_url: string | null = null;
     
     // Helper function for uploads
-    const uploadFile = async (file: File) => {
-        const fileName = `${uuidv4()}.${file.name.split('.').pop()}`;
-        const { data, error } = await supabaseAdmin.storage.from('project-media').upload(`public/${fileName}`, file);
-        if (error) throw new Error(`Storage Error: ${error.message}`);
-        return supabaseAdmin.storage.from('project-media').getPublicUrl(data.path).data.publicUrl;
+    const uploadFile = async (file: File | null): Promise<string | null> => {
+      if (!file) return null;
+      const fileName = `${uuidv4()}.${file.name.split('.').pop()}`;
+      const { data, error } = await supabaseAdmin.storage.from(SUPABASE_PROJECTS_IMAGE_BUCKET).upload(`public/${fileName}`, file);
+      if (error) throw new Error(`Storage Error: ${error.message}`);
+      return supabaseAdmin.storage.from(SUPABASE_PROJECTS_IMAGE_BUCKET).getPublicUrl(data.path).data.publicUrl;
     };
 
-    if (type === 'image' && mediaFile) {
-      media_url = await uploadFile(mediaFile);
+    const mediaFile = formData.get('mediaFile') as File | null;
+    const thumbnailFile = formData.get('thumbnailFile') as File | null;
+    
+    let media_url = formData.get('media_url') as string;
+
+    // Upload files and get their URLs
+    const [mediaUploadUrl, thumbnailUploadUrl] = await Promise.all([
+        uploadFile(mediaFile),
+        uploadFile(thumbnailFile)
+    ]);
+    
+    // If it's an image project, the mediaFile upload is the main media_url
+    if (mediaUploadUrl) {
+      media_url = mediaUploadUrl;
     }
 
-    // --- THIS IS THE FIX: Actually upload the thumbnail file ---
-    if (thumbnailFile) {
-      thumbnail_url = await uploadFile(thumbnailFile);
-    }
+    const newProjectData = {
+      title: formData.get('title') as string,
+      description: formData.get('description') as string,
+      category: formData.get('category') as string,
+      type: formData.get('type') as 'image' | 'video',
+      is_published: formData.get('is_published') === 'true',
+      display_order: parseInt(formData.get('display_order') as string, 10),
+      media_url: media_url,
+      thumbnail_url: thumbnailUploadUrl, // Use the result from the thumbnail upload
+    };
 
-    const newProjectData = { title, description, category, type, is_published, display_order, media_url, thumbnail_url };
     const { data: createdProject, error: insertError } = await supabaseAdmin.from('projects').insert([newProjectData]).select().single();
     if (insertError) throw insertError;
 
