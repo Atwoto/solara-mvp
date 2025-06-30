@@ -76,7 +76,7 @@ const Footer = () => {
   const contactInfo = [
     { icon: MapPinIcon, type: 'text', label: 'Kamdries Complex, G12, Ruiru' },
     { icon: EnvelopeIcon, type: 'link', href: 'mailto:info@billseasonsolar.co.ke', label: 'info@billseasonsolar.co.ke' },
-    { icon: PhoneIcon, type: 'link', href: 'tel:+254734802893', label: '+254 734 802 893' },
+    { icon: PhoneIcon, type: 'link', href: 'tel:+254702156134', label: '+254 702 156 134' },
   ];
 
   return (

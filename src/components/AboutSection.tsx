@@ -60,7 +60,7 @@ const AboutSection = () => {
                   <p className="text-4xl font-bold">
                     {inView ? <CountUp start={0} end={180} duration={2.5} suffix="k+" /> : '0k+'}
                   </p>
-                  <p className="text-base">Installed Capacity (W)</p>
+                  <p className="text-base">Installed Capacity (KW)</p>
                 </div>
               </div>
             </div>

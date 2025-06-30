@@ -78,8 +78,8 @@ const ContactSection = () => {
                  <PhoneIcon className="h-7 w-7 text-solar-flare-start"/>
                  <div>
                     <h3 className="font-semibold">Call Us Directly</h3>
-                    <a href="tel:+254734802893" className="text-gray-300 hover:text-white transition-colors">
-                      +254 734 802 893
+                    <a href="tel:+254702156134" className="text-gray-300 hover:text-white transition-colors">
+                      +254 702 156 134
                     </a>
                  </div>
                </div>

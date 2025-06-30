@@ -24,8 +24,8 @@ export const TopBar = () => {
         <div className="flex md:hidden">
           <ContactInfo 
             icon={<PhoneIcon className="h-4 w-4" />} 
-            text="0737555222" 
-            href="tel:0737555222"
+            text="0702156134" 
+            href="tel:0702156134"
           />
         </div>
 
@@ -44,8 +44,8 @@ export const TopBar = () => {
           />
            <ContactInfo 
             icon={<PhoneIcon className="h-4 w-4" />} 
-            text="0737555222" 
-            href="tel:0737555222"
+            text="0702156134" 
+            href="tel:0702156134"
           />
         </div>
 
