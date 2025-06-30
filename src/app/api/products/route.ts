@@ -1,33 +1,26 @@
-// src/app/api/products/route.ts
-
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js'; // It's better to use the admin client for consistency
+import { supabaseAdmin } from '@/lib/supabase/server'; // Use the secure admin client
 import { Product as ProductType } from '@/types'; 
-
-// Use the secure admin client, which is best practice for all API routes.
-const supabase = createClient(
-  process.env.SUPABASE_URL!, 
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  
-  // --- NEW LOGIC TO HANDLE FETCHING BY MULTIPLE IDs ---
-  // This is for the wishlist page.
   const ids = searchParams.get('ids');
+  const supabase = supabaseAdmin; // Use the imported admin client
+
+  // --- Logic for fetching specific products by ID (for wishlist, etc.) ---
   if (ids) {
     try {
       const idArray = ids.split(',');
-      const { data, error } = await supabase
+      let query = supabase
         .from('products')
         .select('*')
-        .in('id', idArray); // .in() is the Supabase function for 'WHERE id IN (...)
+        .in('id', idArray)
+        .eq('is_archived', false); // <-- Filter out archived products here as well
 
-      if (error) {
-        console.error('Supabase error fetching products by IDs:', error);
-        throw error;
-      }
+      const { data, error } = await query;
+
+      if (error) throw error;
+      
       return NextResponse.json(data as ProductType[] || []);
 
     } catch (error: any) {
@@ -36,34 +29,31 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // --- YOUR EXISTING LOGIC FOR FETCHING BY CATEGORY ---
-  // This is for the main product catalog pages.
+  // --- Logic for fetching products for the main catalog/category pages ---
   const categorySlug = searchParams.get('category');
 
   try {
     let query = supabase
       .from('products')
-      .select('*');
+      .select('*')
+      .eq('is_archived', false); // <-- THE CRUCIAL FILTER to hide archived products
 
     if (categorySlug) {
-      // Filter by category if the slug is provided
+      // Add category filter if provided
       query = query.eq('category', categorySlug); 
     }
 
-    // You can add default sorting
+    // Default sorting
     query = query.order('name', { ascending: true });
 
     const { data, error } = await query;
 
-    if (error) {
-      console.error('Supabase error fetching products by category:', error);
-      throw error; 
-    }
+    if (error) throw error; 
 
     return NextResponse.json(data as ProductType[] || []);
 
   } catch (error: any) {
-    console.error('Error fetching products by category:', error.message);
+    console.error('Error fetching catalog products:', error.message);
     return NextResponse.json({ message: `Failed to fetch products: ${error.message}` }, { status: 500 });
   }
 }
