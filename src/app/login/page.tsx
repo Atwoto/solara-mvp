@@ -1,18 +1,22 @@
-// /src/app/login/page.tsx -- FINAL CORRECTED VERSION
+import AuthFormContainer from "@/components/auth/AuthFormContainer";
+import LoginForm from "@/components/LoginForm";
 import { Suspense } from 'react';
-import LoginForm from '@/components/LoginForm';
 
-// A simple loading component to show while the main form loads
-function Loading() {
-  return <div className="text-center">Loading your secure login form...</div>;
+// Wrap the client component in Suspense for searchParams to work correctly
+function LoginPageContent() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginForm />
+    </Suspense>
+  )
 }
 
 export default function LoginPage() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
-      <Suspense fallback={<Loading />}>
-        <LoginForm />
-      </Suspense>
-    </div>
-  );
+    return (
+        <div className="bg-gray-50">
+            <AuthFormContainer>
+                <LoginPageContent />
+            </AuthFormContainer>
+        </div>
+    );
 }

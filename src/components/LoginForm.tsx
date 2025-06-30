@@ -1,4 +1,4 @@
-// /src/components/LoginForm.tsx -- THIS IS A NEW FILE
+// src/components/LoginForm.tsx
 'use client';
 
 import { useState, FormEvent, useEffect } from 'react';
@@ -6,9 +6,9 @@ import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { FcGoogle } from 'react-icons/fc';
-import { ArrowPathIcon, ExclamationCircleIcon } from '@heroicons/react/24/solid';
+import { ArrowPathIcon, ExclamationCircleIcon, EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/solid';
+import AuthInput from './auth/AuthInput'; // <-- Import our new input
 
-// All the logic from your original login page lives here now.
 export default function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,63 +16,31 @@ export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   
   const router = useRouter();
-  // This is the hook that was causing the build error
   const searchParams = useSearchParams(); 
   const callbackUrl = searchParams.get('callbackUrl') || '/';
   const authError = searchParams.get('error');
 
   useEffect(() => {
-    if (authError) {
-      setError('Authentication failed. Please try again.');
-    }
+    if (authError) setError('Authentication failed. Please try again.');
   }, [authError]);
 
   const handleCredentialsSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const result = await signIn('credentials', {
-      redirect: false, 
-      email: email,
-      password: password,
-    });
+    setError(null);
+    const result = await signIn('credentials', { redirect: false, email, password });
     setIsLoading(false);
-    if (result?.error) {
-      setError('Invalid email or password.');
-    } else if (result?.ok) {
-      router.push(callbackUrl);
-    }
+    if (result?.error) setError('Invalid email or password.');
+    else if (result?.ok) router.push(callbackUrl);
   };
 
   const handleGoogleSignIn = () => {
     setIsLoading(true);
-    signIn('google', { callbackUrl: callbackUrl });
+    signIn('google', { callbackUrl });
   };
 
   return (
-    <div className="w-full max-w-md space-y-8">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-graphite tracking-tight">Welcome Back!</h1>
-        <p className="mt-2 text-gray-500">
-          New here?{' '}
-          <Link href="/signup" className="font-semibold text-solar-flare-end hover:text-solar-flare-start">
-            Create an account
-          </Link>
-        </p>
-      </div>
-      
-      <div className="space-y-6">
-        <button onClick={handleGoogleSignIn} type="button" disabled={isLoading} className="w-full flex items-center justify-center py-3 px-4 border border-gray-300 rounded-xl shadow-sm bg-white text-md font-semibold text-graphite hover:bg-gray-50 disabled:opacity-60">
-          <FcGoogle className="h-6 w-6 mr-3" />
-          Continue with Google
-        </button>
-      </div>
-
-      <div className="relative flex py-2 items-center">
-        <div className="flex-grow border-t border-gray-200"></div>
-        <span className="flex-shrink mx-4 text-sm font-medium text-gray-400">Or continue with email</span>
-        <div className="flex-grow border-t border-gray-200"></div>
-      </div>
-
+    <div className="w-full space-y-6">
       <form onSubmit={handleCredentialsSubmit} className="space-y-6">
         {error && (
           <div className="flex items-center p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200">
@@ -80,20 +48,46 @@ export default function LoginForm() {
             <span>{error}</span>
           </div>
         )}
+        <AuthInput
+            id="email" name="email" label="Email" type="email"
+            value={email} onChange={e => setEmail(e.target.value)} required
+            icon={<EnvelopeIcon className="h-5 w-5 text-gray-400" />}
+        />
         <div>
-          <label htmlFor="email">Email Address</label>
-          <input id="email" name="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" />
+            <AuthInput
+                id="password" name="password" label="Password" type="password"
+                value={password} onChange={e => setPassword(e.target.value)} required
+                icon={<LockClosedIcon className="h-5 w-5 text-gray-400" />}
+            />
+            <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center">
+                    <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 rounded border-gray-300 text-solar-flare-start focus:ring-solar-flare-end" />
+                    <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">Remember me</label>
+                </div>
+                <div className="text-sm">
+                    <Link href="/forgot-password" className="font-semibold text-solar-flare-end hover:text-solar-flare-start">Forgot password?</Link>
+                </div>
+            </div>
         </div>
         <div>
-          <label htmlFor="password">Password</label>
-          <input id="password" name="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" />
-        </div>
-        <div>
-          <button type="submit" disabled={isLoading} className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50">
-            {isLoading ? <ArrowPathIcon className="h-5 w-5 animate-spin" /> : 'Log In'}
+          <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-base font-semibold text-white bg-gradient-to-r from-solar-flare-start to-solar-flare-end hover:opacity-90 disabled:opacity-60 transition-all active:scale-[0.98]">
+            {isLoading ? <ArrowPathIcon className="h-5 w-5 animate-spin" /> : 'Sign In'}
           </button>
         </div>
       </form>
+
+      <div className="relative flex py-2 items-center">
+        <div className="flex-grow border-t border-gray-200"></div>
+        <span className="flex-shrink mx-4 text-sm text-gray-500">or continue with</span>
+        <div className="flex-grow border-t border-gray-200"></div>
+      </div>
+
+      <div>
+        <button onClick={handleGoogleSignIn} type="button" disabled={isLoading} className="w-full flex items-center justify-center py-3 px-4 border border-gray-300 rounded-xl shadow-sm bg-white text-md font-semibold text-graphite hover:bg-gray-50 disabled:opacity-60">
+          <FcGoogle className="h-6 w-6 mr-3" />
+          Sign in with Google
+        </button>
+      </div>
     </div>
   );
 }
