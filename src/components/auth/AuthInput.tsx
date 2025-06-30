@@ -13,6 +13,10 @@ interface AuthInputProps {
   required?: boolean;
 }
 
+
+
+// ... (interface remains the same)
+
 export default function AuthInput({ id, name, label, type, value, onChange, icon, required = false }: AuthInputProps) {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const isPasswordField = type === 'password';
@@ -31,7 +35,9 @@ export default function AuthInput({ id, name, label, type, value, onChange, icon
           value={value}
           onChange={onChange}
           required={required}
-          className="block w-full rounded-xl border-gray-300 shadow-sm pl-10 pr-10 py-3 focus:border-solar-flare-start focus:ring-solar-flare-start sm:text-sm"
+          // --- THIS IS THE FIX ---
+          // Added `border` to ensure the border is always visible.
+          className="block w-full rounded-xl border border-gray-300 shadow-sm pl-10 pr-10 py-3 focus:border-solar-flare-start focus:ring-solar-flare-start sm:text-sm"
         />
         {isPasswordField && (
           <button
