@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { v4 as uuidv4 } from 'uuid';
 
-// --- NEW: The GET handler to fetch a single product for the edit page ---
+const SUPABASE_PRODUCTS_IMAGE_BUCKET = 'product-images'; // Ensure this matches your bucket name
+
+// --- GET Handler: Fetch a single product for the edit page ---
 export async function GET(
   request: NextRequest,
   { params }: { params: { productId: string } }
@@ -20,10 +22,10 @@ export async function GET(
       .from('products')
       .select('*')
       .eq('id', productId)
-      .single(); // Use .single() to get one object, not an array
+      .single();
 
     if (error) {
-      if (error.code === 'PGRST116') { // Code for "No rows found"
+      if (error.code === 'PGRST116') {
         return NextResponse.json({ message: 'Product not found.' }, { status: 404 });
       }
       throw error;
@@ -42,7 +44,7 @@ export async function GET(
 }
 
 
-// --- EXISTING: The PUT handler for updating a product ---
+// --- PUT Handler: Update an existing product ---
 export async function PUT(
   request: NextRequest,
   { params }: { params: { productId: string } }
@@ -68,7 +70,7 @@ export async function PUT(
       const uploadPromises = imageFiles.map(file => {
         const fileExt = file.name.split('.').pop();
         const filePath = `public/${uuidv4()}.${fileExt}`;
-        return supabase.storage.from('product-images').upload(filePath, file);
+        return supabase.storage.from(SUPABASE_PRODUCTS_IMAGE_BUCKET).upload(filePath, file);
       });
       const uploadResults = await Promise.all(uploadPromises);
 
@@ -79,7 +81,7 @@ export async function PUT(
       }
       
       newImageUrls = uploadResults.map(result => {
-        return supabase.storage.from('product-images').getPublicUrl(result.data!.path).data.publicUrl;
+        return supabase.storage.from(SUPABASE_PRODUCTS_IMAGE_BUCKET).getPublicUrl(result.data!.path).data.publicUrl;
       });
     }
 
@@ -113,8 +115,70 @@ export async function PUT(
 
   } catch (error: any) {
     return NextResponse.json(
-      { message: error.message || 'Failed. Please check server logs.' }, 
+      { message: `Failed to update product: ${error.message}` || 'An unexpected error occurred.' }, 
       { status: 500 }
     );
   }
+}
+
+// --- NEW: The DELETE handler to remove a product and its images ---
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: { productId: string } }
+) {
+    const supabase = supabaseAdmin;
+    const { productId } = params;
+
+    if (!productId) {
+        return NextResponse.json({ message: 'Product ID is required.' }, { status: 400 });
+    }
+
+    try {
+        // 1. Fetch the product to get its image URLs
+        const { data: productToDelete, error: fetchError } = await supabase
+            .from('products')
+            .select('image_url')
+            .eq('id', productId)
+            .single();
+
+        if (fetchError && fetchError.code !== 'PGRST116') { // Ignore "not found" errors, but throw others
+            throw fetchError;
+        }
+
+        // 2. Delete the product from the database table
+        const { error: deleteError } = await supabase
+            .from('products')
+            .delete()
+            .eq('id', productId);
+
+        if (deleteError) {
+            throw deleteError;
+        }
+
+        // 3. If the DB deletion was successful and there are images, delete them from storage
+        if (productToDelete && productToDelete.image_url && productToDelete.image_url.length > 0) {
+            const fileNames = productToDelete.image_url.map((url: string) => {
+                // Extract the path after the bucket name, e.g., 'public/image.jpg'
+                const urlParts = url.split(`/${SUPABASE_PRODUCTS_IMAGE_BUCKET}/`);
+                return urlParts[1] || '';
+            }).filter(Boolean); // Filter out any empty strings
+
+            if (fileNames.length > 0) {
+                const { error: storageError } = await supabase.storage
+                    .from(SUPABASE_PRODUCTS_IMAGE_BUCKET)
+                    .remove(fileNames);
+                
+                if (storageError) {
+                    // Log the error but don't fail the whole request, as the DB entry is already gone
+                    console.warn(`Product record deleted, but failed to delete images from storage: ${storageError.message}`);
+                }
+            }
+        }
+
+        return NextResponse.json({ message: 'Product deleted successfully.' });
+
+    } catch (error: any) {
+        console.error('Error deleting product:', error);
+        return NextResponse.json({ message: `Failed to delete product: ${error.message}` }, { status: 500 });
+    }
 }
