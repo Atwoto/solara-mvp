@@ -1,3 +1,4 @@
+// src/app/projects/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,33 +12,21 @@ const filters = ['All', 'Residential', 'Commercial', 'Industrial', 'Water Pump I
 const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.1 } } } as const;
 const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } } as const;
 
-// --- NEW HELPER FUNCTION TO FIX YOUTUBE URLS ---
 const getYouTubeEmbedUrl = (url: string): string => {
+  if (!url) return '';
   let videoId = '';
-  // Tries to match a standard watch URL (e.g., /watch?v=VIDEO_ID)
   const watchMatch = url.match(/[?&]v=([^&]+)/);
-  // Tries to match a short share URL (e.g., /youtu.be/VIDEO_ID)
   const shortMatch = url.match(/youtu\.be\/([^?]+)/);
-  // Tries to match an existing embed URL (e.g., /embed/VIDEO_ID)
   const embedMatch = url.match(/\/embed\/([^?]+)/);
-
-  if (watchMatch && watchMatch[1]) {
-    videoId = watchMatch[1];
-  } else if (shortMatch && shortMatch[1]) {
-    videoId = shortMatch[1];
-  } else if (embedMatch && embedMatch[1]) {
-    videoId = embedMatch[1];
-  }
-
-  // If a video ID was found, return the proper embeddable URL. Otherwise, return the original URL.
+  if (watchMatch && watchMatch[1]) videoId = watchMatch[1];
+  else if (shortMatch && shortMatch[1]) videoId = shortMatch[1];
+  else if (embedMatch && embedMatch[1]) videoId = embedMatch[1];
   return videoId ? `https://www.youtube-nocookie.com/embed/${videoId}` : url;
 };
-
 
 const ProjectsPage = () => {
   const [filter, setFilter] = useState('All');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,17 +83,28 @@ const ProjectsPage = () => {
           
           {!isLoading && !error && (
             <motion.div key={filter} variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredProjects.map(project => (
-                <motion.div key={project.id} variants={itemVariants} layout className="group relative cursor-pointer overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-shadow" onClick={() => handleSelectProject(project)}>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent z-10"></div>
-                  <NextImage src={project.type === 'video' ? project.thumbnail_url || '/images/default-video-thumb.jpg' : project.media_url} alt={project.title} width={600} height={400} className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105" />
-                  <div className="absolute bottom-0 left-0 p-5 z-20 text-white">
-                    <div className="absolute top-5 right-5 p-2 rounded-full bg-white/20 backdrop-blur-sm">{project.type === 'video' ? <VideoCameraIcon className="h-5 w-5" /> : <PhotoIcon className="h-5 w-5" />}</div>
-                    <p className="text-xs font-semibold uppercase tracking-wider">{project.category}</p>
-                    <h3 className="text-lg font-bold mt-1 text-shadow-md">{project.title}</h3>
-                  </div>
-                </motion.div>
-              ))}
+              {filteredProjects.map(project => {
+                // --- THIS IS THE FIX: Use the same logic as the admin panel ---
+                const displayImageSrc = project.thumbnail_url || (project.type === 'image' ? project.media_url : '/images/default-video-thumb.jpg');
+
+                return (
+                  <motion.div key={project.id} variants={itemVariants} layout className="group relative cursor-pointer overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-shadow" onClick={() => handleSelectProject(project)}>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent z-10"></div>
+                    <NextImage 
+                      src={displayImageSrc} 
+                      alt={project.title} 
+                      width={600} 
+                      height={400} 
+                      className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105" 
+                    />
+                    <div className="absolute bottom-0 left-0 p-5 z-20 text-white">
+                      <div className="absolute top-5 right-5 p-2 rounded-full bg-white/20 backdrop-blur-sm">{project.type === 'video' ? <VideoCameraIcon className="h-5 w-5" /> : <PhotoIcon className="h-5 w-5" />}</div>
+                      <p className="text-xs font-semibold uppercase tracking-wider">{project.category}</p>
+                      <h3 className="text-lg font-bold mt-1 text-shadow-md">{project.title}</h3>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </motion.div>
           )}
         </div>
@@ -115,19 +115,15 @@ const ProjectsPage = () => {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center" onClick={handleCloseLightbox}>
             <button onClick={(e) => { e.stopPropagation(); handleLightboxNavigation('prev'); }} className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-3 bg-white/20 rounded-full hover:bg-white/30"><ChevronLeftIcon className="h-6 w-6 text-white" /></button>
             <button onClick={(e) => { e.stopPropagation(); handleLightboxNavigation('next'); }} className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-3 bg-white/20 rounded-full hover:bg-white/30"><ChevronRightIcon className="h-6 w-6 text-white" /></button>
-            
             <motion.div layoutId={selectedProject.id} className="relative w-full max-w-4xl max-h-[90vh] bg-deep-night rounded-lg shadow-2xl flex flex-col lg:flex-row overflow-hidden" onClick={(e) => e.stopPropagation()}>
               <button onClick={handleCloseLightbox} className="absolute top-3 right-3 z-10 p-2 bg-black/30 rounded-full hover:bg-black/50"><XMarkIcon className="h-5 w-5 text-white" /></button>
-              
               <div className="w-full lg:w-2/3 h-64 lg:h-auto bg-black flex items-center justify-center">
                 {selectedProject.type === 'video' ? (
-                  // --- USE THE HELPER FUNCTION HERE ---
                   <iframe src={getYouTubeEmbedUrl(selectedProject.media_url)} title={selectedProject.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full"></iframe>
                 ) : (
                   <NextImage src={selectedProject.media_url} alt={selectedProject.title} width={1200} height={800} className="w-full h-full object-contain" />
                 )}
               </div>
-              
               <div className="w-full lg:w-1/3 p-6 flex flex-col bg-slate-800/50 overflow-y-auto">
                 <p className="text-sm font-semibold text-solar-flare-start uppercase tracking-wider">{selectedProject.category}</p>
                 <h2 className="text-2xl font-bold text-white mt-2 mb-4">{selectedProject.title}</h2>
