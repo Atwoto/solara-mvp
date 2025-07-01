@@ -6,58 +6,47 @@ export async function POST(request: Request) {
   try {
     const { name, email, password } = await request.json();
 
-    if (!name || !email || !password) {
-      return NextResponse.json({ message: 'Missing name, email, or password' }, { status: 400 });
-    }
-    if (password.length < 8) {
-        return NextResponse.json({ message: 'Password must be at least 8 characters long.' }, { status: 400 });
+    if (!name || !email || !password || password.length < 8) {
+      return NextResponse.json({ message: 'Valid name, email, and a password of at least 8 characters are required.' }, { status: 400 });
     }
 
-    // --- THIS IS THE CORRECTED LOGIC ---
-    // Check if user already exists using listUsers
+    // --- Check if user already exists ---
     const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
     if (listError) throw listError;
-
-    const existingUser = users.find(u => u.email === email);
-    if (existingUser) {
-      return NextResponse.json({ message: 'An account with this email already exists. Please try logging in.' }, { status: 409 });
+    if (users.find(u => u.email === email)) {
+      return NextResponse.json({ message: 'An account with this email already exists.' }, { status: 409 });
     }
 
     // --- Create user in Supabase Auth ---
+    // The database trigger will handle creating the public profile.
     const { data: { user: newAuthUser }, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: email,
       password: password,
-      email_confirm: true,
+      email_confirm: true, // Auto-confirm for direct creation
       user_metadata: { name: name }
     });
 
-    if (createError) {
-      console.error('Supabase Auth user creation error:', createError);
-      throw new Error(createError.message);
-    }
-    if (!newAuthUser) {
-        throw new Error('User creation did not return a user object.');
-    }
-    
-    // --- Create corresponding user profile ---
-    const { error: profileError } = await supabaseAdmin
-      .from('users')
-      .insert({
-        id: newAuthUser.id,
-        name: name,
-        email: email,
-      });
+    if (createError) throw createError;
+    if (!newAuthUser) throw new Error('User creation failed to return a user object.');
 
-    if (profileError) {
-      console.error('Supabase profile creation error:', profileError);
-      await supabaseAdmin.auth.admin.deleteUser(newAuthUser.id);
-      throw new Error("Failed to create user profile. Registration has been rolled back.");
+    // --- THIS IS THE FIX ---
+    // Instead of INSERTING a new profile, we UPDATE the one that the trigger just created.
+    // This adds the 'name' field which the trigger might not have added.
+    const { error: updateError } = await supabaseAdmin
+      .from('users')
+      .update({ name: name })
+      .eq('id', newAuthUser.id);
+      
+    if (updateError) {
+        // If the update fails, it's not critical, but we should log it.
+        // The user account still exists.
+        console.error("Failed to update user's name after creation:", updateError);
     }
-    
+
     return NextResponse.json({ message: 'User created successfully!' }, { status: 201 });
 
   } catch (error: any) {
-    console.error('Registration API Error:', error);
+    console.error('Registration API Error:', error.message);
     return NextResponse.json({ message: error.message || 'An unexpected error occurred.' }, { status: 500 });
   }
 }
