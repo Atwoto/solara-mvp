@@ -1,4 +1,3 @@
-// src/components/LoginForm.tsx
 'use client';
 
 import { useState, FormEvent, useEffect } from 'react';
@@ -8,7 +7,7 @@ import Link from 'next/link';
 import { FcGoogle } from 'react-icons/fc';
 import { ArrowPathIcon, ExclamationCircleIcon, EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/solid';
 import AuthInput from './auth/AuthInput';
-import { AnimatePresence, motion } from 'framer-motion'; // Import for animations
+import { AnimatePresence, motion } from 'framer-motion';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -22,21 +21,48 @@ export default function LoginForm() {
   const authError = searchParams.get('error');
 
   useEffect(() => {
-    if (authError) setError('Authentication failed. Please try again.');
-  }, [authError]);
+    // This handles errors from OAuth providers or other generic NextAuth errors
+    if (authError && !error) { // Only set if no specific error is already shown
+      if (authError === 'Callback') {
+        setError('An error occurred during sign-in. Please try again.');
+      } else {
+        setError('Authentication failed. Please check your credentials.');
+      }
+    }
+  }, [authError, error]);
 
   const handleCredentialsSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    const result = await signIn('credentials', { redirect: false, email, password });
+
+    const result = await signIn('credentials', {
+      redirect: false,
+      email,
+      password,
+    });
+
     setIsLoading(false);
-    if (result?.error) setError('Invalid email or password.');
-    else if (result?.ok) router.push(callbackUrl);
+    
+    // --- THIS IS THE UPDATED LOGIC ---
+    // The `result.error` will now contain the specific error message
+    // we threw in the `authorize` function (e.g., "Invalid email or password").
+    if (result?.error) {
+      setError(result.error);
+    } else if (result?.ok) {
+      // On success, redirect to the intended page or homepage
+      router.push(callbackUrl);
+      router.refresh(); // Recommended to refresh server state
+    } else {
+      // Fallback for any other unexpected issues
+      setError('An unexpected error occurred. Please try again.');
+    }
   };
 
   const handleGoogleSignIn = () => {
     setIsLoading(true);
+    // Clear previous errors before starting a new sign-in flow
+    setError(null); 
     signIn('google', { callbackUrl });
   };
 
@@ -78,7 +104,6 @@ export default function LoginForm() {
             </div>
         </div>
         <div>
-          {/* --- ENHANCED BUTTON --- */}
           <button 
             type="submit" 
             disabled={isLoading} 
