@@ -136,7 +136,7 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
     );
 };
 
-// --- ACTION ICONS & USER MENU (NOW VISIBLE ON MOBILE) ---
+// --- ACTION ICONS & USER MENU (Unchanged) ---
 const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void; }) => {
     const { openCart, getTotalItems } = useCart();
     const { wishlistProducts, isLoading: isWishlistLoading } = useWishlist();
@@ -189,7 +189,7 @@ const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void;
     );
 };
 
-// --- MOBILE MENU WITH FEATURED ITEMS ---
+// --- MOBILE MENU (Unchanged) ---
 const MobileFeaturedItem = ({ item, closeMenu }: { item: { name: string, href: string, image: string, description: string }, closeMenu: () => void }) => (
     <Link href={item.href} onClick={closeMenu} className="group block rounded-lg overflow-hidden relative bg-gray-100 p-4 my-2 mx-2">
         <NextImage src={item.image} alt={item.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -272,7 +272,8 @@ const MobileMenu = ({ isOpen, closeMenu }: { isOpen: boolean; closeMenu: () => v
     );
 };
 
-// --- FINAL HEADER ORCHESTRATOR ---
+
+// --- FINAL HEADER ORCHESTRATOR (WITH FIX) ---
 const Header = () => {
     const pathname = usePathname();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -319,8 +320,11 @@ const Header = () => {
                         <ActionIcons openComparisonModal={() => setIsComparisonModalOpen(true)} />
                     </div>
                 </div>
-                <MobileMenu isOpen={isMobileMenuOpen} closeMenu={() => setIsMobileMenuOpen(false)} />
             </header>
+            
+            {/* The MobileMenu is now OUTSIDE the header, making it a true overlay */}
+            <MobileMenu isOpen={isMobileMenuOpen} closeMenu={() => setIsMobileMenuOpen(false)} />
+            
             <CartSidebar /> 
             <ComparisonModal isOpen={isComparisonModalOpen} onClose={() => setIsComparisonModalOpen(false)} />
         </>
