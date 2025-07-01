@@ -12,38 +12,47 @@ function LoginPageContent() {
   );
 }
 
-const FloatingIcon = ({ className, delay }: { className: string, delay?: string }) => (
-    <div className={`absolute -z-10 text-yellow-300/30 animate-float ${className}`} style={{ animationDelay: delay }}>
-        <SunIcon />
+// A new component for the background elements to keep the main component clean
+const BackgroundElements = () => (
+    <div className="absolute inset-0 z-0 overflow-hidden bg-gradient-to-br from-white via-yellow-50/50 to-orange-100/30">
+        {/* Faint text block 1 */}
+        <div className="absolute top-[10%] left-[5%] w-1/3 text-gray-200/80">
+            <p className="text-xs uppercase font-bold">New Energy For Our System</p>
+            <h2 className="text-5xl font-extrabold text-gray-300/50">Clean Renewable</h2>
+            <h2 className="text-5xl font-extrabold text-gray-200/80 -mt-2">Limitless Energy</h2>
+            <div className="mt-4 h-10 w-48 bg-gray-200/60 rounded-full"></div>
+        </div>
+        
+        {/* Faint text block 2 */}
+        <div className="absolute bottom-[15%] left-[10%] w-1/4 text-gray-200/80">
+            <p className="text-xs uppercase font-bold">// BENEFITS</p>
+            <h2 className="text-3xl font-extrabold text-gray-300/50">The Benefits Of</h2>
+            <h2 className="text-3xl font-extrabold text-gray-200/80 -mt-1">Going Solar With Us</h2>
+        </div>
+
+        {/* Faint card block */}
+        <div className="absolute top-[20%] right-[8%] w-1/4 text-gray-200/80 p-6 bg-white/20 rounded-2xl border border-gray-200/50">
+            <h3 className="text-2xl font-bold text-gray-300/80">Switching To Solar</h3>
+            <p className="text-lg font-bold text-gray-200/60">In 3 Easy Steps</p>
+            <div className="mt-4 h-32 bg-gray-200/40 rounded-lg"></div>
+        </div>
+
+         {/* Faint Floating Sun Icons */}
+        <SunIcon className="absolute h-40 w-40 text-yellow-200/30 top-10 right-1/4 animate-float" style={{ animationDelay: '-1s' }} />
+        <SunIcon className="absolute h-24 w-24 text-yellow-200/20 bottom-10 left-1/3 animate-float" style={{ animationDelay: '-3s' }} />
     </div>
 );
 
+
 export default function LoginPage() {
     return (
-        <div className="relative min-h-screen flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 overflow-hidden bg-gray-50">
+        // The main container is now simpler
+        <div className="relative min-h-screen flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 overflow-hidden">
             
-            {/* --- Background Image Layer --- */}
-            <div 
-                className="absolute inset-0 -z-20" // Place it behind everything
-                style={{
-                    backgroundImage: `url('/images/solar-bg.jpg')`, // <-- MAKE SURE THIS PATH IS CORRECT
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                }}
-            >
-                {/* Add an overlay directly on the background for tinting */}
-                <div className="absolute inset-0 bg-black/10"></div> 
-            </div>
-
-            {/* --- Floating Icons Layer (no change here) --- */}
-            <FloatingIcon className="h-48 w-48 top-20 -left-20" />
-            <FloatingIcon className="h-24 w-24 top-1/3 right-10" delay="-2s" />
-            <FloatingIcon className="h-32 w-32 bottom-10 -right-16" delay="-4s" />
-            <FloatingIcon className="h-20 w-20 bottom-1/4 left-5" delay="-1s" />
-            <FloatingIcon className="h-16 w-16 top-3/4 -left-8" delay="-3s" />
+            <BackgroundElements />
             
-            {/* The main content remains the same */}
-            <div className="relative z-10 flex flex-col items-center">
+            {/* The main content is placed on top with a higher z-index */}
+            <div className="relative z-10 flex flex-col items-center w-full">
                 <div className="mb-8 text-center">
                     <div className="inline-block p-4 bg-gradient-to-br from-solar-flare-start to-orange-400 rounded-full shadow-lg mb-4">
                         <SunIcon className="h-8 w-8 text-white"/>
