@@ -5,7 +5,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { v4 as uuidv4 } from 'uuid';
 
-const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
+const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com';
 const SUPABASE_SERVICES_IMAGE_BUCKET = 'service-images';
 
 interface RouteParams {

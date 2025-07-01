@@ -5,7 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase/server';
 import { ServicePageData } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
-const ADMIN_EMAIL = 'ndekeharrison8@gmail.com'; 
+const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com'; 
 const SUPABASE_SERVICES_IMAGE_BUCKET = 'service-images';
 
 // GET Handler remains the same - it correctly fetches all services
