@@ -7,7 +7,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { FcGoogle } from 'react-icons/fc';
 import { ArrowPathIcon, ExclamationCircleIcon, EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/solid';
-import AuthInput from './auth/AuthInput'; // <-- Import our new input
+import AuthInput from './auth/AuthInput';
+import { AnimatePresence, motion } from 'framer-motion'; // Import for animations
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -42,12 +43,19 @@ export default function LoginForm() {
   return (
     <div className="w-full space-y-6">
       <form onSubmit={handleCredentialsSubmit} className="space-y-6">
-        {error && (
-          <div className="flex items-center p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200">
-            <ExclamationCircleIcon className="h-5 w-5 mr-2 flex-shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="flex items-center p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200"
+            >
+              <ExclamationCircleIcon className="h-5 w-5 mr-2 flex-shrink-0" />
+              <span>{error}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <AuthInput
             id="email" name="email" label="Email" type="email"
             value={email} onChange={e => setEmail(e.target.value)} required
@@ -70,8 +78,23 @@ export default function LoginForm() {
             </div>
         </div>
         <div>
-          <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-base font-semibold text-white bg-gradient-to-r from-solar-flare-start to-solar-flare-end hover:opacity-90 disabled:opacity-60 transition-all active:scale-[0.98]">
-            {isLoading ? <ArrowPathIcon className="h-5 w-5 animate-spin" /> : 'Sign In'}
+          {/* --- ENHANCED BUTTON --- */}
+          <button 
+            type="submit" 
+            disabled={isLoading} 
+            className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-base font-semibold text-white bg-gradient-to-r from-solar-flare-start to-solar-flare-end hover:shadow-lg hover:scale-[1.02] disabled:opacity-60 disabled:hover:scale-100 disabled:shadow-sm transition-all active:scale-[0.98] duration-300 ease-in-out"
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={isLoading ? 'loading' : 'signIn'}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.15 }}
+              >
+                {isLoading ? <ArrowPathIcon className="h-5 w-5 animate-spin" /> : 'Sign In'}
+              </motion.span>
+            </AnimatePresence>
           </button>
         </div>
       </form>
@@ -83,7 +106,7 @@ export default function LoginForm() {
       </div>
 
       <div>
-        <button onClick={handleGoogleSignIn} type="button" disabled={isLoading} className="w-full flex items-center justify-center py-3 px-4 border border-gray-300 rounded-xl shadow-sm bg-white text-md font-semibold text-graphite hover:bg-gray-50 disabled:opacity-60">
+        <button onClick={handleGoogleSignIn} type="button" disabled={isLoading} className="w-full flex items-center justify-center py-3 px-4 border border-gray-300 rounded-xl shadow-sm bg-white text-md font-semibold text-graphite hover:bg-gray-50 hover:scale-[1.02] hover:shadow-md disabled:opacity-60 transition-all active:scale-[0.98] duration-300 ease-in-out">
           <FcGoogle className="h-6 w-6 mr-3" />
           Sign in with Google
         </button>
