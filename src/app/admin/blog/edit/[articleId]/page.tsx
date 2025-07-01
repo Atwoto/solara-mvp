@@ -12,7 +12,7 @@ import Link from 'next/link';
 import PageHeader from '@/components/admin/PageHeader'; // For consistent page titles
 import PageLoader from '@/components/PageLoader';     // For consistent loading states
 
-const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
+const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com';
 
 type ArticleFormData = {
   title: string;

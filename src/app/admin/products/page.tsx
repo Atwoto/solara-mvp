@@ -11,7 +11,7 @@ import PageHeader from '@/components/admin/PageHeader';
 import PageLoader from '@/components/PageLoader';     
 import { PencilSquareIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
 
-const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
+const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com';
 
 const AdminProductsPage = () => {
   const { data: session, status } = useSession();

@@ -8,7 +8,7 @@ import ProductForm from '@/components/admin/ProductForm'; // Import the reusable
 import PageHeader from '@/components/admin/PageHeader'; 
 import PageLoader from '@/components/PageLoader';
 
-const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
+const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com';
 
 const AddNewProductPage = () => {
   const router = useRouter();

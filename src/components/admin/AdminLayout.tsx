@@ -11,7 +11,7 @@ interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
-const ADMIN_EMAIL = 'ndekeharrison8@gmail.com'; 
+const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com'; 
 
 const AdminLayout = ({ children }: AdminLayoutProps) => {
   const { data: session, status } = useSession();

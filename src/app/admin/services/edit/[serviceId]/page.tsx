@@ -9,7 +9,7 @@ import ServiceForm from '@/components/admin/ServiceForm'; // Re-use the same for
 import PageHeader from '@/components/admin/PageHeader';
 import PageLoader from '@/components/PageLoader';
 
-const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
+const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com';
 
 const EditServicePage = () => {
   const router = useRouter();

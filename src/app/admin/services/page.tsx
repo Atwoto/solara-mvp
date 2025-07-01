@@ -12,7 +12,7 @@ import { PlusIcon } from '@heroicons/react/24/outline';
 // --- NEW: Import our master list of services ---
 import { serviceOptions } from '@/lib/serviceOptions';
 
-const ADMIN_EMAIL = 'ndekeharrison8@gmail.com'; 
+const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com'; 
 
 // --- NEW: Define a type for our unified list ---
 export type ManagedService = {

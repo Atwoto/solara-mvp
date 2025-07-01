@@ -5,7 +5,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth"; // <<--- CORRECTED IMPORT PATH
 import type { Session } from 'next-auth';
 
-const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
+const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com';
 
 interface OrderStatusCountFromRPC {
   status: string;

@@ -8,7 +8,7 @@ import type { Session } from 'next-auth';
 import { v4 as uuidv4 } from 'uuid';
 import { BlogPost, BlogPostCategory } from '@/types'; // Ensure BlogPost and its category type are imported
 
-const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
+const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com';
 // Use a dedicated bucket for article images for better organization
 const SUPABASE_ARTICLES_IMAGE_BUCKET = 'article-images'; 
 

@@ -24,7 +24,7 @@ interface ActivityItem {
   link?: string;
 }
 
-const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
+const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com';
 
 interface DashboardStatCard {
   name: string;
