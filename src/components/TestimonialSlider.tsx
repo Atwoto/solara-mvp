@@ -1,161 +1,214 @@
-// src/components/TestimonialSlider.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import NextImage from 'next/image';
 import { Testimonial as TestimonialType } from '@/types';
 import { StarIcon } from '@heroicons/react/24/solid';
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
+const AUTOPLAY_INTERVAL = 7000; // 7 seconds
+
+// --- IMPRESSIVE NEW TESTIMONIAL CARD ---
 const TestimonialCard = ({ testimonial }: { testimonial: TestimonialType }) => {
-  return (
-    <div className="absolute inset-0 flex flex-col justify-between h-full w-full bg-gray-900/60 backdrop-blur-md border border-gray-700/50 rounded-2xl p-6 sm:p-8 shadow-2xl">
-      <div>
-        <svg className="h-12 w-12 text-solar-flare-start opacity-20" fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.896 3.456-8.352 9.12-8.352 15.36 0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L25.864 4z" />
-        </svg>
-        <blockquote className="mt-4 text-lg text-gray-200 leading-relaxed">
-          {testimonial.quote}
-        </blockquote>
-      </div>
-      <div className="mt-6 flex items-center gap-4">
-        <div className="relative h-14 w-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-solar-flare-start/50">
-          <NextImage
-            src={testimonial.image_url || '/images/default-avatar.png'}
-            alt={testimonial.client_name}
-            fill
-            className="object-cover"
-          />
+    return (
+        <div className="flex flex-col justify-between h-full w-full bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl">
+            <svg className="absolute top-6 left-6 h-16 w-16 text-white opacity-5" fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
+                <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.896 3.456-8.352 9.12-8.352 15.36 0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L25.864 4z" />
+            </svg>
+            <blockquote className="relative z-10 text-lg sm:text-xl text-gray-200 leading-relaxed font-medium">
+                “{testimonial.quote}”
+            </blockquote>
+            <div className="relative z-10 mt-6 flex items-center gap-4">
+                <div className="relative h-14 w-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-solar-flare-start/50">
+                    <NextImage
+                        src={testimonial.image_url || '/images/default-avatar.png'}
+                        alt={testimonial.client_name}
+                        fill
+                        sizes="56px"
+                        className="object-cover"
+                    />
+                </div>
+                <div>
+                    <p className="font-bold text-white">{testimonial.client_name}</p>
+                    <p className="text-sm text-gray-400">{testimonial.client_title_company}</p>
+                    {testimonial.rating && testimonial.rating > 0 && (
+                        <div className="flex mt-1">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <StarIcon key={i} className={`h-4 w-4 ${i < testimonial.rating! ? 'text-yellow-400' : 'text-gray-600'}`} />
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
-        <div>
-          <p className="font-bold text-white">{testimonial.client_name}</p>
-          <p className="text-sm text-gray-400">{testimonial.client_title_company}</p>
-          <div className="flex mt-1">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <StarIcon key={i} className={`h-4 w-4 ${i < testimonial.rating! ? 'text-yellow-400' : 'text-gray-600'}`} />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    );
 };
 
+// --- REDESIGNED TESTIMONIAL SLIDER ---
 const TestimonialSlider = () => {
-  const [testimonials, setTestimonials] = useState<TestimonialType[]>([]);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isHovered, setIsHovered] = useState(false); // State to control hover pause
+    const [testimonials, setTestimonials] = useState<TestimonialType[]>([]);
+    const [activeIndex, setActiveIndex] = useState(0);
+    const [direction, setDirection] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [isHovered, setIsHovered] = useState(false);
 
-  useEffect(() => {
     // Data fetching logic remains the same
-    const fetchTestimonials = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetch('/api/testimonials?limit=5');
-        if (!response.ok) throw new Error('Failed to fetch testimonials');
-        const data: TestimonialType[] = await response.json();
-        setTestimonials(data);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
+    useEffect(() => {
+        const fetchTestimonials = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const response = await fetch('/api/testimonials?limit=5');
+                if (!response.ok) throw new Error('Failed to fetch testimonials');
+                const data: TestimonialType[] = await response.json();
+                setTestimonials(data);
+            } catch (err: any) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchTestimonials();
+    }, []);
+
+    // Auto-play logic
+    useEffect(() => {
+        if (isHovered || testimonials.length <= 1) return;
+        const interval = setInterval(() => {
+            setDirection(1);
+            setActiveIndex((prev) => (prev + 1) % testimonials.length);
+        }, AUTOPLAY_INTERVAL);
+        return () => clearInterval(interval);
+    }, [isHovered, testimonials.length]);
+
+    const handleAvatarClick = (index: number) => {
+        setDirection(index > activeIndex ? 1 : -1);
+        setActiveIndex(index);
     };
-    fetchTestimonials();
-  }, []);
 
-  // --- NEW: useEffect for automatic transitions ---
-  useEffect(() => {
-    // If the user is hovering, don't start the interval
-    if (isHovered || testimonials.length <= 1) return;
+    // Animation variants for the sliding effect
+    const slideVariants: Variants = {
+        enter: (direction: number) => ({
+            x: direction > 0 ? '100%' : '-100%',
+            opacity: 0,
+        }),
+        center: {
+            x: 0,
+            opacity: 1,
+            zIndex: 1,
+            transition: { duration: 0.5, ease: 'easeOut' }
+        },
+        exit: (direction: number) => ({
+            x: direction < 0 ? '100%' : '-100%',
+            opacity: 0,
+            zIndex: 0,
+            transition: { duration: 0.5, ease: 'easeIn' }
+        }),
+    };
 
-    // Set up the interval to advance the slide every 5 seconds
-    const interval = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % testimonials.length);
-    }, 5000); // 5-second interval
+    if (isLoading || error || testimonials.length === 0) {
+        return (
+            <div className="bg-deep-night py-28">
+                <div className="container mx-auto px-4 text-center">
+                    <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-4">What Our Clients Say</h2>
+                    <p className="text-gray-400">{isLoading ? "Loading Client Stories..." : "No featured testimonials available right now."}</p>
+                </div>
+            </div>
+        );
+    }
 
-    // Clear the interval on component unmount or when dependencies change
-    return () => clearInterval(interval);
-  }, [activeIndex, isHovered, testimonials.length]); // Re-run when these change
-
-  const handleNext = () => {
-    setActiveIndex((prev) => (prev + 1) % testimonials.length);
-  };
-
-  const handlePrev = () => {
-    setActiveIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
-  };
-
-  if (isLoading || error || testimonials.length === 0) {
-    // Graceful handling of loading/error/empty states
     return (
-      <div className="bg-gray-900 py-28">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-4">What Our Clients Say</h2>
-          <p className="text-gray-400">{isLoading ? "Loading Client Stories..." : "No featured testimonials available right now."}</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-gray-900 text-white py-20 sm:py-28">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
-          <p className="font-semibold text-sm text-solar-flare-start uppercase tracking-wider">TESTIMONIAL</p>
-          <h2 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight">What Our Clients Say</h2>
-        </div>
-        
-        {/* Main carousel container with hover-to-pause functionality */}
         <div
-          className="relative h-[480px] sm:h-[400px] max-w-2xl mx-auto"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
+            className="relative bg-deep-night text-white py-20 sm:py-28 overflow-hidden"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
         >
-          <AnimatePresence>
-            {testimonials.map((testimonial, index) => {
-              const position = index - activeIndex;
-              const isVisible = Math.abs(position) < 3;
-              if (!isVisible) return null;
-              
-              const y = position * 20;
-              const scale = 1 - Math.abs(position) * 0.1;
-              const opacity = 1 - Math.abs(position) * 0.3;
-              const zIndex = testimonials.length - Math.abs(position);
-
-              return (
+            {/* Immersive Background Image */}
+            <AnimatePresence>
                 <motion.div
-                  key={testimonial.id}
-                  initial={{ opacity: 0, y: 50, scale: 0.8 }}
-                  animate={{ opacity, y, scale, zIndex }}
-                  exit={{ opacity: 0, y: -50, scale: 0.8 }}
-                  transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-                  className="absolute w-full h-full cursor-pointer"
-                  style={{ transformOrigin: 'bottom center' }}
+                    key={activeIndex}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 1, ease: 'easeInOut' }}
+                    className="absolute inset-0"
                 >
-                  <TestimonialCard testimonial={testimonial} />
+                    <NextImage
+                        src={testimonials[activeIndex]?.image_url || '/images/default-avatar.png'}
+                        alt="Client background"
+                        fill
+                        className="object-cover w-full h-full filter blur-2xl scale-125"
+                    />
+                    <div className="absolute inset-0 bg-deep-night/70"></div>
                 </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </div>
+            </AnimatePresence>
 
-        {/* Navigation Buttons still available for user control */}
-        <div className="flex justify-center items-center gap-6 mt-8">
-          <button onClick={handlePrev} className="p-3 rounded-full bg-gray-800/50 hover:bg-solar-flare-start/20 transition-colors focus:outline-none focus:ring-2 focus:ring-solar-flare-end" aria-label="Previous testimonial">
-            <ChevronLeftIcon className="h-6 w-6" />
-          </button>
-          <button onClick={handleNext} className="p-3 rounded-full bg-gray-800/50 hover:bg-solar-flare-start/20 transition-colors focus:outline-none focus:ring-2 focus:ring-solar-flare-end" aria-label="Next testimonial">
-            <ChevronRightIcon className="h-6 w-6" />
-          </button>
+            <div className="relative container mx-auto px-4 z-10">
+                <div className="text-center mb-16">
+                    <p className="font-semibold text-sm text-solar-flare-start uppercase tracking-wider">TESTIMONIAL</p>
+                    <h2 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight">What Our Clients Say</h2>
+                </div>
+                
+                {/* Main carousel container */}
+                <div className="relative h-[420px] sm:h-[350px] max-w-3xl mx-auto">
+                    <AnimatePresence custom={direction}>
+                        <motion.div
+                            key={activeIndex}
+                            variants={slideVariants}
+                            custom={direction}
+                            initial="enter"
+                            animate="center"
+                            exit="exit"
+                            className="absolute inset-0"
+                        >
+                            <TestimonialCard testimonial={testimonials[activeIndex]} />
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
+
+                {/* Interactive Avatar Navigation */}
+                <div className="flex justify-center items-end gap-3 sm:gap-4 mt-12 h-20">
+                    {testimonials.map((testimonial, index) => (
+                        <button
+                            key={testimonial.id}
+                            onClick={() => handleAvatarClick(index)}
+                            className="relative rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-solar-flare-end focus-visible:ring-offset-4 focus-visible:ring-offset-deep-night"
+                            aria-label={`View testimonial from ${testimonial.client_name}`}
+                        >
+                            <div className={`relative rounded-full overflow-hidden transition-all duration-300 ease-out ${activeIndex === index ? 'h-16 w-16' : 'h-12 w-12 opacity-50 hover:opacity-100'}`}>
+                                <NextImage
+                                    src={testimonial.image_url || '/images/default-avatar.png'}
+                                    alt={testimonial.client_name}
+                                    fill
+                                    sizes={activeIndex === index ? '64px' : '48px'}
+                                    className="object-cover"
+                                />
+                            </div>
+                            {/* Animated Progress Ring */}
+                            {activeIndex === index && (
+                                <motion.svg className="absolute -inset-1 h-[calc(100%+8px)] w-[calc(100%+8px)]" viewBox="0 0 100 100">
+                                    <motion.circle
+                                        key={activeIndex} // Reset animation on change
+                                        cx="50"
+                                        cy="50"
+                                        r="48"
+                                        stroke="#FDB813" // solar-flare-start
+                                        strokeWidth="3"
+                                        fill="transparent"
+                                        initial={{ pathLength: 0 }}
+                                        animate={isHovered ? { pathLength: 0 } : { pathLength: 1 }}
+                                        transition={{ duration: AUTOPLAY_INTERVAL / 1000, ease: 'linear' }}
+                                        style={{ rotate: -90, transformOrigin: 'center' }}
+                                    />
+                                </motion.svg>
+                            )}
+                        </button>
+                    ))}
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default TestimonialSlider;
