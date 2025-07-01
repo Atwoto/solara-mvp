@@ -1,4 +1,4 @@
-// src/app/signup/page.tsx
+
 'use client'; 
 
 import { useState, FormEvent } from 'react';
