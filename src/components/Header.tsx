@@ -11,7 +11,7 @@ import {
     ShoppingCartIcon, Bars3Icon, XMarkIcon, HeartIcon,
     ArrowsRightLeftIcon, UserCircleIcon, ArrowLeftOnRectangleIcon,
     ChevronDownIcon, BuildingStorefrontIcon, WrenchScrewdriverIcon,
-    ComputerDesktopIcon,
+    ComputerDesktopIcon, StarIcon,
 } from '@heroicons/react/24/outline';
 import NextImage from 'next/image';
 import CartSidebar from './CartSidebar';
@@ -49,7 +49,7 @@ const installationServiceCategories: NavCategory[] = [
     { name: 'Water Pumps Installation', href: '/services/water-pump-installation' }
 ];
 
-// --- IMPRESSIVE NEW MEGA MENU COMPONENT ---
+// --- DESKTOP MEGA MENU (Unchanged) ---
 const MegaMenu = ({ categories, closeMenu, featuredItem }: { categories: NavCategory[], closeMenu: () => void, featuredItem: { name: string, href: string, image: string, description: string } }) => (
     <div className="grid grid-cols-12 gap-x-8 p-6">
         <div className="col-span-8 grid grid-cols-3 gap-x-6 gap-y-8">
@@ -89,7 +89,7 @@ const MegaMenu = ({ categories, closeMenu, featuredItem }: { categories: NavCate
     </div>
 );
 
-// --- REFINED DESKTOP NAVIGATION ---
+// --- DESKTOP NAVIGATION (Unchanged) ---
 const DesktopNav = ({ pathname }: { pathname: string }) => {
     const [activeMenu, setActiveMenu] = useState<'products' | 'services' | null>(null);
 
@@ -136,7 +136,7 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
     );
 };
 
-// --- POLISHED ACTION ICONS & USER DROPDOWN ---
+// --- ACTION ICONS & USER MENU (NOW VISIBLE ON MOBILE) ---
 const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void; }) => {
     const { openCart, getTotalItems } = useCart();
     const { wishlistProducts, isLoading: isWishlistLoading } = useWishlist();
@@ -151,33 +151,33 @@ const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void;
 
     return (
         <div className="flex items-center space-x-1 sm:space-x-2">
-            <div className="hidden lg:flex items-center">
+            <div className="flex items-center">
                 {sessionStatus === 'authenticated' ? (
-                    <div className="relative" onMouseEnter={() => setIsUserMenuOpen(true)} onMouseLeave={() => setIsUserMenuOpen(false)}>
-                        <button className="flex items-center">
+                    <div className="relative">
+                        <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}>
                            {session.user?.image ?
-                                <NextImage src={session.user.image} alt="User" width={32} height={32} className="rounded-full ring-2 ring-transparent group-hover:ring-solar-flare-start transition-all" /> :
+                                <NextImage src={session.user.image} alt="User" width={32} height={32} className="rounded-full ring-2 ring-offset-2 ring-transparent hover:ring-solar-flare-start transition-all" /> :
                                 <UserCircleIcon className="h-8 w-8 text-gray-500 hover:text-solar-flare-end transition-colors" />
                            }
                         </button>
                         <AnimatePresence>
                         {isUserMenuOpen && (
-                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200/80 z-30 p-2">
+                             <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200/80 z-30 p-2">
                                 <div className="p-2 border-b border-gray-200">
                                     <p className="font-semibold text-sm text-gray-800 truncate">{session.user?.name}</p>
                                     <p className="text-xs text-gray-500 truncate">{session.user?.email}</p>
                                 </div>
                                 <div className="mt-2 space-y-1">
-                                    <Link href="/account" className="flex items-center w-full text-left p-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 hover:text-solar-flare-end transition-colors"><ComputerDesktopIcon className="h-5 w-5 mr-3"/>My Dashboard</Link>
-                                    <button onClick={() => signOut()} className="flex items-center w-full text-left p-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 hover:text-red-500 transition-colors"><ArrowLeftOnRectangleIcon className="h-5 w-5 mr-3"/>Log Out</button>
+                                    <Link href="/account" onClick={() => setIsUserMenuOpen(false)} className="flex items-center w-full text-left p-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 hover:text-solar-flare-end transition-colors"><ComputerDesktopIcon className="h-5 w-5 mr-3"/>My Dashboard</Link>
+                                    <button onClick={() => { signOut(); setIsUserMenuOpen(false); }} className="flex items-center w-full text-left p-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 hover:text-red-500 transition-colors"><ArrowLeftOnRectangleIcon className="h-5 w-5 mr-3"/>Log Out</button>
                                 </div>
                              </motion.div>
                         )}
                         </AnimatePresence>
                     </div>
                 ) : sessionStatus === 'unauthenticated' ? (
-                    <Link href="/login" className="flex justify-center items-center bg-gradient-to-r from-solar-flare-start to-solar-flare-end px-5 py-2 text-sm font-semibold text-deep-night rounded-full shadow-md hover:opacity-90 active:scale-[0.98] transition-all duration-300">Log In</Link>
-                ) : <div className="h-9 w-24 bg-gray-200 rounded-full animate-pulse"></div>}
+                    <Link href="/login" className="hidden lg:flex justify-center items-center bg-gradient-to-r from-solar-flare-start to-solar-flare-end px-5 py-2 text-sm font-semibold text-deep-night rounded-full shadow-md hover:opacity-90 active:scale-[0.98] transition-all duration-300">Log In</Link>
+                ) : <div className="h-9 w-24 bg-gray-200 rounded-full animate-pulse hidden lg:block"></div>}
             </div>
             
             <div className="flex items-center border-l border-gray-200 ml-2 pl-2">
@@ -189,9 +189,18 @@ const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void;
     );
 };
 
+// --- MOBILE MENU WITH FEATURED ITEMS ---
+const MobileFeaturedItem = ({ item, closeMenu }: { item: { name: string, href: string, image: string, description: string }, closeMenu: () => void }) => (
+    <Link href={item.href} onClick={closeMenu} className="group block rounded-lg overflow-hidden relative bg-gray-100 p-4 my-2 mx-2">
+        <NextImage src={item.image} alt={item.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+        <div className="relative h-full flex flex-col justify-end text-white">
+           <p className="text-xs font-bold uppercase tracking-wider flex items-center"><StarIcon className="h-4 w-4 mr-1.5 text-yellow-400"/>Featured</p>
+           <h3 className="font-bold text-md mt-1">{item.name}</h3>
+        </div>
+    </Link>
+);
 
-// --- POLISHED MOBILE MENU ---
-// The recursive component logic is solid, so we mainly polish the styles
 const MobileRecursiveMenu = ({ items, closeMenu, level = 0 }: { items: NavCategory[]; closeMenu: () => void; level?: number; }) => {
     const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
     const toggleItem = (name: string) => setOpenItems(prev => ({ ...prev, [name]: !prev[name] }));
@@ -220,6 +229,9 @@ const MobileRecursiveMenu = ({ items, closeMenu, level = 0 }: { items: NavCatego
 
 const MobileMenu = ({ isOpen, closeMenu }: { isOpen: boolean; closeMenu: () => void; }) => {
     const { data: session, status: sessionStatus } = useSession();
+    const featuredProduct = { name: "Complete 5kW Hybrid System", href: "/products/solar-kits/5kw-hybrid-system", image: "/images/featured-product.jpg", description: "Our bestselling all-in-one solution." };
+    const featuredService = { name: "Commercial Solar Solutions", href: "/services/commercial-solar-solutions", image: "/images/featured-service.jpg", description: "Power your business with solar." };
+
     return (
         <AnimatePresence>
             {isOpen && (
@@ -229,39 +241,28 @@ const MobileMenu = ({ isOpen, closeMenu }: { isOpen: boolean; closeMenu: () => v
                             <h2 className="font-bold text-lg">Menu</h2>
                             <button onClick={closeMenu} className="p-2 -mr-2"><XMarkIcon className="h-6 w-6 text-gray-600"/></button>
                         </div>
-                        <div className="px-4 pt-4 pb-10">
-                            <nav className="flex flex-col space-y-2">
+                        <div className="pt-4 pb-10">
+                            <nav className="flex flex-col">
                                 <div className="border-b pb-2">
-                                    <h3 className="px-2 text-sm font-semibold text-gray-400 uppercase tracking-wider">Products</h3>
-                                    <MobileRecursiveMenu items={productCategoriesData} closeMenu={closeMenu} />
+                                    <h3 className="px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Products</h3>
+                                    <MobileFeaturedItem item={featuredProduct} closeMenu={closeMenu} />
+                                    <div className="px-2"><MobileRecursiveMenu items={productCategoriesData} closeMenu={closeMenu} /></div>
                                 </div>
                                 <div className="border-b pb-2">
-                                    <h3 className="px-2 pt-2 text-sm font-semibold text-gray-400 uppercase tracking-wider">Services</h3>
-                                    <MobileRecursiveMenu items={installationServiceCategories} closeMenu={closeMenu} />
+                                    <h3 className="px-4 pt-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Services</h3>
+                                    <MobileFeaturedItem item={featuredService} closeMenu={closeMenu} />
+                                    <div className="px-2"><MobileRecursiveMenu items={installationServiceCategories} closeMenu={closeMenu} /></div>
                                 </div>
-                                <div className="pt-2">
+                                <div className="pt-2 px-2">
                                     {mainNavLinks.map((link) => (<Link key={link.name} href={link.href} className="block py-3 px-2 text-md font-medium text-gray-800 hover:bg-gray-100 rounded-md" onClick={closeMenu}>{link.name}</Link>))}
                                 </div>
-                                <div className="pt-8">
-                                    {sessionStatus === 'authenticated' ? (
-                                        <div className="space-y-4">
-                                            <div className="flex items-center p-2 rounded-lg bg-gray-50">
-                                                {session.user?.image ? <NextImage src={session.user.image} alt="Avatar" width={40} height={40} className="rounded-full mr-3"/> : <UserCircleIcon className="h-10 w-10 text-gray-400 mr-3"/>}
-                                                <div>
-                                                    <p className="font-semibold text-gray-900">{session.user?.name}</p>
-                                                    <p className="text-sm text-gray-500">{session.user?.email}</p>
-                                                </div>
-                                            </div>
-                                            <button onClick={() => { signOut(); closeMenu(); }} className="w-full flex items-center justify-center py-3 rounded-lg text-md font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
-                                                <ArrowLeftOnRectangleIcon className="h-5 w-5 mr-2"/>Log Out
-                                            </button>
-                                        </div>
-                                    ) : sessionStatus === 'unauthenticated' ? (
+                                 {sessionStatus === 'unauthenticated' && (
+                                     <div className="px-4 pt-8">
                                         <Link href="/login" onClick={closeMenu} className="w-full flex items-center justify-center bg-gradient-to-r from-solar-flare-start to-solar-flare-end py-3 text-md font-semibold text-deep-night rounded-full shadow-md hover:opacity-90 active:scale-[0.98] transition-all duration-300">
                                             Log In / Sign Up
                                         </Link>
-                                    ) : null}
-                                </div>
+                                     </div>
+                                 )}
                             </nav>
                         </div>
                     </motion.div>
@@ -270,7 +271,6 @@ const MobileMenu = ({ isOpen, closeMenu }: { isOpen: boolean; closeMenu: () => v
         </AnimatePresence>
     );
 };
-
 
 // --- FINAL HEADER ORCHESTRATOR ---
 const Header = () => {
@@ -293,15 +293,22 @@ const Header = () => {
 
     return (
         <>
-            <header className={`sticky top-0 z-[9999] w-full bg-white/80 text-gray-900 backdrop-blur-lg transition-all duration-300 ${scrolled ? 'shadow-lg border-b border-gray-200/80' : 'shadow-sm border-b border-transparent'}`}>
+            <header className={`sticky top-0 z-[50] w-full bg-white/80 text-gray-900 backdrop-blur-lg transition-all duration-300 ${scrolled ? 'shadow-lg border-b border-gray-200/80' : 'shadow-sm border-b border-transparent'}`}>
                 <div className="container mx-auto flex items-center justify-between h-20 px-4 sm:px-6">
-                    <div className="flex-shrink-0">
-                        <Link href="/" className="flex items-center group">
-                            <div className="relative h-10 w-10 sm:h-12 sm:w-12">
-                                <NextImage src="/images/logo.png" alt="Bills On Solar EA Limited Logo" fill className="object-contain" sizes="48px"/>
-                            </div>
-                            <span className="ml-2 sm:ml-3 text-lg sm:text-xl font-bold text-gray-900 group-hover:text-solar-flare-end transition-colors">Bills On Solar</span>
-                        </Link>
+                    <div className="flex items-center">
+                        <div className="lg:hidden flex items-center mr-2">
+                            <button className="p-2 rounded-md text-gray-600 hover:text-solar-flare-end hover:bg-gray-100" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label="Toggle mobile menu">
+                                {isMobileMenuOpen ? <XMarkIcon className="h-7 w-7" /> : <Bars3Icon className="h-7 w-7" />}
+                            </button>
+                        </div>
+                        <div className="flex-shrink-0">
+                            <Link href="/" className="flex items-center group">
+                                <div className="relative h-10 w-10 sm:h-12 sm:w-12">
+                                    <NextImage src="/images/logo.png" alt="Bills On Solar EA Limited Logo" fill className="object-contain" sizes="48px"/>
+                                </div>
+                                <span className="hidden sm:block ml-3 text-xl font-bold text-gray-900 group-hover:text-solar-flare-end transition-colors">Bills On Solar</span>
+                            </Link>
+                        </div>
                     </div>
                     
                     <div className="flex-1 flex justify-center h-full">
@@ -310,11 +317,6 @@ const Header = () => {
 
                     <div className="flex items-center">
                         <ActionIcons openComparisonModal={() => setIsComparisonModalOpen(true)} />
-                        <div className="lg:hidden flex items-center ml-2">
-                            <button className="p-2 rounded-md text-gray-600 hover:text-solar-flare-end hover:bg-gray-100" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label="Toggle mobile menu">
-                                {isMobileMenuOpen ? <XMarkIcon className="h-7 w-7" /> : <Bars3Icon className="h-7 w-7" />}
-                            </button>
-                        </div>
                     </div>
                 </div>
                 <MobileMenu isOpen={isMobileMenuOpen} closeMenu={() => setIsMobileMenuOpen(false)} />

@@ -4,11 +4,10 @@ import Link from 'next/link';
 import { PhoneIcon, EnvelopeIcon, MapPinIcon } from '@heroicons/react/24/solid';
 import { motion } from 'framer-motion';
 
-// Reusable sub-component with enhanced styling
+// Reusable sub-component with enhanced styling for better micro-interactions.
 const ContactInfo = ({ icon, text, href }: { icon: React.ReactNode; text: string; href: string }) => (
   <a
     href={href}
-    // The 'group' class allows us to style child elements on parent hover
     className="group flex items-center text-sm text-gray-400 hover:text-white transition-all duration-300"
   >
     <span className="text-solar-flare-start transition-transform duration-300 group-hover:scale-110">
@@ -18,7 +17,7 @@ const ContactInfo = ({ icon, text, href }: { icon: React.ReactNode; text: string
   </a>
 );
 
-// Main TopBar component
+// Main TopBar component, now with the marquee enabled on all screen sizes.
 export const TopBar = () => {
   const contactItems = [
     { 
@@ -40,9 +39,7 @@ export const TopBar = () => {
 
   return (
     <>
-      {/* This style block contains the CSS keyframe animation for the marquee effect.
-        Placing it here keeps the animation logic encapsulated with the component.
-      */}
+      {/* The CSS keyframe animation for the marquee effect. */}
       <style jsx global>{`
         @keyframes marquee {
           0% { transform: translateX(0%); }
@@ -51,8 +48,12 @@ export const TopBar = () => {
         .animate-marquee {
           animation: marquee 30s linear infinite;
         }
+        .animate-marquee:hover {
+            animation-play-state: paused;
+        }
       `}</style>
 
+      {/* Main container with entrance animation */}
       <motion.div
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -61,22 +62,13 @@ export const TopBar = () => {
       >
         <div className="container mx-auto flex items-center justify-between px-4 py-2">
           
-          {/* --- Mobile-only Contact Info --- */}
-          <div className="flex md:hidden">
-            <ContactInfo
-              icon={<PhoneIcon className="h-4 w-4" />}
-              text="+254 702 156 134"
-              href="tel:+254702156134"
-            />
-          </div>
-
-          {/* --- Desktop Marquee --- */}
-          {/* This container is only visible on medium screens and up */}
-          <div className="hidden md:flex flex-1 items-center overflow-hidden">
+          {/* --- Marquee (Now visible on ALL screen sizes) --- */}
+          {/* The flex-1 and overflow-hidden classes are key to making this work on mobile */}
+          <div className="flex-1 flex items-center overflow-hidden">
             <div className="flex-shrink-0 whitespace-nowrap animate-marquee flex items-center">
-              {/* The contact items are duplicated to create a seamless loop */}
+              {/* The contact items are duplicated to create a seamless, infinite loop */}
               {[...contactItems, ...contactItems].map((item, index) => (
-                <div key={index} className="mx-6">
+                <div key={index} className="mx-4 sm:mx-6">
                   <ContactInfo {...item} />
                 </div>
               ))}
@@ -84,7 +76,7 @@ export const TopBar = () => {
           </div>
 
           {/* --- "CONTACT US" Button --- */}
-          {/* Visible on all screen sizes */}
+          {/* This button is visible on all screen sizes and has enhanced hover effects. */}
           <div className="flex-shrink-0 ml-4">
             <Link
               href="/#contact-us"
