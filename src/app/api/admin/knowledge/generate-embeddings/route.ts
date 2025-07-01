@@ -6,7 +6,7 @@ import { authOptions } from "@/lib/auth";
 import type { Session } from 'next-auth';
 import OpenAI from 'openai';
 
-const ADMIN_EMAIL = 'ndekeharrison8@gmail.com';
+const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com';
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error('Missing OpenAI API key.');
