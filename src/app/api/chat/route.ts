@@ -1,4 +1,5 @@
 // /src/app/api/chat/route.ts
+// /src/app/api/chat/route.ts
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 import OpenAI from 'openai';
 import { Product as ProductTypeFromTypes, ServicePageData, BlogPost } from '@/types';
@@ -94,18 +95,15 @@ export async function POST(req: Request) {
     2.  **Available Pages for Navigation:**
         - Home Page: "/"
         - All Products Page: "/products"
-        - Product Details Page: "/products/[id]" (e.g., "/products/12345")
         - Projects Page: "/projects"
         - About Us Page: "/#about-us"
         - Contact Us Page: "/#contact-us"
         - Blog Page: "/blog"
-        - Blog Article Page: "/blog/[slug]" (e.g., "/blog/solar-benefits")
-        - Services Page: "/services"
-        - Service Details Page: "/services/[slug]" (e.g., "/services/solar-installation")
+        - Compare Page: "/compare" (This page shows the comparison tool)
         - Wishlist Page: "/wishlist" (Requires user to be logged in)
-        - Cart Page: The cart is a sidebar, not a page. If asked to see the cart, use EXECUTE_ACTION[openCart|].
+        - Cart Page: The cart is a sidebar, not a page. If asked to "see my cart", use EXECUTE_ACTION[openCart|].
         - Checkout Page: "/checkout" (Requires user to be logged in)
-        - My Account/Dashboard/My Orders: "/account" (Requires user to be logged in)
+        - My Account/Dashboard/My Orders/Order List: "/account" (Requires user to be logged in)
     3.  **Available Products:** ${productKnowledge}
     4.  **Installation Services Offered:** ${serviceKnowledge}
     5.  **Available Blog Articles:** ${articleKnowledge}
