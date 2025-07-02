@@ -1,19 +1,19 @@
 'use client';
 
-import { FormEvent } from 'react';
+import { FormEvent, useEffect } from 'react';
 import type { Message } from "ai/react";
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { useChatbotLogic } from '@/hooks/useChatbotLogic';
+import { useRouter } from 'next/navigation';
 
 // Importing all necessary icons
 import { XMarkIcon, PaperAirplaneIcon, CheckCircleIcon, ExclamationTriangleIcon, InformationCircleIcon, ChatBubbleOvalLeftEllipsisIcon, SunIcon, SparklesIcon as SparklesOutline } from '@heroicons/react/24/solid/index.js';
 
-// --- IMPRESSIVE NEW WELCOME SCREEN ---
 const WelcomeScreen = ({ handleActionClick }: { handleActionClick: (actionType: string, idOrMarker: string) => void }) => {
     const suggestions = [
-        { text: "What are your best-selling panels?", action: "get_best_selling_products" },
-        { text: "How do I get a quote?", action: "get_quote_info" },
-        { text: "Compare hybrid systems", action: "compare_systems" },
+        { text: "Recommend a solar kit for my home", action: "prefill", value: "I need a solar kit for my home, what do you recommend?" },
+        { text: "Find articles about solar investment", action: "prefill", value: "Show me articles about solar investment" },
+        { text: "What services do you offer?", action: "prefill", value: "What installation services do you offer?" },
     ];
 
     return (
@@ -30,7 +30,7 @@ const WelcomeScreen = ({ handleActionClick }: { handleActionClick: (actionType: 
                 {suggestions.map((s, i) => (
                     <motion.button
                         key={i}
-                        onClick={() => handleActionClick(s.action, '')}
+                        onClick={() => handleActionClick(s.action, s.value)}
                         className="w-full text-left text-sm p-3 bg-white/60 hover:bg-white rounded-lg shadow-sm transition-colors"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -44,9 +44,9 @@ const WelcomeScreen = ({ handleActionClick }: { handleActionClick: (actionType: 
     );
 };
 
-// --- REDESIGNED CHATBOT ---
 export default function Chatbot() {
-    // All logic is preserved from your custom hook
+    const router = useRouter(); 
+    
     const {
         isOpen, setIsOpen,
         showNotification,
@@ -62,6 +62,20 @@ export default function Chatbot() {
         chatContainerRef
     } = useChatbotLogic();
 
+    useEffect(() => {
+        const lastMessage = messages[messages.length - 1];
+        if (lastMessage && lastMessage.role === 'assistant' && !isLoading) {
+            const autoNavigateRegex = /AUTO_NAVIGATE\[([^\]]+)\]/;
+            const match = lastMessage.content.match(autoNavigateRegex);
+            if (match && match[1]) {
+                const url = match[1];
+                router.push(url);
+                setIsOpen(false);
+            }
+        }
+    }, [messages, isLoading, router, setIsOpen]);
+
+
     const chatWindowVariants: Variants = {
         closed: { opacity: 0, y: 20, scale: 0.95, transition: { duration: 0.2, ease: "easeOut" } },
         open: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 400, damping: 30 } },
@@ -75,9 +89,17 @@ export default function Chatbot() {
 
     const displayMessages = messages.filter(m => m.role !== 'system');
 
+    const handleButtonClick = (actionType: string, value: string) => {
+        if (actionType === 'navigate') {
+            router.push(value);
+            setIsOpen(false);
+        } else {
+            handleActionClick(actionType, value);
+        }
+    };
+
     return (
         <>
-            {/* Notification Toast (Styling polished) */}
             <AnimatePresence>
                 {showNotification && (
                     <motion.div
@@ -95,7 +117,6 @@ export default function Chatbot() {
                 )}
             </AnimatePresence>
 
-            {/* Floating Action Button */}
             <motion.div className="fixed bottom-6 right-6 z-[9999]">
                 <motion.button
                     variants={fabVariants}
@@ -119,7 +140,6 @@ export default function Chatbot() {
                 </motion.button>
             </motion.div>
 
-            {/* Chat Window */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
@@ -132,19 +152,24 @@ export default function Chatbot() {
                             <div><h3 className="font-semibold text-base">Bills On Solar Assistant</h3><p className="text-xs opacity-80">Your solar energy expert</p></div>
                         </div>
 
-                        <div className="flex-grow space-y-4 p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400/50 hover:scrollbar-thumb-gray-500/50 scrollbar-track-transparent scrollbar-thumb-rounded-full">
+                        <div className="flex-grow space-y-4 p-4 overflow-y-auto scrollbar-thin">
                             {displayMessages.length === 0 && !isLoading && <WelcomeScreen handleActionClick={handleActionClick} />}
                             
                             {displayMessages.map((m: Message) => {
                                 const isUser = m.role === "user";
-                                // Logic for parsing action buttons remains the same
-                                const actionButtonRegex = /ACTION_BUTTON\[([^|]+)\|([^|]+)\|([^\]]+)\]/;
+                                const actionButtonRegex = /ACTION_BUTTON\[([^|]+)\|([^|]+)\|([^\]]+)\]/g;
                                 const executeActionRegex = /EXECUTE_ACTION\[([^|]+)\|([^\]]+)\]/;
-                                let contentToDisplay = m.content;
-                                if (m.content.match(actionButtonRegex)) contentToDisplay = contentToDisplay.replace(actionButtonRegex, "").trim();
-                                if (m.content.match(executeActionRegex)) contentToDisplay = contentToDisplay.replace(executeActionRegex, "").trim();
-                                const buttonMatch = m.content.match(actionButtonRegex);
-                                const actionButtonDetails = buttonMatch ? { buttonText: buttonMatch[1], actionType: buttonMatch[2], idOrMarker: buttonMatch[3] } : null;
+                                const autoNavigateRegex = /AUTO_NAVIGATE\[([^\]]+)\]/;
+                                
+                                // --- THIS IS THE FIX ---
+                                // Use Array.from() to safely convert the iterator to an array.
+                                const actionButtons = Array.from(m.content.matchAll(actionButtonRegex));
+                                
+                                let contentToDisplay = m.content
+                                    .replace(actionButtonRegex, "")
+                                    .replace(executeActionRegex, "")
+                                    .replace(autoNavigateRegex, "")
+                                    .trim();
 
                                 return (
                                     <motion.div
@@ -156,8 +181,17 @@ export default function Chatbot() {
                                     >
                                         <div className={`max-w-[85%] sm:max-w-[80%] px-4 py-2.5 shadow-md text-sm ${isUser ? `bg-gradient-to-br from-solar-flare-start to-orange-500 text-white rounded-t-xl rounded-bl-xl` : `bg-white text-gray-800 rounded-t-xl border border-gray-200 rounded-br-xl`}`}>
                                             {contentToDisplay && <p className="whitespace-pre-wrap">{contentToDisplay}</p>}
-                                            {actionButtonDetails && (
-                                                <button onClick={() => handleActionClick(actionButtonDetails.actionType, actionButtonDetails.idOrMarker)} className="mt-3 block w-full text-center px-4 py-2 text-sm font-semibold rounded-lg shadow-md transition-all duration-150 ease-in-out text-white bg-gradient-to-r from-solar-flare-start via-orange-500 to-solar-flare-end hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-70">{actionButtonDetails.buttonText}</button>
+                                            {actionButtons.length > 0 && (
+                                                <div className="mt-3 space-y-2 border-t border-black/10 pt-3">
+                                                    {actionButtons.map((match, index) => {
+                                                        const [, buttonText, actionType, value] = match;
+                                                        return (
+                                                            <button key={index} onClick={() => handleButtonClick(actionType, value)} className="block w-full text-left px-3 py-2 text-sm font-medium rounded-lg transition-all duration-150 ease-in-out text-solar-flare-end bg-solar-flare-start/10 hover:bg-solar-flare-start/20">
+                                                                {buttonText} &rarr;
+                                                            </button>
+                                                        )
+                                                    })}
+                                                </div>
                                             )}
                                         </div>
                                     </motion.div>
