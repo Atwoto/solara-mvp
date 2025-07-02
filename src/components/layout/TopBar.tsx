@@ -22,8 +22,8 @@ export const TopBar = () => {
   const contactItems = [
     { 
       icon: <MapPinIcon className="h-4 w-4" />, 
-      text: "Ashray industrial park, Off Enterprise Road", 
-      href: "https://maps.google.com/?q=Ashray+industrial+park" 
+      text: "The Mirages Westlands", 
+      href: "https://maps.app.goo.gl/vofW673LLxz2rTG76" 
     },
     { 
       icon: <EnvelopeIcon className="h-4 w-4" />, 
@@ -32,8 +32,8 @@ export const TopBar = () => {
     },
     { 
       icon: <PhoneIcon className="h-4 w-4" />, 
-      text: "+254 702 156 134", 
-      href: "tel:+254702156134" 
+      text: "+254 795 857 846", 
+      href: "tel:+254795857846" 
     },
   ];
 

@@ -83,12 +83,13 @@ const Footer = () => {
   };
 
   // --- DATA ARRAYS (Now using stricter types) ---
-  const socialLinks = [
+    const socialLinks = [
     { href: 'https://www.facebook.com/billsonsolarsealimited/', label: 'Facebook', icon: FaFacebookF },
     { href: 'https://www.tiktok.com/@billsonsolarealimited', label: 'TikTok', icon: FaTiktok },
     { href: 'https://www.linkedin.com/in/bill-s-5482271b1', label: 'LinkedIn', icon: FaLinkedinIn },
     { href: 'https://youtube.com/@billsonsolar', label: 'YouTube', icon: FaYoutube },
     { href: 'https://www.pinterest.com/Billsonsolarealimited/', label: 'Pinterest', icon: FaPinterestP },
+    { href: 'https://www.instagram.com/billsonsolarealimited/', label: 'Instagram', icon: FaInstagram },
   ];
 
   const quickLinks = [
@@ -101,9 +102,9 @@ const Footer = () => {
   ];
 
   const contactInfo: ContactInfoItem[] = [
-    { icon: MapPinIcon, type: 'text', label: 'Kamdries Complex, G12, Ruiru' },
+    { icon: MapPinIcon, type: 'text', label: ' The Mirages Westlands' },
     { icon: EnvelopeIcon, type: 'link', href: 'mailto:info@billseasonsolar.co.ke', label: 'info@billseasonsolar.co.ke' },
-    { icon: PhoneIcon, type: 'link', href: 'tel:+254702156134', label: '+254 702 156 134' },
+    { icon: PhoneIcon, type: 'link', href: 'tel:+254795857846', label: '+254 795 857 846' },
   ];
 
   const LinkItem = ({ href, label }: { href: string; label: string }) => (

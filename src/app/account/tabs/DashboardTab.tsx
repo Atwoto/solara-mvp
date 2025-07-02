@@ -23,7 +23,7 @@ export default function DashboardTab({ user }: { user: any }) {
                         Start Shopping <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </p>
                 </Link>
-                <Link href="/contact" className="group block p-6 bg-gray-50 hover:bg-white rounded-xl border border-gray-200 hover:border-solar-flare-start transition-all duration-300 shadow-sm hover:shadow-lg">
+                <Link href="/#contact-us" className="group block p-6 bg-gray-50 hover:bg-white rounded-xl border border-gray-200 hover:border-solar-flare-start transition-all duration-300 shadow-sm hover:shadow-lg">
                     <h3 className="font-semibold text-lg text-graphite group-hover:text-solar-flare-end">Get Support</h3>
                     <p className="text-sm text-gray-500 mt-1">Have a question? Our team is here to help.</p>
                      <p className="font-semibold text-sm text-solar-flare-start flex items-center mt-4">
