@@ -5,6 +5,7 @@ import type { Message } from "ai/react";
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { useChatbotLogic } from '@/hooks/useChatbotLogic';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react'; // --- NEW: Import useSession ---
 
 // Importing all necessary icons
 import { XMarkIcon, PaperAirplaneIcon, CheckCircleIcon, ExclamationTriangleIcon, InformationCircleIcon, ChatBubbleOvalLeftEllipsisIcon, SunIcon, SparklesIcon as SparklesOutline } from '@heroicons/react/24/solid/index.js';
@@ -46,6 +47,7 @@ const WelcomeScreen = ({ handleActionClick }: { handleActionClick: (actionType: 
 
 export default function Chatbot() {
     const router = useRouter(); 
+    const { data: session } = useSession(); // --- NEW: Get session data ---
     
     const {
         isOpen, setIsOpen,
@@ -70,10 +72,11 @@ export default function Chatbot() {
             if (match && match[1]) {
                 const url = match[1];
                 router.push(url);
-                setIsOpen(false);
+                // --- THE FIX: We no longer close the chat window here ---
+                // setIsOpen(false); 
             }
         }
-    }, [messages, isLoading, router, setIsOpen]);
+    }, [messages, isLoading, router]);
 
 
     const chatWindowVariants: Variants = {
@@ -92,10 +95,23 @@ export default function Chatbot() {
     const handleButtonClick = (actionType: string, value: string) => {
         if (actionType === 'navigate') {
             router.push(value);
-            setIsOpen(false);
+            // --- THE FIX: We no longer close the chat window here ---
+            // setIsOpen(false);
         } else {
             handleActionClick(actionType, value);
         }
+    };
+
+    // --- NEW: Override handleSubmit to include login status ---
+    const handleFormSubmit = (e: FormEvent) => {
+        e.preventDefault();
+        handleSubmit(e, {
+            options: {
+                body: {
+                    isLoggedIn: !!session, // Pass true if session exists, false otherwise
+                }
+            }
+        });
     };
 
     return (
@@ -161,8 +177,6 @@ export default function Chatbot() {
                                 const executeActionRegex = /EXECUTE_ACTION\[([^|]+)\|([^\]]+)\]/;
                                 const autoNavigateRegex = /AUTO_NAVIGATE\[([^\]]+)\]/;
                                 
-                                // --- THIS IS THE FIX ---
-                                // Use Array.from() to safely convert the iterator to an array.
                                 const actionButtons = Array.from(m.content.matchAll(actionButtonRegex));
                                 
                                 let contentToDisplay = m.content
@@ -219,9 +233,9 @@ export default function Chatbot() {
                             <div ref={messagesEndRef} className="h-1" />
                         </div>
                         
-                        <form onSubmit={(e: FormEvent) => { e.preventDefault(); handleSubmit(e); }} className="border-t border-white/20 p-3 sm:p-4 bg-black/10">
+                        <form onSubmit={handleFormSubmit} className="border-t border-white/20 p-3 sm:p-4 bg-black/10">
                             <div className="flex items-center space-x-2 sm:space-x-3">
-                                <input ref={inputRef} value={input} onChange={handleInputChange} placeholder="Ask about solar..." className="flex-1 rounded-full border border-gray-300/50 bg-white/80 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-500 focus:border-solar-flare-start focus:ring-2 focus:ring-solar-flare-start focus:outline-none transition-shadow shadow-sm focus:shadow-md" disabled={isLoading} aria-label="Chat input" onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey && input.trim()) { e.preventDefault(); handleSubmit(e); } }} />
+                                <input ref={inputRef} value={input} onChange={handleInputChange} placeholder="Ask about solar..." className="flex-1 rounded-full border border-gray-300/50 bg-white/80 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-500 focus:border-solar-flare-start focus:ring-2 focus:ring-solar-flare-start focus:outline-none transition-shadow shadow-sm focus:shadow-md" disabled={isLoading} aria-label="Chat input" onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey && input.trim()) { handleFormSubmit(e); } }} />
                                 <button type="submit" className="p-2.5 sm:p-3 rounded-full bg-gradient-to-r from-solar-flare-start to-solar-flare-end text-white shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-solar-flare-start focus:ring-opacity-50" disabled={isLoading || !input.trim()} aria-label="Send message"><PaperAirplaneIcon className="h-5 w-5" /></button>
                             </div>
                         </form>

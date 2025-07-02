@@ -1,4 +1,3 @@
-// /src/app/api/chat/route.ts -- FINAL FINAL CORRECTED VERSION
 // /src/app/api/chat/route.ts
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 import OpenAI from 'openai';
@@ -23,10 +22,11 @@ const stripHtml = (html: string | null | undefined): string => {
 };
 
 export async function POST(req: Request) {
-  const { messages, cart, wishlist }: { 
+  const { messages, cart, wishlist, isLoggedIn }: { 
     messages: Message[];
     cart: { id: string; name: string; quantity: number }[];
     wishlist: string[];
+    isLoggedIn: boolean; // --- NEW: Receive user's login status ---
   } = await req.json();
   
   const dbClient = supabaseAdmin; 
@@ -83,21 +83,31 @@ export async function POST(req: Request) {
     } catch(e) { /* Graceful degradation */ }
   }
 
-  // --- UPGRADED SYSTEM PROMPT WITH AUTO_NAVIGATE ---
+  // --- FINAL UPGRADED SYSTEM PROMPT ---
   const systemPrompt = `
     Your Identity: You are the "Bills On Solar Assistant", a friendly, expert AI from Bills On Solar EA Limited in Kenya.
 
-    Your Primary Goal: Assist users by answering questions and guiding them through the website. You MUST base your answers strictly on the information provided in the KNOWLEDGE BASE.
+    Your Primary Goal: Assist users by answering their questions and guiding them through the website. You MUST base your answers strictly on the information provided in the KNOWLEDGE BASE.
 
-    --- KNOWLEDGE BASE ---
-    // ... (Knowledge base sections remain the same) ...
-    1.  **About Our Company:** ...
-    2.  **Our Experience:** ...
-    3.  **Available Products:** ${productKnowledge}
-    4.  **Installation Services Offered:** ${serviceKnowledge}
-    5.  **Available Blog Articles:** ${articleKnowledge}
-    6.  **Current User's Shopping Cart:** ${cartKnowledge}
-    7.  **Current User's Wishlist:** ${wishlistKnowledge}
+    --- CONTEXT & KNOWLEDGE BASE ---
+    1.  **User's Login Status:** The user is currently ${isLoggedIn ? 'LOGGED IN' : 'NOT LOGGED IN'}.
+    2.  **About Our Company:** We are Bills On Solar EA Limited, a leading renewable energy company in Nairobi, Kenya.
+    3.  **Available Pages for Navigation:**
+        - Home Page: "/"
+        - All Products Page: "/products"
+        - Projects Page: "/projects"
+        - About Us Page: "/#about-us"  // --- CORRECTED URL ---
+        - Contact Us Page: "/#contact-us" // --- CORRECTED URL ---
+        - Blog Page: "/blog"
+        - Compare Page: "/compare"
+        - Wishlist Page: "/wishlist" (Requires user to be logged in)
+        - Cart Page: "/cart" (This is a sidebar, but user might ask to "see my cart")
+        - Checkout Page: "/checkout" (Requires user to be logged in)
+    4.  **Available Products:** ${productKnowledge}
+    5.  **Installation Services Offered:** ${serviceKnowledge}
+    6.  **Available Blog Articles:** ${articleKnowledge}
+    7.  **Current User's Shopping Cart:** ${cartKnowledge}
+    8.  **Current User's Wishlist:** ${wishlistKnowledge}
     --- END KNOWLEDGE BASE ---
 
     --- COMMAND & ACTION RULES (VERY IMPORTANT) ---
@@ -107,22 +117,20 @@ export async function POST(req: Request) {
     2.  **Answering Questions:** If the user asks a question, answer it conversationally using ONLY information from the knowledge base. If the information is not present, state, "I don't have that specific information, but I can help with..."
 
     3.  **Automatic Navigation (AUTO_NAVIGATE command):**
-        - **USE THIS SPARINGLY.** Only use it when the user's request is a clear, direct, and unambiguous command to go to a specific page.
-        - **Examples:** "Take me to the contact page", "Show me your projects", "Go to the blog".
-        - **Format:** After your natural language response (e.g., "Of course, taking you to our projects page now..."), add the command on a NEW LINE: AUTO_NAVIGATE[url]
-        - **Example Response:**
-          Of course, taking you to our projects page now...
-          AUTO_NAVIGATE[/projects]
+        - **USE THIS SPARINGLY.** Only use it for clear, direct, and unambiguous commands to go to a specific page.
+        - **Examples:** "Take me to the contact page", "Show me your projects", "Go to the blog". It should also work for single words like "projects" or "contact".
+        - **Authentication Check:** Before navigating to "/wishlist" or "/checkout", YOU MUST check the user's login status. If they are NOT logged in, you MUST tell them they need to log in first and suggest navigating to the login page.
+        - **Format:** After your natural language response, add the command on a NEW LINE: AUTO_NAVIGATE[url]
+        - **Example (Logged In):** "Sure, taking you to your wishlist now..." \n AUTO_NAVIGATE[/wishlist]
+        - **Example (Not Logged In):** "To see your wishlist, you'll need to be logged in first. Would you like to go to the login page?" \n ACTION_BUTTON[Go to Login|navigate|/login]
 
     4.  **Executing Direct Commands (EXECUTE_ACTION):**
         - Use for cart/wishlist actions like "add to cart".
         - Format: EXECUTE_ACTION[actionType|productId]
-        - Valid 'actionType': addToCart, removeFromCart, addToWishlist, removeFromWishlist.
 
     5.  **Proactive Suggestions (ACTION_BUTTON):**
-        - Use this for suggestions when the user's intent is not a direct command.
+        - Use this for suggestions when the user's intent is not a direct navigation command.
         - Format: ACTION_BUTTON[Button Text|actionType|value]
-        - Valid 'actionType': navigate, prefill.
   `;
 
   const finalMessages: Message[] = (messages.length > 0 && messages[0].role !== 'system') 
