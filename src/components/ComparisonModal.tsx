@@ -56,6 +56,11 @@ const ComparisonModal = ({ isOpen, onClose }: ComparisonModalProps) => {
         if (values.length < 2) return null;
         return highlight === 'min' ? Math.min(...values) : Math.max(...values);
     };
+    
+    const getProductValue = (product: Product, key: keyof Product) => {
+        const value = product[key as keyof Product];
+        return value !== null && value !== undefined ? value : 'N/A';
+    };
 
     return (
         <AnimatePresence>
@@ -80,86 +85,87 @@ const ComparisonModal = ({ isOpen, onClose }: ComparisonModalProps) => {
                         ) : (
                             <div className="flex-grow overflow-auto p-2 sm:p-4">
                                 <div className="min-w-[800px]">
-                                    <motion.div layout variants={contentVariants} initial="hidden" animate="visible" className="grid grid-cols-4 gap-4">
-                                        {/* Attribute Labels Column */}
-                                        <div className="col-span-1 space-y-4 pt-[280px]">
-                                            {attributes.map(attr => (
-                                                <motion.div variants={itemVariants} key={attr.key} className="h-16 flex items-center p-4 text-sm font-semibold text-gray-600">
-                                                    {attr.label}
-                                                </motion.div>
-                                            ))}
-                                        </div>
-
-                                        {/* Product Columns */}
-                                        <AnimatePresence>
-                                            {comparisonItems.map(product => (
-                                                <motion.div
-                                                    layout
-                                                    key={product.id}
-                                                    initial={{ opacity: 0, scale: 0.8 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    exit={{ opacity: 0, scale: 0.8 }}
-                                                    transition={{ duration: 0.3 }}
-                                                    className="col-span-1 bg-white/70 rounded-xl border border-black/5 shadow-md"
-                                                >
-                                                    <div className="p-4 border-b border-black/5 text-center sticky top-0 bg-white/70 rounded-t-xl">
+                                    <motion.div layout variants={contentVariants} initial="hidden" animate="visible">
+                                        {/* Header Row with Product Cards */}
+                                        <div className="grid grid-cols-4 gap-4 sticky top-0 bg-white/80 backdrop-blur-sm py-4 z-10">
+                                            <div className="col-span-1"></div> {/* Empty cell for alignment */}
+                                            <AnimatePresence>
+                                                {comparisonItems.map(product => (
+                                                    <motion.div
+                                                        layout
+                                                        key={product.id}
+                                                        initial={{ opacity: 0, scale: 0.8 }}
+                                                        animate={{ opacity: 1, scale: 1 }}
+                                                        exit={{ opacity: 0, scale: 0.8 }}
+                                                        transition={{ duration: 0.3 }}
+                                                        className="col-span-1 text-center"
+                                                    >
                                                         <Link href={`/products/${product.id}`} onClick={onClose}>
-                                                            <div className="relative w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden">
+                                                            <div className="relative w-24 h-24 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-100">
                                                                 {product.image_url && product.image_url[0] ? (
-                                                                    <Image src={product.image_url[0]} alt={product.name} fill className="object-cover" sizes="128px" />
+                                                                    <Image src={product.image_url[0]} alt={product.name} fill className="object-cover" sizes="96px" />
                                                                 ) : null}
                                                             </div>
                                                             <h3 className="text-sm font-bold text-graphite line-clamp-2 hover:text-solar-flare-end transition-colors">{product.name}</h3>
                                                         </Link>
                                                         <button onClick={() => removeFromComparison(product.id)} className="mt-2 text-xs text-gray-500 hover:text-red-500 transition-colors flex items-center gap-1 mx-auto"><TrashIcon className="h-3 w-3" />Remove</button>
-                                                    </div>
-                                                    <div className="space-y-4 p-4">
-                                                        {attributes.map(attr => {
-                                                            const highlightValue = getHighlightValue(attr.key as keyof Product, attr.highlight as 'min' | 'max');
-                                                            const value = product[attr.key as keyof Product];
+                                                    </motion.div>
+                                                ))}
+                                            </AnimatePresence>
+                                        </div>
+
+                                        {/* Attribute Rows */}
+                                        <div className="divide-y divide-gray-200/80">
+                                            {attributes.map(attr => {
+                                                const highlightValue = getHighlightValue(attr.key as keyof Product, attr.highlight as 'min' | 'max');
+                                                return (
+                                                    <motion.div variants={itemVariants} key={attr.key} className="grid grid-cols-4 gap-4 items-center min-h-[64px] py-2">
+                                                        <div className="col-span-1 text-sm font-semibold text-gray-600 px-4">{attr.label}</div>
+                                                        {comparisonItems.map(product => {
+                                                            const value = getProductValue(product, attr.key as keyof Product);
                                                             const isHighlighted = highlightValue !== null && value === highlightValue;
                                                             return (
-                                                                <div key={`${product.id}-${attr.key}`} className="h-16 flex items-center justify-center text-center text-sm text-gray-800">
-                                                                    <div className="relative">
-                                                                        {attr.key === 'price' && typeof value === 'number' ? `${attr.unit} ${value.toLocaleString()}` : value ? `${value}${attr.unit || ''}` : 'N/A'}
-                                                                        {isHighlighted && (
-                                                                            <motion.span
-                                                                                initial={{ opacity: 0, scale: 0.5 }}
-                                                                                animate={{ opacity: 1, scale: 1 }}
-                                                                                className={`absolute -top-5 -right-2 text-xs font-bold px-2 py-0.5 rounded-full ${attr.highlight === 'min' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}
-                                                                            >
-                                                                                Best
-                                                                            </motion.span>
-                                                                        )}
+                                                                <div key={`${product.id}-${attr.key}`} className={`col-span-1 text-sm text-center text-gray-800 px-4 ${isHighlighted ? 'font-bold' : ''}`}>
+                                                                    <div className="relative inline-block">
+                                                                        <span className={`px-2 py-1.5 rounded-md ${isHighlighted && attr.highlight === 'min' ? 'bg-green-100 text-green-800' : isHighlighted && attr.highlight === 'max' ? 'bg-blue-100 text-blue-800' : ''}`}>
+                                                                            {attr.key === 'price' && typeof value === 'number' ? `${attr.unit} ${value.toLocaleString()}` : value ? `${value}${attr.unit || ''}` : 'N/A'}
+                                                                        </span>
                                                                     </div>
                                                                 </div>
                                                             );
                                                         })}
-                                                        <div className="h-16 flex items-center justify-center">
-                                                            <button
-                                                                onClick={() => handleAddToCart(product)}
-                                                                disabled={addedToCartId === product.id}
-                                                                className={`px-4 py-2.5 text-sm font-semibold text-white rounded-lg shadow-md flex items-center justify-center gap-2 w-36 h-10 transition-all duration-300 ease-in-out transform active:scale-95 ${
-                                                                    addedToCartId === product.id ? 'bg-green-500' : 'bg-gradient-to-r from-solar-flare-start to-solar-flare-end hover:shadow-lg'
-                                                                }`}
-                                                            >
-                                                                <AnimatePresence mode="wait">
-                                                                    {addedToCartId === product.id ? (
-                                                                        <motion.span key="added" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2">
-                                                                            <CheckIcon className="h-5 w-5"/> Added
-                                                                        </motion.span>
-                                                                    ) : (
-                                                                        <motion.span key="add" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2">
-                                                                            <ShoppingCartIcon className="h-5 w-5"/> Add to Cart
-                                                                        </motion.span>
-                                                                    )}
-                                                                </AnimatePresence>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </motion.div>
+                                                    </motion.div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* Add to Cart Button Row */}
+                                        <motion.div variants={itemVariants} className="grid grid-cols-4 gap-4 items-center pt-6 mt-4 border-t">
+                                            <div className="col-span-1"></div> {/* Empty cell for alignment */}
+                                            {comparisonItems.map(product => (
+                                                <div key={`${product.id}-cart`} className="col-span-1 flex justify-center">
+                                                    <button
+                                                        onClick={() => handleAddToCart(product)}
+                                                        disabled={addedToCartId === product.id}
+                                                        className={`px-4 py-2.5 text-sm font-semibold text-white rounded-lg shadow-md flex items-center justify-center gap-2 w-36 h-10 transition-all duration-300 ease-in-out transform active:scale-95 ${
+                                                            addedToCartId === product.id ? 'bg-green-500' : 'bg-gradient-to-r from-solar-flare-start to-solar-flare-end hover:shadow-lg'
+                                                        }`}
+                                                    >
+                                                        <AnimatePresence mode="wait">
+                                                            {addedToCartId === product.id ? (
+                                                                <motion.span key="added" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2">
+                                                                    <CheckIcon className="h-5 w-5"/> Added
+                                                                </motion.span>
+                                                            ) : (
+                                                                <motion.span key="add" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2">
+                                                                    <ShoppingCartIcon className="h-5 w-5"/> Add to Cart
+                                                                </motion.span>
+                                                            )}
+                                                        </AnimatePresence>
+                                                    </button>
+                                                </div>
                                             ))}
-                                        </AnimatePresence>
+                                        </motion.div>
                                     </motion.div>
                                 </div>
                             </div>

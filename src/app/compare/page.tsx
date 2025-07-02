@@ -3,7 +3,6 @@
 'use client';
 
 import { useState } from 'react';
-// --- THIS IS THE FIX: Corrected the import path ---
 import { useComparison } from '@/context/ComparisonContext';
 import { useCart } from '@/context/CartContext';
 import { Product } from '@/types';
@@ -50,6 +49,10 @@ export default function ComparePage() {
         return highlight === 'min' ? Math.min(...values) : Math.max(...values);
     };
 
+    const getProductValue = (product: Product, key: keyof Product) => {
+        return product[key] ?? 'N/A';
+    };
+
     return (
         <>
             <PageHeader
@@ -82,18 +85,12 @@ export default function ComparePage() {
                                 </button>
                             </div>
                             <div className="overflow-x-auto">
-                                <div className="min-w-[800px]">
-                                    <div className="grid grid-cols-4 gap-4">
-                                        {/* Attribute Labels Column */}
-                                        <div className="col-span-1 space-y-4 pt-[280px]">
-                                            {attributes.map(attr => (
-                                                <motion.div variants={itemVariants} key={attr.key} className="h-16 flex items-center p-4 text-sm font-semibold text-gray-600">
-                                                    {attr.label}
-                                                </motion.div>
-                                            ))}
-                                        </div>
+                                <div className="min-w-[900px]">
+                                    {/* --- THIS IS THE CORRECTED ROW-BASED STRUCTURE --- */}
 
-                                        {/* Product Columns */}
+                                    {/* Header Row with Product Cards */}
+                                    <div className="grid grid-cols-4 gap-4">
+                                        <motion.div variants={itemVariants}></motion.div> {/* Empty cell for alignment */}
                                         <AnimatePresence>
                                             {comparisonItems.map(product => (
                                                 <motion.div
@@ -101,69 +98,77 @@ export default function ComparePage() {
                                                     key={product.id}
                                                     initial={{ opacity: 0, scale: 0.9 }}
                                                     animate={{ opacity: 1, scale: 1 }}
-                                                    exit={{ opacity: 0, scale: 0.9 }}
+                                                    exit={{ opacity: 0, scale: 0.8 }}
                                                     transition={{ duration: 0.3 }}
-                                                    className="col-span-1 bg-gray-50/70 rounded-xl border"
+                                                    className="col-span-1 text-center"
                                                 >
-                                                    <div className="p-4 border-b text-center sticky top-0 bg-gray-50/70 rounded-t-xl">
-                                                        <Link href={`/products/${product.id}`}>
-                                                            <div className="relative w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-white">
-                                                                {product.image_url && product.image_url[0] && (
-                                                                    <Image src={product.image_url[0]} alt={product.name} fill className="object-contain" sizes="128px" />
-                                                                )}
-                                                            </div>
-                                                            <h3 className="text-sm font-bold text-graphite line-clamp-2 hover:text-solar-flare-end transition-colors">{product.name}</h3>
-                                                        </Link>
-                                                        <button onClick={() => removeFromComparison(product.id)} className="mt-2 text-xs text-red-500 hover:underline flex items-center gap-1 mx-auto"><TrashIcon className="h-3 w-3" />Remove</button>
-                                                    </div>
-                                                    <div className="space-y-4 p-4">
-                                                        {attributes.map(attr => {
-                                                            const highlightValue = getHighlightValue(attr.key as keyof Product, attr.highlight as 'min' | 'max');
-                                                            const value = product[attr.key as keyof Product];
-                                                            const isHighlighted = highlightValue !== null && value === highlightValue;
-                                                            return (
-                                                                <div key={`${product.id}-${attr.key}`} className="h-16 flex items-center justify-center text-center text-sm text-gray-800">
-                                                                    <div className="relative">
-                                                                        {attr.key === 'price' && typeof value === 'number' ? `${attr.unit} ${value.toLocaleString()}` : value ? `${value}${attr.unit || ''}` : 'N/A'}
-                                                                        {isHighlighted && (
-                                                                            <motion.span
-                                                                                initial={{ opacity: 0, scale: 0.5 }}
-                                                                                animate={{ opacity: 1, scale: 1 }}
-                                                                                className={`absolute -top-5 -right-2 text-xs font-bold px-2 py-0.5 rounded-full ${attr.highlight === 'min' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}
-                                                                            >
-                                                                                Best
-                                                                            </motion.span>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                        <div className="h-16 flex items-center justify-center">
-                                                            <button
-                                                                onClick={() => handleAddToCart(product)}
-                                                                disabled={addedToCartId === product.id}
-                                                                className={`px-4 py-2.5 text-sm font-semibold text-white rounded-lg shadow-md flex items-center justify-center gap-2 w-36 h-10 transition-all duration-300 ease-in-out transform active:scale-95 ${
-                                                                    addedToCartId === product.id ? 'bg-green-500' : 'bg-gradient-to-r from-solar-flare-start to-solar-flare-end hover:shadow-lg'
-                                                                }`}
-                                                            >
-                                                                <AnimatePresence mode="wait">
-                                                                    {addedToCartId === product.id ? (
-                                                                        <motion.span key="added" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2">
-                                                                            <CheckIcon className="h-5 w-5"/> Added
-                                                                        </motion.span>
-                                                                    ) : (
-                                                                        <motion.span key="add" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2">
-                                                                            <ShoppingCartIcon className="h-5 w-5"/> Add to Cart
-                                                                        </motion.span>
-                                                                    )}
-                                                                </AnimatePresence>
-                                                            </button>
+                                                    <Link href={`/products/${product.id}`}>
+                                                        <div className="relative w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-100">
+                                                            {product.image_url && product.image_url[0] && (
+                                                                <Image src={product.image_url[0]} alt={product.name} fill className="object-contain" sizes="128px" />
+                                                            )}
                                                         </div>
-                                                    </div>
+                                                        <h3 className="text-sm font-bold text-graphite line-clamp-2 hover:text-solar-flare-end transition-colors">{product.name}</h3>
+                                                    </Link>
+                                                    <button onClick={() => removeFromComparison(product.id)} className="mt-2 text-xs text-red-500 hover:underline flex items-center gap-1 mx-auto"><TrashIcon className="h-3 w-3" />Remove</button>
                                                 </motion.div>
                                             ))}
                                         </AnimatePresence>
                                     </div>
+
+                                    {/* Attribute Rows */}
+                                    <div className="mt-6 divide-y divide-gray-200">
+                                        {attributes.map(attr => {
+                                            const highlightValue = getHighlightValue(attr.key as keyof Product, attr.highlight as 'min' | 'max');
+                                            return (
+                                                <motion.div variants={itemVariants} key={attr.key} className="grid grid-cols-4 gap-4 items-center py-4">
+                                                    <div className="col-span-1 text-sm font-semibold text-gray-600">{attr.label}</div>
+                                                    {/* Map through products for EACH attribute row */}
+                                                    {comparisonItems.map(product => {
+                                                        const value = getProductValue(product, attr.key as keyof Product);
+                                                        const isHighlighted = highlightValue !== null && value === highlightValue;
+                                                        return (
+                                                            <div key={`${product.id}-${attr.key}`} className={`col-span-1 text-sm text-center text-gray-800 ${isHighlighted ? 'font-bold' : ''}`}>
+                                                                <div className="relative inline-block">
+                                                                    <span className={`px-2 py-1.5 rounded-md ${isHighlighted && attr.highlight === 'min' ? 'bg-green-100 text-green-800' : isHighlighted && attr.highlight === 'max' ? 'bg-blue-100 text-blue-800' : ''}`}>
+                                                                        {attr.key === 'price' && typeof value === 'number' ? `${attr.unit} ${value.toLocaleString()}` : value ? `${value}${attr.unit || ''}` : 'N/A'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Add to Cart Button Row */}
+                                    <motion.div variants={itemVariants} className="grid grid-cols-4 gap-4 items-center pt-6 mt-4 border-t">
+                                        <div className="col-span-1"></div> {/* Empty cell for alignment */}
+                                        {comparisonItems.map(product => (
+                                            <div key={`${product.id}-cart`} className="col-span-1 flex justify-center">
+                                                <button
+                                                    onClick={() => handleAddToCart(product)}
+                                                    disabled={addedToCartId === product.id}
+                                                    className={`px-4 py-2.5 text-sm font-semibold text-white rounded-lg shadow-md flex items-center justify-center gap-2 w-36 h-10 transition-all duration-300 ease-in-out transform active:scale-95 ${
+                                                        addedToCartId === product.id ? 'bg-green-500' : 'bg-gradient-to-r from-solar-flare-start to-solar-flare-end hover:shadow-lg'
+                                                    }`}
+                                                >
+                                                    <AnimatePresence mode="wait">
+                                                        {addedToCartId === product.id ? (
+                                                            <motion.span key="added" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2">
+                                                                <CheckIcon className="h-5 w-5"/> Added
+                                                            </motion.span>
+                                                        ) : (
+                                                            <motion.span key="add" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2">
+                                                                <ShoppingCartIcon className="h-5 w-5"/> Add to Cart
+                                                            </motion.span>
+                                                        )}
+                                                    </AnimatePresence>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </motion.div>
                                 </div>
                             </div>
                         </motion.div>
