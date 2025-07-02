@@ -35,8 +35,8 @@ export const useChatbotLogic = () => {
     const inputRef = useRef<HTMLInputElement>(null);
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
-    const { cartItems, addToCart, removeFromCart, clearCart } = useCart();
-    // --- CORRECTED DESTRUCTURING ---
+    // --- THE FIX: Destructure `openCart` from the useCart hook ---
+    const { cartItems, addToCart, removeFromCart, clearCart, openCart } = useCart();
     const { wishlistIds, addToWishlist, removeFromWishlist, clearWishlist } = useWishlist();
 
     const showNotificationMessage = useCallback((message: string, type: 'success' | 'error' | 'info') => {
@@ -57,6 +57,10 @@ export const useChatbotLogic = () => {
 
         try {
             switch (normalizedActionType) {
+                // --- THE FIX: Add a new case to handle the 'openCart' action ---
+                case 'openCart':
+                    openCart();
+                    break;
                 case 'addToCart': {
                     const product = await getProductDetails(productIdOrMarker);
                     if (!product) throw new Error(`Could not find product details.`);
@@ -87,24 +91,30 @@ export const useChatbotLogic = () => {
                     showNotificationMessage('Wishlist has been cleared!', 'success');
                     break;
                 default:
-                    throw new Error(`Unknown action type: '${actionType}'`);
+                    // This is a prefill action, which is handled by the input change
+                    if (actionType === 'prefill') {
+                        // We can just set the input value here, though it's handled in Chatbot.tsx
+                    } else {
+                        throw new Error(`Unknown action type: '${actionType}'`);
+                    }
             }
         } catch (err: any) {
             console.error(`Error performing chatbot action '${actionType}':`, err.message);
             showNotificationMessage(err.message || "An error occurred.", 'error');
         }
-    }, [addToCart, addToWishlist, clearCart, clearWishlist, removeFromCart, removeFromWishlist, showNotificationMessage]);
+    // --- THE FIX: Add `openCart` to the dependency array ---
+    }, [addToCart, addToWishlist, clearCart, clearWishlist, removeFromCart, removeFromWishlist, showNotificationMessage, openCart]);
 
     const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } =
         useChat({
           api: "/api/chat",
           body: {
             cart: cartItems.map(item => ({ id: item.id, name: item.name, quantity: item.quantity })),
-            // --- CORRECTED VARIABLE ---
             wishlist: wishlistIds,
           },
           onFinish: (message) => {
-            const executeRegex = /EXECUTE_ACTION\[([^|]+)\|([^\]]+)\]/;
+            // --- THE FIX: Updated regex to handle actions with no second parameter (like openCart) ---
+            const executeRegex = /EXECUTE_ACTION\[([^|]+)\|(.*?)\]/;
             const match = message.content.match(executeRegex);
             if (match) {
               const [, actionType, idOrMarker] = match;
