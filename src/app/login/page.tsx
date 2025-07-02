@@ -1,10 +1,12 @@
 // src/app/login/page.tsx
+'use client'; // --- THIS IS THE FIX ---
+
 import AuthFormContainer from "@/components/auth/AuthFormContainer";
 import LoginForm from "@/components/LoginForm";
 import { Suspense } from 'react';
 import { SunIcon } from '@heroicons/react/24/solid';
 import { motion } from 'framer-motion';
-import Link from "next/link"; // --- THIS IS THE FIX ---
+import Link from "next/link";
 
 function LoginPageContent() {
     return (
@@ -14,7 +16,7 @@ function LoginPageContent() {
     );
 }
 
-// A new component for the animated background elements
+// A component for the animated background elements
 const BackgroundElements = () => (
     <div className="absolute inset-0 z-0 overflow-hidden bg-gradient-to-br from-white via-yellow-50 to-orange-100/20">
         <motion.div
