@@ -5,7 +5,8 @@ import type { Message } from "ai/react";
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { useChatbotLogic } from '@/hooks/useChatbotLogic';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react'; // --- NEW: Import useSession ---
+import { useSession } from 'next-auth/react';
+import ReactMarkdown from 'react-markdown'; // --- NEW: Import the markdown renderer ---
 
 // Importing all necessary icons
 import { XMarkIcon, PaperAirplaneIcon, CheckCircleIcon, ExclamationTriangleIcon, InformationCircleIcon, ChatBubbleOvalLeftEllipsisIcon, SunIcon, SparklesIcon as SparklesOutline } from '@heroicons/react/24/solid/index.js';
@@ -47,7 +48,7 @@ const WelcomeScreen = ({ handleActionClick }: { handleActionClick: (actionType: 
 
 export default function Chatbot() {
     const router = useRouter(); 
-    const { data: session } = useSession(); // --- NEW: Get session data ---
+    const { data: session } = useSession(); 
     
     const {
         isOpen, setIsOpen,
@@ -72,8 +73,6 @@ export default function Chatbot() {
             if (match && match[1]) {
                 const url = match[1];
                 router.push(url);
-                // --- THE FIX: We no longer close the chat window here ---
-                // setIsOpen(false); 
             }
         }
     }, [messages, isLoading, router]);
@@ -95,20 +94,17 @@ export default function Chatbot() {
     const handleButtonClick = (actionType: string, value: string) => {
         if (actionType === 'navigate') {
             router.push(value);
-            // --- THE FIX: We no longer close the chat window here ---
-            // setIsOpen(false);
         } else {
             handleActionClick(actionType, value);
         }
     };
 
-    // --- NEW: Override handleSubmit to include login status ---
     const handleFormSubmit = (e: FormEvent) => {
         e.preventDefault();
         handleSubmit(e, {
             options: {
                 body: {
-                    isLoggedIn: !!session, // Pass true if session exists, false otherwise
+                    isLoggedIn: !!session,
                 }
             }
         });
@@ -193,8 +189,9 @@ export default function Chatbot() {
                                         transition={{ duration: 0.3, ease: 'easeOut' }}
                                         className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}
                                     >
-                                        <div className={`max-w-[85%] sm:max-w-[80%] px-4 py-2.5 shadow-md text-sm ${isUser ? `bg-gradient-to-br from-solar-flare-start to-orange-500 text-white rounded-t-xl rounded-bl-xl` : `bg-white text-gray-800 rounded-t-xl border border-gray-200 rounded-br-xl`}`}>
-                                            {contentToDisplay && <p className="whitespace-pre-wrap">{contentToDisplay}</p>}
+                                        <div className={`prose prose-sm max-w-[85%] sm:max-w-[80%] px-4 py-2.5 shadow-md ${isUser ? `bg-gradient-to-br from-solar-flare-start to-orange-500 text-white rounded-t-xl rounded-bl-xl prose-invert` : `bg-white text-gray-800 rounded-t-xl border border-gray-200 rounded-br-xl`}`}>
+                                            {/* --- THE FIX: Use ReactMarkdown to render the content --- */}
+                                            {contentToDisplay && <ReactMarkdown>{contentToDisplay}</ReactMarkdown>}
                                             {actionButtons.length > 0 && (
                                                 <div className="mt-3 space-y-2 border-t border-black/10 pt-3">
                                                     {actionButtons.map((match, index) => {
@@ -248,6 +245,7 @@ export default function Chatbot() {
                 .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
                 .scrollbar-thin::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); border-radius: 20px; border: 3px solid transparent; }
                 .scrollbar-thin::-webkit-scrollbar-thumb:hover { background-color: rgba(107, 114, 128, 0.5); }
+                .prose strong { color: inherit; } /* Ensure bold text inherits color */
             `}</style>
         </>
     );

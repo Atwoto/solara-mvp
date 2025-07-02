@@ -99,7 +99,6 @@ export async function POST(req: Request) {
         - About Us Page: "/#about-us"
         - Contact Us Page: "/#contact-us"
         - Blog Page: "/blog"
-        - Compare Page: "/compare" (This page shows the comparison tool)
         - Wishlist Page: "/wishlist" (Requires user to be logged in)
         - Cart Page: The cart is a sidebar, not a page. If asked to see the cart, use EXECUTE_ACTION[openCart|].
         - Checkout Page: "/checkout" (Requires user to be logged in)
