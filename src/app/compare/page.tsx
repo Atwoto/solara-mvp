@@ -3,7 +3,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useComparison } from '@/context/useComparison';
+// --- THIS IS THE FIX: Corrected the import path ---
+import { useComparison } from '@/context/ComparisonContext';
 import { useCart } from '@/context/CartContext';
 import { Product } from '@/types';
 import Image from 'next/image';
