@@ -1,7 +1,4 @@
-// src/app/admin/products/edit/[productId]/page.tsx
-// NO CHANGES NEEDED IN THIS FILE.
-// Its only job is to fetch the initial data and pass it to the form.
-// The data fetching and prop passing logic is correct.
+// /src/app/admin/products/edit/[productId]/page.tsx
 
 'use client';
 
@@ -9,8 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Product } from '@/types'; 
-// --- THE FIX: Import ProductForm as a named export using curly braces ---
-import ProductForm from '@/components/admin/ProductForm';
+import { ProductForm } from '@/components/admin/ProductForm'; // Use the named export
 import PageHeader from '@/components/admin/PageHeader';
 import PageLoader from '@/components/PageLoader';
 import { motion } from 'framer-motion';
@@ -28,11 +24,9 @@ const EditProductPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Data fetching logic remains the same
   useEffect(() => {
-    if (sessionStatus === 'loading') {
-        return; 
-    }
+    // Authentication and authorization checks
+    if (sessionStatus === 'loading') return; 
     if (sessionStatus === 'unauthenticated') {
         router.replace(`/login?callbackUrl=/admin/products/edit/${productId || ''}`); 
         return;
@@ -42,6 +36,7 @@ const EditProductPage = () => {
         return;
     }
 
+    // Fetch the specific product's data if authenticated and productId exists
     if (sessionStatus === 'authenticated' && session.user.email === ADMIN_EMAIL && productId) {
       const fetchProductData = async () => {
         setIsLoading(true);
@@ -63,14 +58,14 @@ const EditProductPage = () => {
         }
       };
       fetchProductData();
-    } else if (!productId && sessionStatus === 'authenticated' && session.user.email === ADMIN_EMAIL) {
+    } else if (!productId) {
         setError("Product ID is missing in the URL.");
         setIsLoading(false);
     }
   }, [productId, session, sessionStatus, router]);
 
 
-  if (sessionStatus === 'loading' || (isLoading && !error) ) {
+  if (sessionStatus === 'loading' || isLoading) {
     return <div className="p-6"><PageLoader message="Loading product details..." /></div>;
   }
 
@@ -86,16 +81,12 @@ const EditProductPage = () => {
     );
   }
   
-  if (!initialProductData && !isLoading) {
+  if (!initialProductData) {
      return (
         <div className="p-6">
-            <PageHeader title="Not Found" description="The requested product could not be found or the ID is missing." showBackButton={true} backButtonHref="/admin/products" />
+            <PageHeader title="Not Found" description="The requested product could not be found." showBackButton={true} backButtonHref="/admin/products" />
         </div>
      );
-  }
-  
-  if (!initialProductData) {
-    return <div className="p-6"><PageLoader message="Preparing form..." /></div>;
   }
 
   return (
@@ -115,7 +106,8 @@ const EditProductPage = () => {
         <ProductForm 
           initialData={initialProductData} 
           onSubmitSuccess={(message: string) => {
-            console.log("Product update success callback:", message);
+            alert(message); // Or use a toast notification
+            router.push('/admin/products');
           }}
         />
       </motion.div>
