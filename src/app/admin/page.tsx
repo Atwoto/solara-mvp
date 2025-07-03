@@ -14,7 +14,7 @@ import PageLoader from '@/components/PageLoader';
 import SalesChart from '@/components/admin/SalesChart'; 
 import OrderStatusChart from '@/components/admin/OrderStatusChart';
 import NewCustomersChart from '@/components/admin/NewCustomersChart';
-import { motion, Variants } from 'framer-motion';
+import { motion, Variants } from 'framer-motion'; // --- THE FIX: Import Variants type ---
 
 // Types remain the same
 interface ActivityItem {
@@ -161,12 +161,13 @@ const AdminDashboardPage = () => {
     }
   };
   
-  const containerVariants = {
+  // --- THE FIX: Explicitly typed animation variants ---
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } }
   };
@@ -190,12 +191,18 @@ const AdminDashboardPage = () => {
       {error && <div className="p-3 my-4 bg-red-100 text-red-700 border border-red-300 rounded-lg text-sm whitespace-pre-line" role="alert">{error}</div>}
       
       {!isLoadingStats && apiStats && (
-        <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 mb-8">
+        <motion.div variants={containerVariants} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 mb-8">
           {displayedStats.map((item) => <StatCard key={item.name} item={item} variants={itemVariants} />)}
         </motion.div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.1 }}
+        className="grid grid-cols-1 xl:grid-cols-3 gap-8"
+      >
         <div className="xl:col-span-2 space-y-8">
           <motion.div variants={itemVariants}><div className="bg-white p-4 sm:p-6 shadow-sm border border-slate-200/80 rounded-xl"><h2 className="text-xl font-semibold text-deep-night mb-1">Sales Trend</h2><p className="text-xs text-slate-500 mb-4">Revenue over the last 7 days.</p><SalesChart /></div></motion.div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -209,7 +216,7 @@ const AdminDashboardPage = () => {
           {!isLoadingActivity && recentActivity.length === 0 && <p className="text-slate-500 text-sm">No recent activity to display.</p>}
           {recentActivity.length > 0 && (
             <ul role="list" className="divide-y divide-slate-200">
-              {recentActivity.slice(0, 15).map((activity) => ( // Show up to 15 recent items
+              {recentActivity.slice(0, 15).map((activity) => (
                 <li key={`${activity.type}-${activity.id}`} className="py-4 hover:bg-slate-50/50 -mx-6 px-6 transition-colors">
                   <div className="flex space-x-3">
                     <span className="flex-shrink-0 h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center">{getActivityIcon(activity.type)}</span>
@@ -224,7 +231,7 @@ const AdminDashboardPage = () => {
             </ul>
           )}
         </motion.div>
-      </div>
+      </motion.div>
     </>
   );
 };
