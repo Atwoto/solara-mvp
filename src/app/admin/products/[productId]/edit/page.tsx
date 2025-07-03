@@ -9,9 +9,11 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Product } from '@/types'; 
+// --- THE FIX: Import ProductForm as a named export using curly braces ---
 import ProductForm from '@/components/admin/ProductForm';
 import PageHeader from '@/components/admin/PageHeader';
 import PageLoader from '@/components/PageLoader';
+import { motion } from 'framer-motion';
 
 const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com';
 
@@ -26,6 +28,7 @@ const EditProductPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Data fetching logic remains the same
   useEffect(() => {
     if (sessionStatus === 'loading') {
         return; 
@@ -86,7 +89,7 @@ const EditProductPage = () => {
   if (!initialProductData && !isLoading) {
      return (
         <div className="p-6">
-            <PageHeader title="Not Found" description="The requested product could not be found or ID is missing." showBackButton={true} backButtonHref="/admin/products" />
+            <PageHeader title="Not Found" description="The requested product could not be found or the ID is missing." showBackButton={true} backButtonHref="/admin/products" />
         </div>
      );
   }
@@ -103,14 +106,19 @@ const EditProductPage = () => {
         showBackButton={true}
         backButtonHref="/admin/products"
       />
-      <div className="mt-6 max-w-2xl mx-auto">
+      <motion.div 
+        className="mt-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+      >
         <ProductForm 
           initialData={initialProductData} 
-          onSubmitSuccess={(message) => {
+          onSubmitSuccess={(message: string) => {
             console.log("Product update success callback:", message);
           }}
         />
-      </div>
+      </motion.div>
     </>
   );
 };

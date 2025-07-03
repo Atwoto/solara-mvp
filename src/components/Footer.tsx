@@ -10,8 +10,6 @@ import { ChevronDownIcon, PaperAirplaneIcon, EnvelopeIcon, PhoneIcon, MapPinIcon
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 
 // --- TYPE DEFINITIONS for improved type safety ---
-
-// For the contact info array
 type ContactInfoItem = {
   icon: ElementType;
   label: string;
@@ -23,7 +21,7 @@ type ContactInfoItem = {
   href?: never;
 });
 
-// --- ANIMATION VARIANTS (Now explicitly typed) ---
+// --- THE FIX: ANIMATION VARIANTS (Now explicitly typed) ---
 const fadeIn: Variants = {
   hidden: { opacity: 0, y: 10 },
   visible: { 
@@ -47,7 +45,6 @@ const Footer = () => {
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [submitMessageType, setSubmitMessageType] = useState<'success' | 'error' | null>(null);
 
-  // --- FUNCTIONALITY (Unchanged) ---
   const handleSubscribe = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!email) return;
@@ -82,8 +79,7 @@ const Footer = () => {
     setOpenAccordion(openAccordion === section ? null : section);
   };
 
-  // --- DATA ARRAYS (Now using stricter types) ---
-    const socialLinks = [
+  const socialLinks = [
     { href: 'https://www.facebook.com/billsonsolarsealimited/', label: 'Facebook', icon: FaFacebookF },
     { href: 'https://www.tiktok.com/@billsonsolarealimited', label: 'TikTok', icon: FaTiktok },
     { href: 'https://www.linkedin.com/in/bill-s-5482271b1', label: 'LinkedIn', icon: FaLinkedinIn },
@@ -102,7 +98,7 @@ const Footer = () => {
   ];
 
   const contactInfo: ContactInfoItem[] = [
-    { icon: MapPinIcon, type: 'text', label: ' The Mirages Westlands' },
+    { icon: MapPinIcon, type: 'text', label: ' The Mirages Westlands' },
     { icon: EnvelopeIcon, type: 'link', href: 'mailto:info@billseasonsolar.co.ke', label: 'info@billseasonsolar.co.ke' },
     { icon: PhoneIcon, type: 'link', href: 'tel:+254795857846', label: '+254 795 857 846' },
   ];
