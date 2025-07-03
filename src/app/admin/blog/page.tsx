@@ -3,10 +3,9 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { BlogPost } from '@/types';
-// --- THE FIX: Added NewspaperIcon to the import list ---
 import { PlusIcon, PencilSquareIcon, TrashIcon, EyeIcon, CalendarDaysIcon, TagIcon, NewspaperIcon } from '@heroicons/react/24/outline';
 import PageHeader from '@/components/admin/PageHeader';
 import PageLoader from '@/components/PageLoader';
@@ -89,6 +88,7 @@ const AdminBlogPage = () => {
     const [articles, setArticles] = useState<BlogPost[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [activeFilter, setActiveFilter] = useState('All');
 
     const fetchArticles = useCallback(async () => {
         setIsLoading(true);
@@ -138,12 +138,23 @@ const AdminBlogPage = () => {
         }
     };
 
+    const filteredArticles = useMemo(() => {
+        if (activeFilter === 'All') return articles;
+        return articles.filter(article => {
+            const isPublished = article.published_at && new Date(article.published_at) <= new Date();
+            const statusText = isPublished ? 'Published' : article.published_at ? 'Scheduled' : 'Draft';
+            return statusText === activeFilter;
+        });
+    }, [articles, activeFilter]);
+
     if (status === 'loading' || (isLoading && articles.length === 0)) {
         return <div className="p-6"><PageLoader message="Loading articles..." /></div>;
     }
     if (status !== 'authenticated' || session?.user?.email !== ADMIN_EMAIL) {
         return <div className="p-6"><PageLoader message="Redirecting..." /></div>; 
     }
+
+    const filters = ['All', 'Published', 'Scheduled', 'Draft'];
 
     return (
         <>
@@ -159,7 +170,30 @@ const AdminBlogPage = () => {
 
             {error && <div className="mb-4 p-3 bg-red-100 text-red-700 border border-red-300 rounded-lg text-sm" role="alert">{error}</div>}
             
-            {!isLoading && articles.length === 0 && !error && (
+            {/* Impressive new Filter Bar */}
+            <div className="flex items-center border border-slate-200/80 bg-white rounded-lg p-2 gap-2 mb-6 shadow-sm">
+                {filters.map(filter => (
+                    <button
+                        key={filter}
+                        onClick={() => setActiveFilter(filter)}
+                        className={`relative w-full px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-solar-flare-start ${
+                            activeFilter === filter ? 'text-white' : 'text-slate-600 hover:bg-slate-200/60'
+                        }`}
+                    >
+                        {activeFilter === filter && (
+                            <motion.div
+                                layoutId="active-blog-status-highlight"
+                                className="absolute inset-0 bg-deep-night rounded-md"
+                                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                            />
+                        )}
+                        <span className="relative z-10">{filter}</span>
+                    </button>
+                ))}
+            </div>
+
+
+            {!isLoading && articles.length === 0 && !error ? (
                 <div className="text-center py-16 bg-white rounded-xl border-dashed border-2 border-slate-200">
                     <NewspaperIcon className="mx-auto h-12 w-12 text-slate-400" />
                     <h3 className="mt-2 text-lg font-medium text-slate-900">No Articles Found</h3>
@@ -171,17 +205,16 @@ const AdminBlogPage = () => {
                         </Link>
                     </div>
                 </div>
-            )}
-
-            {articles.length > 0 && (
+            ) : (
                 <motion.div
+                    layout
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
                     className="space-y-4"
                 >
                     <AnimatePresence>
-                        {articles.map((article) => (
+                        {filteredArticles.map((article) => (
                            <ArticleListItem 
                                 key={article.id} 
                                 article={article} 
