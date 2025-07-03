@@ -3,14 +3,15 @@
 
 import Link from 'next/link';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
-import { useRouter } from 'next/navigation'; // Only if using router.back()
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 
 interface PageHeaderProps {
   title: string;
   description?: string;
   showBackButton?: boolean;
-  backButtonHref?: string; // Optional: specific href for back button
-  children?: React.ReactNode; // For action buttons like "Add New"
+  backButtonHref?: string;
+  children?: React.ReactNode;
 }
 
 const PageHeader = ({
@@ -20,45 +21,50 @@ const PageHeader = ({
   backButtonHref,
   children,
 }: PageHeaderProps) => {
-  const router = useRouter(); // If you want a generic back button
+  const router = useRouter();
 
   const handleBack = () => {
     if (backButtonHref) {
       router.push(backButtonHref);
     } else {
-      router.back(); // Generic browser back
+      router.back();
     }
   };
 
   return (
-    <div className="mb-8 pb-4 border-b border-gray-200">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+    <motion.div 
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+      className="mb-8 pb-5 border-b border-slate-200"
+    >
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
         <div className="flex-1 min-w-0">
           {showBackButton && (
             <button
               onClick={handleBack}
-              className="mb-2 inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+              className="mb-3 inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors"
             >
               <ArrowLeftIcon className="h-5 w-5 mr-2" />
               Back
             </button>
           )}
-          <h1 className="text-2xl sm:text-3xl font-bold leading-tight text-gray-900 truncate">
+          <h1 className="text-2xl sm:text-3xl font-bold leading-tight text-slate-900 tracking-tight">
             {title}
           </h1>
           {description && (
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-slate-600 max-w-2xl">
               {description}
             </p>
           )}
         </div>
         {children && (
-          <div className="mt-4 flex sm:mt-0 sm:ml-4">
+          <div className="mt-5 flex sm:mt-0 sm:ml-4">
             {children}
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
