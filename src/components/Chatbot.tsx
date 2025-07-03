@@ -6,7 +6,7 @@ import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { useChatbotLogic } from '@/hooks/useChatbotLogic';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import ReactMarkdown from 'react-markdown'; // --- NEW: Import the markdown renderer ---
+import ReactMarkdown from 'react-markdown';
 
 // Importing all necessary icons
 import { XMarkIcon, PaperAirplaneIcon, CheckCircleIcon, ExclamationTriangleIcon, InformationCircleIcon, ChatBubbleOvalLeftEllipsisIcon, SunIcon, SparklesIcon as SparklesOutline } from '@heroicons/react/24/solid/index.js';
@@ -99,12 +99,15 @@ export default function Chatbot() {
         }
     };
 
+    // --- THIS IS THE FIX ---
+    // This function now sends the user's name along with their login status.
     const handleFormSubmit = (e: FormEvent) => {
         e.preventDefault();
         handleSubmit(e, {
             options: {
                 body: {
                     isLoggedIn: !!session,
+                    userName: session?.user?.name || null, // Pass the user's name
                 }
             }
         });
@@ -170,7 +173,7 @@ export default function Chatbot() {
                             {displayMessages.map((m: Message) => {
                                 const isUser = m.role === "user";
                                 const actionButtonRegex = /ACTION_BUTTON\[([^|]+)\|([^|]+)\|([^\]]+)\]/g;
-                                const executeActionRegex = /EXECUTE_ACTION\[([^|]+)\|([^\]]+)\]/;
+                                const executeActionRegex = /EXECUTE_ACTION\[([^|]+)\|([^\]]+)?\]/;
                                 const autoNavigateRegex = /AUTO_NAVIGATE\[([^\]]+)\]/;
                                 
                                 const actionButtons = Array.from(m.content.matchAll(actionButtonRegex));
@@ -190,7 +193,6 @@ export default function Chatbot() {
                                         className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}
                                     >
                                         <div className={`prose prose-sm max-w-[85%] sm:max-w-[80%] px-4 py-2.5 shadow-md ${isUser ? `bg-gradient-to-br from-solar-flare-start to-orange-500 text-white rounded-t-xl rounded-bl-xl prose-invert` : `bg-white text-gray-800 rounded-t-xl border border-gray-200 rounded-br-xl`}`}>
-                                            {/* --- THE FIX: Use ReactMarkdown to render the content --- */}
                                             {contentToDisplay && <ReactMarkdown>{contentToDisplay}</ReactMarkdown>}
                                             {actionButtons.length > 0 && (
                                                 <div className="mt-3 space-y-2 border-t border-black/10 pt-3">
@@ -245,7 +247,7 @@ export default function Chatbot() {
                 .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
                 .scrollbar-thin::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); border-radius: 20px; border: 3px solid transparent; }
                 .scrollbar-thin::-webkit-scrollbar-thumb:hover { background-color: rgba(107, 114, 128, 0.5); }
-                .prose strong { color: inherit; } /* Ensure bold text inherits color */
+                .prose strong { color: inherit; }
             `}</style>
         </>
     );
