@@ -2,21 +2,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { v4 as uuidv4 } from 'uuid';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
+const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com';
 const SUPABASE_PRODUCTS_IMAGE_BUCKET = 'product-images';
 
-// --- GET Handler (No changes needed) ---
+// GET Handler for a single product
 export async function GET(
   request: NextRequest,
   { params }: { params: { productId: string } }
 ) {
-  const supabase = supabaseAdmin;
+  const session = await getServerSession(authOptions);
+  if (!session || session.user?.email !== ADMIN_EMAIL) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
+  }
+
   const { productId } = params;
   if (!productId) {
     return NextResponse.json({ message: 'Product ID is required.' }, { status: 400 });
   }
   try {
-    const { data: product, error } = await supabase.from('products').select('*').eq('id', productId).single();
+    const { data: product, error } = await supabaseAdmin.from('products').select('*').eq('id', productId).single();
     if (error) {
       if (error.code === 'PGRST116') return NextResponse.json({ message: 'Product not found.' }, { status: 404 });
       throw error;
@@ -27,73 +34,82 @@ export async function GET(
   }
 }
 
-// --- PUT Handler (No changes needed) ---
+// PUT Handler for updating a product
 export async function PUT(
   request: NextRequest,
   { params }: { params: { productId: string } }
 ) {
-  const supabase = supabaseAdmin;
-  const productId = params.productId;
+  const session = await getServerSession(authOptions);
+  if (!session || session.user?.email !== ADMIN_EMAIL) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
+  }
+
+  const { productId } = params;
   try {
     const formData = await request.formData();
-    const name = formData.get('name') as string;
-    const price = parseFloat(formData.get('price') as string);
-    const wattage = formData.get('wattage') ? parseFloat(formData.get('wattage') as string) : null;
-    const category = formData.get('category') as string;
-    const description = formData.get('description') as string | null;
+    
+    // Create an object with all fields from the form
+    const dataToUpdate: { [key: string]: any } = {
+        name: formData.get('name') as string,
+        price: parseFloat(formData.get('price') as string),
+        wattage: formData.get('wattage') ? parseFloat(formData.get('wattage') as string) : null,
+        category: formData.get('category') as string,
+        description: formData.get('description') as string | null,
+    };
+
     const imageFiles = formData.getAll('imageFiles') as File[];
     const currentImageUrls = formData.getAll('currentImageUrls') as string[];
     let newImageUrls: string[] = [];
+
     if (imageFiles.length > 0) {
       const uploadPromises = imageFiles.map(file => {
         const fileExt = file.name.split('.').pop();
         const filePath = `public/${uuidv4()}.${fileExt}`;
-        return supabase.storage.from(SUPABASE_PRODUCTS_IMAGE_BUCKET).upload(filePath, file);
+        return supabaseAdmin.storage.from(SUPABASE_PRODUCTS_IMAGE_BUCKET).upload(filePath, file);
       });
       const uploadResults = await Promise.all(uploadPromises);
+
       for (const result of uploadResults) {
         if (result.error) throw new Error(`Failed to upload new image(s): ${result.error.message}`);
       }
-      newImageUrls = uploadResults.map(result => supabase.storage.from(SUPABASE_PRODUCTS_IMAGE_BUCKET).getPublicUrl(result.data!.path).data.publicUrl);
+      newImageUrls = uploadResults.map(result => supabaseAdmin.storage.from(SUPABASE_PRODUCTS_IMAGE_BUCKET).getPublicUrl(result.data!.path).data.publicUrl);
     }
-    const finalImageUrls = [...currentImageUrls, ...newImageUrls];
-    const dataToUpdate = { name, price, wattage, category, description, image_url: finalImageUrls };
-    const { data: updatedProduct, error } = await supabase.from('products').update(dataToUpdate).eq('id', productId).select().single();
+    
+    dataToUpdate.image_url = [...currentImageUrls, ...newImageUrls];
+
+    const { data: updatedProduct, error } = await supabaseAdmin.from('products').update(dataToUpdate).eq('id', productId).select().single();
+    
     if (error) throw error;
+
     return NextResponse.json({ message: 'Product updated successfully!', product: updatedProduct });
   } catch (error: any) {
     return NextResponse.json({ message: `Failed to update product: ${error.message}` }, { status: 500 });
   }
 }
 
-// --- UPDATED DELETE Handler to "Archive" a Product ---
+// DELETE Handler to "Archive" a Product
 export async function DELETE(
     request: NextRequest,
     { params }: { params: { productId: string } }
 ) {
-    const supabase = supabaseAdmin;
+    const session = await getServerSession(authOptions);
+    if (!session || session.user?.email !== ADMIN_EMAIL) {
+        return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
+    }
+    
     const { productId } = params;
-
     if (!productId) {
         return NextResponse.json({ message: 'Product ID is required.' }, { status: 400 });
     }
 
     try {
         // Instead of deleting, we update the 'is_archived' flag to true.
-        // This is a "soft delete".
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
             .from('products')
-            .update({ is_archived: true }) // The core change is here
+            .update({ is_archived: true })
             .eq('id', productId);
 
-        if (error) {
-            // The foreign key constraint error will no longer happen,
-            // but we still check for other potential database errors.
-            throw error;
-        }
-
-        // We no longer delete images from storage, as the product might be restored later.
-        // The data is preserved.
+        if (error) throw error;
 
         return NextResponse.json({ message: 'Product archived successfully.' });
 
