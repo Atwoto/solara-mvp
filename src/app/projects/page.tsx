@@ -45,6 +45,7 @@ const ProjectsPage = () => {
             setIsLoading(true);
             setError(null);
             try {
+                // This now calls your dynamic API route
                 const response = await fetch('/api/projects');
                 if (!response.ok) throw new Error('Failed to fetch projects.');
                 const data: Project[] = await response.json();
@@ -82,7 +83,7 @@ const ProjectsPage = () => {
             />
             <main className="bg-gray-50 py-16 sm:py-20">
                 <div className="container mx-auto px-4">
-                    {/* Impressive new Filter Bar */}
+                    {/* Filter Bar */}
                     <div className="flex justify-center items-center flex-wrap gap-2 sm:gap-3 mb-12">
                         {filters.map(f => (
                             <button
@@ -161,9 +162,11 @@ const ProjectsPage = () => {
                         <button onClick={(e) => { e.stopPropagation(); handleLightboxNavigation('next'); }} className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors" aria-label="Next project"><ChevronRightIcon className="h-6 w-6 text-white" /></button>
                         <button onClick={handleCloseLightbox} className="absolute top-4 right-4 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors lg:hidden" aria-label="Close lightbox"><XMarkIcon className="h-6 w-6 text-white" /></button>
 
+                        {/* ===== FIX #2 APPLIED HERE ===== */}
+                        {/* Removed 'aspect-video' to allow flexible content aspect ratios */}
                         <motion.div
                             layoutId={selectedProject.id}
-                            className="relative w-full max-w-6xl aspect-video bg-deep-night rounded-lg shadow-2xl flex items-center justify-center overflow-hidden"
+                            className="relative w-full max-w-6xl bg-deep-night rounded-lg shadow-2xl flex items-center justify-center overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Media Display */}
@@ -177,7 +180,7 @@ const ProjectsPage = () => {
                                     className="w-full h-full"
                                 >
                                     {selectedProject.type === 'video' ? (
-                                        <iframe src={getYouTubeEmbedUrl(selectedProject.media_url)} title={selectedProject.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full"></iframe>
+                                        <iframe src={getYouTubeEmbedUrl(selectedProject.media_url)} title={selectedProject.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full aspect-video"></iframe>
                                     ) : (
                                         <NextImage src={selectedProject.media_url} alt={selectedProject.title} fill className="w-full h-full object-contain" sizes="100vw" />
                                     )}
@@ -189,7 +192,9 @@ const ProjectsPage = () => {
                                 <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3, duration: 0.5 }}>
                                     <p className="text-sm font-semibold text-solar-flare-start uppercase tracking-wider">{selectedProject.category}</p>
                                     <h2 className="text-2xl lg:text-3xl font-bold text-white mt-1 mb-2 text-shadow-md">{selectedProject.title}</h2>
-                                    <p className="text-gray-300 leading-relaxed line-clamp-2 sm:line-clamp-3 text-shadow-sm">{selectedProject.description}</p>
+                                    {/* ===== FIX #1 APPLIED HERE ===== */}
+                                    {/* Constrained description height and made it scrollable */}
+                                    <p className="text-gray-300 leading-relaxed text-shadow-sm max-h-24 overflow-y-auto">{selectedProject.description}</p>
                                 </motion.div>
                             </div>
                         </motion.div>
