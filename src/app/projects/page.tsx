@@ -33,7 +33,6 @@ const getYouTubeEmbedUrl = (url: string): string => {
 
 // --- REDESIGNED PROJECTS PAGE ---
 const ProjectsPage = () => {
-    // All state and logic hooks remain the same
     const [filter, setFilter] = useState('All');
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [allProjects, setAllProjects] = useState<Project[]>([]);
@@ -123,9 +122,9 @@ const ProjectsPage = () => {
                                         className="group relative cursor-pointer overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out"
                                         onClick={() => handleSelectProject(project)}
                                     >
-                                        <motion.div layoutId={project.id} className="relative w-full h-72">
+                                        <div className="relative w-full h-72">
                                             <NextImage src={displayImageSrc} alt={project.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="w-full h-full object-cover" />
-                                        </motion.div>
+                                        </div>
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-100 group-hover:opacity-100 transition-opacity duration-300"></div>
                                         <div className="absolute inset-0 flex flex-col justify-end p-5 text-white z-20">
                                             <div className="flex justify-between items-start">
@@ -148,7 +147,7 @@ const ProjectsPage = () => {
                 </div>
             </main>
 
-            {/* ===== NEW, SIMPLIFIED, AND ROBUST LIGHTBOX ===== */}
+            {/* ===== FINAL LIGHTBOX IMPLEMENTATION ===== */}
             <AnimatePresence>
                 {selectedProject && (
                     <motion.div
@@ -164,9 +163,12 @@ const ProjectsPage = () => {
                         <button onClick={(e) => { e.stopPropagation(); handleLightboxNavigation('next'); }} className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors" aria-label="Next project"><ChevronRightIcon className="h-6 w-6 text-white" /></button>
                         <button onClick={handleCloseLightbox} className="absolute top-4 right-4 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors" aria-label="Close lightbox"><XMarkIcon className="h-6 w-6 text-white" /></button>
 
-                        {/* Main lightbox container */}
+                        {/* Main lightbox container. The problematic `layoutId` prop has been REMOVED. */}
                         <motion.div
-                            layoutId={selectedProject.id}
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
                             className="relative w-full max-w-4xl max-h-[90vh] bg-deep-night rounded-xl shadow-2xl overflow-y-auto"
                             onClick={(e) => e.stopPropagation()}
                         >
