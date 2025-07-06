@@ -148,7 +148,6 @@ const ProjectsPage = () => {
                 </div>
             </main>
 
-            {/* ===== NEW, MORE ROBUST LIGHTBOX STRUCTURE ===== */}
             <AnimatePresence>
                 {selectedProject && (
                     <motion.div
@@ -161,14 +160,14 @@ const ProjectsPage = () => {
                         <button onClick={(e) => { e.stopPropagation(); handleLightboxNavigation('next'); }} className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors" aria-label="Next project"><ChevronRightIcon className="h-6 w-6 text-white" /></button>
                         <button onClick={handleCloseLightbox} className="absolute top-4 right-4 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors lg:hidden" aria-label="Close lightbox"><XMarkIcon className="h-6 w-6 text-white" /></button>
 
-                        {/* Lightbox container: now a flex column to stack media and text */}
                         <motion.div
                             layoutId={selectedProject.id}
                             className="relative w-full max-w-4xl max-h-[90vh] bg-deep-night rounded-xl shadow-2xl flex flex-col overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {/* Media Display Area: grows to fill available space */}
-                            <div className="relative flex-grow bg-black">
+                            {/* ===== FIX APPLIED HERE ===== */}
+                            {/* Media Display Area: Added 'aspect-video' to ensure it has a shape for both images and videos */}
+                            <div className="relative flex-grow bg-black aspect-video">
                                 <AnimatePresence mode="wait">
                                     <motion.div
                                         key={selectedProject.id}
@@ -179,7 +178,7 @@ const ProjectsPage = () => {
                                         className="w-full h-full"
                                     >
                                         {selectedProject.type === 'video' ? (
-                                            <iframe src={getYouTubeEmbedUrl(selectedProject.media_url)} title={selectedProject.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full aspect-video"></iframe>
+                                            <iframe src={getYouTubeEmbedUrl(selectedProject.media_url)} title={selectedProject.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full"></iframe>
                                         ) : (
                                             <NextImage src={selectedProject.media_url} alt={selectedProject.title} fill className="w-full h-full object-contain" sizes="100vw" />
                                         )}
