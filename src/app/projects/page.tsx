@@ -33,6 +33,7 @@ const getYouTubeEmbedUrl = (url: string): string => {
 
 // --- REDESIGNED PROJECTS PAGE ---
 const ProjectsPage = () => {
+    // All state and logic hooks remain the same
     const [filter, setFilter] = useState('All');
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [allProjects, setAllProjects] = useState<Project[]>([]);
@@ -122,9 +123,9 @@ const ProjectsPage = () => {
                                         className="group relative cursor-pointer overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out"
                                         onClick={() => handleSelectProject(project)}
                                     >
-                                        <div className="relative w-full h-72">
+                                        <motion.div layoutId={project.id} className="relative w-full h-72">
                                             <NextImage src={displayImageSrc} alt={project.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="w-full h-full object-cover" />
-                                        </div>
+                                        </motion.div>
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-100 group-hover:opacity-100 transition-opacity duration-300"></div>
                                         <div className="absolute inset-0 flex flex-col justify-end p-5 text-white z-20">
                                             <div className="flex justify-between items-start">
@@ -147,7 +148,7 @@ const ProjectsPage = () => {
                 </div>
             </main>
 
-            {/* ===== FINAL LIGHTBOX IMPLEMENTATION ===== */}
+            {/* ===== FINAL, SIMPLIFIED LIGHTBOX CODE ===== */}
             <AnimatePresence>
                 {selectedProject && (
                     <motion.div
@@ -161,32 +162,28 @@ const ProjectsPage = () => {
                         {/* Lightbox Navigation */}
                         <button onClick={(e) => { e.stopPropagation(); handleLightboxNavigation('prev'); }} className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors" aria-label="Previous project"><ChevronLeftIcon className="h-6 w-6 text-white" /></button>
                         <button onClick={(e) => { e.stopPropagation(); handleLightboxNavigation('next'); }} className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors" aria-label="Next project"><ChevronRightIcon className="h-6 w-6 text-white" /></button>
-                        <button onClick={handleCloseLightbox} className="absolute top-4 right-4 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors" aria-label="Close lightbox"><XMarkIcon className="h-6 w-6 text-white" /></button>
+                        <button onClick={handleCloseLightbox} className="absolute top-4 right-4 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors lg:hidden" aria-label="Close lightbox"><XMarkIcon className="h-6 w-6 text-white" /></button>
 
-                        {/* Main lightbox container. The problematic `layoutId` prop has been REMOVED. */}
                         <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="relative w-full max-w-4xl max-h-[90vh] bg-deep-night rounded-xl shadow-2xl overflow-y-auto"
+                            layoutId={selectedProject.id}
+                            className="relative w-full max-w-4xl max-h-[90vh] bg-deep-night rounded-xl shadow-2xl flex flex-col overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {/* Media Area: Has a fixed aspect ratio */}
-                            <div className="relative w-full aspect-video bg-black">
+                            {/* SIMPLIFIED Media Display Area */}
+                            <div className="relative flex-grow bg-black aspect-video">
                                 {selectedProject.type === 'video' ? (
                                     <iframe
-                                        key={selectedProject.id}
+                                        key={selectedProject.id} // Add key here for re-rendering
                                         src={getYouTubeEmbedUrl(selectedProject.media_url)}
                                         title={selectedProject.title}
                                         frameBorder="0"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                         allowFullScreen
-                                        className="absolute inset-0 w-full h-full"
+                                        className="w-full h-full"
                                     ></iframe>
                                 ) : (
                                     <NextImage
-                                        key={selectedProject.id}
+                                        key={selectedProject.id} // Add key here for re-rendering
                                         src={selectedProject.media_url}
                                         alt={selectedProject.title}
                                         fill
@@ -196,11 +193,11 @@ const ProjectsPage = () => {
                                 )}
                             </div>
 
-                            {/* Description Area: Sits below the media area */}
-                            <div className="w-full p-5 sm:p-6 text-white">
+                            {/* Description Area */}
+                            <div className="w-full p-5 sm:p-6 bg-gray-900/70 backdrop-blur-sm text-white shrink-0">
                                 <p className="text-sm font-semibold text-solar-flare-start uppercase tracking-wider">{selectedProject.category}</p>
                                 <h2 className="text-xl lg:text-2xl font-bold mt-1 mb-2 text-shadow-md">{selectedProject.title}</h2>
-                                <p className="text-gray-300 leading-relaxed text-sm sm:text-base">{selectedProject.description}</p>
+                                <p className="text-gray-300 leading-relaxed max-h-28 overflow-y-auto text-sm sm:text-base">{selectedProject.description}</p>
                             </div>
                         </motion.div>
                     </motion.div>
