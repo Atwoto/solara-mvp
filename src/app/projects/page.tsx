@@ -45,7 +45,6 @@ const ProjectsPage = () => {
             setIsLoading(true);
             setError(null);
             try {
-                // This now calls your dynamic API route
                 const response = await fetch('/api/projects');
                 if (!response.ok) throw new Error('Failed to fetch projects.');
                 const data: Project[] = await response.json();
@@ -149,7 +148,7 @@ const ProjectsPage = () => {
                 </div>
             </main>
 
-            {/* Impressive new Lightbox */}
+            {/* ===== NEW, MORE ROBUST LIGHTBOX STRUCTURE ===== */}
             <AnimatePresence>
                 {selectedProject && (
                     <motion.div
@@ -162,39 +161,38 @@ const ProjectsPage = () => {
                         <button onClick={(e) => { e.stopPropagation(); handleLightboxNavigation('next'); }} className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors" aria-label="Next project"><ChevronRightIcon className="h-6 w-6 text-white" /></button>
                         <button onClick={handleCloseLightbox} className="absolute top-4 right-4 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors lg:hidden" aria-label="Close lightbox"><XMarkIcon className="h-6 w-6 text-white" /></button>
 
-                        {/* ===== FIX #2 APPLIED HERE ===== */}
-                        {/* Removed 'aspect-video' to allow flexible content aspect ratios */}
+                        {/* Lightbox container: now a flex column to stack media and text */}
                         <motion.div
                             layoutId={selectedProject.id}
-                            className="relative w-full max-w-6xl bg-deep-night rounded-lg shadow-2xl flex items-center justify-center overflow-hidden"
+                            className="relative w-full max-w-4xl max-h-[90vh] bg-deep-night rounded-xl shadow-2xl flex flex-col overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {/* Media Display */}
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key={selectedProject.id}
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.95 }}
-                                    transition={{ duration: 0.3 }}
-                                    className="w-full h-full"
-                                >
-                                    {selectedProject.type === 'video' ? (
-                                        <iframe src={getYouTubeEmbedUrl(selectedProject.media_url)} title={selectedProject.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full aspect-video"></iframe>
-                                    ) : (
-                                        <NextImage src={selectedProject.media_url} alt={selectedProject.title} fill className="w-full h-full object-contain" sizes="100vw" />
-                                    )}
-                                </motion.div>
-                            </AnimatePresence>
+                            {/* Media Display Area: grows to fill available space */}
+                            <div className="relative flex-grow bg-black">
+                                <AnimatePresence mode="wait">
+                                    <motion.div
+                                        key={selectedProject.id}
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        transition={{ duration: 0.3 }}
+                                        className="w-full h-full"
+                                    >
+                                        {selectedProject.type === 'video' ? (
+                                            <iframe src={getYouTubeEmbedUrl(selectedProject.media_url)} title={selectedProject.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full aspect-video"></iframe>
+                                        ) : (
+                                            <NextImage src={selectedProject.media_url} alt={selectedProject.title} fill className="w-full h-full object-contain" sizes="100vw" />
+                                        )}
+                                    </motion.div>
+                                </AnimatePresence>
+                            </div>
 
-                            {/* Floating Description Panel */}
-                            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 via-black/50 to-transparent pointer-events-none">
-                                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3, duration: 0.5 }}>
+                            {/* Description Area: fixed at the bottom */}
+                            <div className="w-full p-5 sm:p-6 bg-gray-900/70 backdrop-blur-sm text-white shrink-0">
+                                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2, duration: 0.4 }}>
                                     <p className="text-sm font-semibold text-solar-flare-start uppercase tracking-wider">{selectedProject.category}</p>
-                                    <h2 className="text-2xl lg:text-3xl font-bold text-white mt-1 mb-2 text-shadow-md">{selectedProject.title}</h2>
-                                    {/* ===== FIX #1 APPLIED HERE ===== */}
-                                    {/* Constrained description height and made it scrollable */}
-                                    <p className="text-gray-300 leading-relaxed text-shadow-sm max-h-24 overflow-y-auto">{selectedProject.description}</p>
+                                    <h2 className="text-xl lg:text-2xl font-bold mt-1 mb-2 text-shadow-md">{selectedProject.title}</h2>
+                                    <p className="text-gray-300 leading-relaxed max-h-28 overflow-y-auto text-sm sm:text-base">{selectedProject.description}</p>
                                 </motion.div>
                             </div>
                         </motion.div>
