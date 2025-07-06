@@ -18,7 +18,7 @@ const itemVariants: Variants = {
     exit: { opacity: 0, y: -20, scale: 0.98, transition: { duration: 0.3, ease: 'easeIn' } },
 };
 
-// --- HELPER FUNCTIONS (Unchanged) ---
+// --- HELPER FUNCTIONS ---
 const getYouTubeEmbedUrl = (url: string): string => {
     if (!url) return '';
     let videoId = '';
@@ -33,7 +33,6 @@ const getYouTubeEmbedUrl = (url: string): string => {
 
 // --- REDESIGNED PROJECTS PAGE ---
 const ProjectsPage = () => {
-    // All state and logic hooks remain the same
     const [filter, setFilter] = useState('All');
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [allProjects, setAllProjects] = useState<Project[]>([]);
@@ -72,6 +71,18 @@ const ProjectsPage = () => {
         setSelectedProject(filteredProjects[nextIndex]);
     };
 
+    // Handle keyboard navigation
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (!selectedProject) return;
+            if (e.key === 'Escape') handleCloseLightbox();
+            if (e.key === 'ArrowLeft') handleLightboxNavigation('prev');
+            if (e.key === 'ArrowRight') handleLightboxNavigation('next');
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [selectedProject]);
+
     return (
         <>
             <PageHeader
@@ -104,11 +115,29 @@ const ProjectsPage = () => {
                         ))}
                     </div>
 
-                    {isLoading && <div className="text-center text-gray-500">Loading projects...</div>}
-                    {error && <div className="text-center text-red-500">Error: {error}</div>}
+                    {isLoading && (
+                        <div className="text-center py-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-solar-flare-start mx-auto mb-4"></div>
+                            <p className="text-gray-500">Loading projects...</p>
+                        </div>
+                    )}
+                    
+                    {error && (
+                        <div className="text-center py-12">
+                            <div className="text-red-500 bg-red-50 border border-red-200 rounded-lg p-4 inline-block">
+                                Error: {error}
+                            </div>
+                        </div>
+                    )}
 
                     {!isLoading && !error && (
-                        <motion.div layout variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <motion.div 
+                            layout 
+                            variants={containerVariants} 
+                            initial="hidden" 
+                            animate="visible" 
+                            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                        >
                            <AnimatePresence>
                             {filteredProjects.map(project => {
                                 const displayImageSrc = project.thumbnail_url || (project.type === 'image' ? project.media_url : '/images/default-video-thumb.jpg');
@@ -120,12 +149,18 @@ const ProjectsPage = () => {
                                         initial="hidden"
                                         animate="visible"
                                         exit="exit"
-                                        className="group relative cursor-pointer overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out"
+                                        className="group relative cursor-pointer overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105"
                                         onClick={() => handleSelectProject(project)}
                                     >
-                                        <motion.div layoutId={project.id} className="relative w-full h-72">
-                                            <NextImage src={displayImageSrc} alt={project.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="w-full h-full object-cover" />
-                                        </motion.div>
+                                        <div className="relative w-full h-72">
+                                            <NextImage 
+                                                src={displayImageSrc} 
+                                                alt={project.title} 
+                                                fill 
+                                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
+                                                className="object-cover transition-transform duration-300 group-hover:scale-110" 
+                                            />
+                                        </div>
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-100 group-hover:opacity-100 transition-opacity duration-300"></div>
                                         <div className="absolute inset-0 flex flex-col justify-end p-5 text-white z-20">
                                             <div className="flex justify-between items-start">
@@ -133,7 +168,12 @@ const ProjectsPage = () => {
                                                     <p className="text-xs font-semibold uppercase tracking-wider">{project.category}</p>
                                                     <h3 className="text-lg font-bold mt-1 text-shadow-md">{project.title}</h3>
                                                 </div>
-                                                <div className="p-2 rounded-full bg-white/20 backdrop-blur-sm">{project.type === 'video' ? <VideoCameraIcon className="h-5 w-5" /> : <PhotoIcon className="h-5 w-5" />}</div>
+                                                <div className="p-2 rounded-full bg-white/20 backdrop-blur-sm">
+                                                    {project.type === 'video' ? 
+                                                        <VideoCameraIcon className="h-5 w-5" /> : 
+                                                        <PhotoIcon className="h-5 w-5" />
+                                                    }
+                                                </div>
                                             </div>
                                             <div className="h-12 opacity-0 group-hover:opacity-100 group-hover:h-auto transition-all duration-300 mt-2">
                                                 <p className="font-semibold text-solar-flare-start text-sm">View Project &rarr;</p>
@@ -148,7 +188,7 @@ const ProjectsPage = () => {
                 </div>
             </main>
 
-            {/* ===== FINAL, SIMPLIFIED LIGHTBOX CODE ===== */}
+            {/* ===== IMPROVED LIGHTBOX ===== */}
             <AnimatePresence>
                 {selectedProject && (
                     <motion.div
@@ -156,48 +196,96 @@ const ProjectsPage = () => {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+                        className="fixed inset-0 z-[10000] bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
                         onClick={handleCloseLightbox}
                     >
-                        {/* Lightbox Navigation */}
-                        <button onClick={(e) => { e.stopPropagation(); handleLightboxNavigation('prev'); }} className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors" aria-label="Previous project"><ChevronLeftIcon className="h-6 w-6 text-white" /></button>
-                        <button onClick={(e) => { e.stopPropagation(); handleLightboxNavigation('next'); }} className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors" aria-label="Next project"><ChevronRightIcon className="h-6 w-6 text-white" /></button>
-                        <button onClick={handleCloseLightbox} className="absolute top-4 right-4 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors lg:hidden" aria-label="Close lightbox"><XMarkIcon className="h-6 w-6 text-white" /></button>
+                        {/* Navigation Controls */}
+                        {filteredProjects.length > 1 && (
+                            <>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); handleLightboxNavigation('prev'); }} 
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors backdrop-blur-sm" 
+                                    aria-label="Previous project"
+                                >
+                                    <ChevronLeftIcon className="h-6 w-6 text-white" />
+                                </button>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); handleLightboxNavigation('next'); }} 
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors backdrop-blur-sm" 
+                                    aria-label="Next project"
+                                >
+                                    <ChevronRightIcon className="h-6 w-6 text-white" />
+                                </button>
+                            </>
+                        )}
+                        
+                        {/* Close Button */}
+                        <button 
+                            onClick={handleCloseLightbox} 
+                            className="absolute top-4 right-4 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors backdrop-blur-sm" 
+                            aria-label="Close lightbox"
+                        >
+                            <XMarkIcon className="h-6 w-6 text-white" />
+                        </button>
 
+                        {/* Lightbox Content */}
                         <motion.div
-                            layoutId={selectedProject.id}
-                            className="relative w-full max-w-4xl max-h-[90vh] bg-deep-night rounded-xl shadow-2xl flex flex-col overflow-hidden"
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="relative w-full max-w-6xl max-h-[95vh] bg-deep-night/95 rounded-xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-sm"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {/* SIMPLIFIED Media Display Area */}
-                            <div className="relative flex-grow bg-black aspect-video">
+                            {/* Media Display Area */}
+                            <div className="relative flex-1 min-h-0 bg-black">
                                 {selectedProject.type === 'video' ? (
-                                    <iframe
-                                        key={selectedProject.id} // Add key here for re-rendering
-                                        src={getYouTubeEmbedUrl(selectedProject.media_url)}
-                                        title={selectedProject.title}
-                                        frameBorder="0"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        allowFullScreen
-                                        className="w-full h-full"
-                                    ></iframe>
+                                    <div className="w-full h-full min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]">
+                                        <iframe
+                                            key={`video-${selectedProject.id}`}
+                                            src={getYouTubeEmbedUrl(selectedProject.media_url)}
+                                            title={selectedProject.title}
+                                            frameBorder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                            className="w-full h-full"
+                                        />
+                                    </div>
                                 ) : (
-                                    <NextImage
-                                        key={selectedProject.id} // Add key here for re-rendering
-                                        src={selectedProject.media_url}
-                                        alt={selectedProject.title}
-                                        fill
-                                        className="w-full h-full object-contain"
-                                        sizes="100vw"
-                                    />
+                                    <div className="relative w-full h-full min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]">
+                                        <NextImage
+                                            key={`image-${selectedProject.id}`}
+                                            src={selectedProject.media_url}
+                                            alt={selectedProject.title}
+                                            fill
+                                            className="object-contain"
+                                            sizes="100vw"
+                                            priority
+                                        />
+                                    </div>
                                 )}
                             </div>
 
                             {/* Description Area */}
-                            <div className="w-full p-5 sm:p-6 bg-gray-900/70 backdrop-blur-sm text-white shrink-0">
-                                <p className="text-sm font-semibold text-solar-flare-start uppercase tracking-wider">{selectedProject.category}</p>
-                                <h2 className="text-xl lg:text-2xl font-bold mt-1 mb-2 text-shadow-md">{selectedProject.title}</h2>
-                                <p className="text-gray-300 leading-relaxed max-h-28 overflow-y-auto text-sm sm:text-base">{selectedProject.description}</p>
+                            <div className="w-full p-5 sm:p-6 bg-gray-900/90 backdrop-blur-sm text-white border-t border-gray-700/50">
+                                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                                    <div className="flex-1">
+                                        <p className="text-sm font-semibold text-solar-flare-start uppercase tracking-wider">
+                                            {selectedProject.category}
+                                        </p>
+                                        <h2 className="text-xl lg:text-2xl font-bold mt-1 mb-3 text-shadow-md">
+                                            {selectedProject.title}
+                                        </h2>
+                                        <p className="text-gray-300 leading-relaxed text-sm sm:text-base">
+                                            {selectedProject.description}
+                                        </p>
+                                    </div>
+                                    {filteredProjects.length > 1 && (
+                                        <div className="text-sm text-gray-400 shrink-0">
+                                            {filteredProjects.findIndex(p => p.id === selectedProject.id) + 1} of {filteredProjects.length}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </motion.div>
                     </motion.div>
