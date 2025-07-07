@@ -140,11 +140,11 @@ const ContactSection = () => {
                                         <span className="text-gray-300 group-hover:text-white transition-colors">+254 702 156 134</span>
                                     </div>
                                 </a>
-                                <a href="mailto:info@billseasonsolar.co.ke" className="group flex items-center gap-4 p-4 rounded-lg hover:bg-white/5 transition-colors duration-300">
+                                <a href="mailto:onsolarbills@gmail.com" className="group flex items-center gap-4 p-4 rounded-lg hover:bg-white/5 transition-colors duration-300">
                                     <EnvelopeIcon className="h-8 w-8 text-solar-flare-start transition-transform duration-300 group-hover:scale-110"/>
                                     <div>
                                         <h3 className="font-semibold">Email for Inquiries</h3>
-                                        <span className="text-gray-300 group-hover:text-white transition-colors">info@billseasonsolar.co.ke</span>
+                                        <span className="text-gray-300 group-hover:text-white transition-colors">onsolarbills@gmail.com</span>
                                     </div>
                                 </a>
                             </div>
