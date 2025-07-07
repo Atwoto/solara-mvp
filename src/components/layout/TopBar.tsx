@@ -32,8 +32,8 @@ export const TopBar = () => {
     },
     { 
       icon: <PhoneIcon className="h-4 w-4" />, 
-      text: "+254 795 857 846", 
-      href: "tel:+254795857846" 
+      text: "+254 702 156 134", 
+      href: "tel:+254702156134" 
     },
   ];
 
