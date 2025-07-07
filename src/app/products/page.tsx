@@ -42,6 +42,7 @@ function ProductsPageContent() {
       setIsLoading(true);
       setError(null);
       try {
+        // This fetch remains the same, as we get all products at once.
         const response = await fetch('/api/products');
         if (!response.ok) throw new Error('Could not load products.');
         setAllProducts(await response.json());
@@ -55,11 +56,32 @@ function ProductsPageContent() {
   }, []);
 
   const displayedProducts = useMemo(() => {
-    let filtered = categorySlug 
-      // THE FIX: Changed p.category_slug to p.category
-      ? allProducts.filter(p => p.category === categorySlug)
-      : allProducts;
+    let filtered = allProducts;
+
+    // If a category slug exists in the URL, apply the filtering logic.
+    if (categorySlug) {
+      // Find the selected category from our navigation data.
+      const selectedCategory = productCategoriesData.find(
+        cat => cat.href.split('=').pop() === categorySlug
+      );
+
+      // Check if the selected category has sub-categories.
+      if (selectedCategory && selectedCategory.subcategories && selectedCategory.subcategories.length > 0) {
+        // If it does, create a list of all its sub-category slugs.
+        const subCategorySlugs = selectedCategory.subcategories.map(
+          sub => sub.href.split('=').pop()
+        );
+        
+        // Filter products to include any product whose category is in our list of sub-category slugs.
+        filtered = allProducts.filter(p => p.category && subCategorySlugs.includes(p.category));
+
+      } else {
+        // If it's a regular category with no sub-categories, filter for an exact match.
+        filtered = allProducts.filter(p => p.category === categorySlug);
+      }
+    }
     
+    // Apply sorting to the (now correctly filtered) list of products.
     switch (sortOrder) {
       case 'price-asc':
         return [...filtered].sort((a, b) => a.price - b.price);
@@ -67,7 +89,6 @@ function ProductsPageContent() {
         return [...filtered].sort((a, b) => b.price - a.price);
       case 'newest':
       default:
-        // Assuming your product data has a 'created_at' timestamp
         return [...filtered].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
   }, [allProducts, categorySlug, sortOrder]);

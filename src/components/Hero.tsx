@@ -14,9 +14,9 @@ import 'swiper/css/pagination';
 
 // Slide data now includes a CSS class for the Ken Burns animation
 const slideData = [
-    { image: '/images/hero-bg-1.jpg', icon: GlobeAltIcon, preTitle: 'A World Innovator in Energy', line1: 'Manageable, Reliable', line2: 'Affordable Energy!', animationClass: 'animate-kenburns-br' },
-    { image: '/images/hero-bg-2.jpg', icon: SunIcon, preTitle: 'Evergreen Producer of Solar Energy', line1: 'Powering Tomorrow,', line2: 'Sustainably.', animationClass: 'animate-kenburns-tl' },
-    { image: '/images/hero-bg-3.jpg', icon: BoltIcon, preTitle: 'Biggest Producer of Clean Energy', line1: 'Harnessing Power', line2: 'From the Sun.', animationClass: 'animate-kenburns-bl' },
+    { image: '/images/Hero.jpg', icon: GlobeAltIcon, preTitle: 'A World Innovator in Energy', line1: 'Manageable, Reliable', line2: 'Affordable Energy!', animationClass: 'animate-kenburns-br' },
+    { image: '/images/Hero1.jpg', icon: SunIcon, preTitle: 'Evergreen Producer of Solar Energy', line1: 'Powering Tomorrow,', line2: 'Sustainably.', animationClass: 'animate-kenburns-tl' },
+    { image: '/images/Hero2.jpg', icon: BoltIcon, preTitle: 'Biggest Producer of Clean Energy', line1: 'Harnessing Power', line2: 'From the Sun.', animationClass: 'animate-kenburns-bl' },
 ];
 
 // --- IMPRESSIVE WORD-BY-WORD ANIMATION COMPONENT ---
@@ -138,7 +138,7 @@ const Hero = () => {
                                 </Link>
 
                                 <Link
-                                    href="/contact"
+                                    href="/#contact-us"
                                     className="inline-flex items-center justify-center w-full sm:w-auto px-8 py-3 text-base font-semibold text-white transition-all duration-300 ease-in-out transform border-2 border-white rounded-lg hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 active:scale-95"
                                 >
                                     Contact Us

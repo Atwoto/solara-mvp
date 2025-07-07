@@ -112,7 +112,7 @@ const AboutSection = () => {
                             style={{ clipPath: 'polygon(20% 0, 100% 20%, 80% 100%, 0 80%)' }}
                         >
                             <NextImage
-                                src="/images/about-us.jpg"
+                                src="/images/test3.jpg"
                                 alt="Bills On Solar team working on a solar installation"
                                 layout="fill"
                                 objectFit="cover"

@@ -97,7 +97,7 @@ export default function ResidentialServicesPage() {
             <p className="text-gray-600 max-w-xl mx-auto mb-8">
                 Contact us today for a free consultation and a personalized quote for your residential solar needs.
             </p>
-            <Link href="/contact" legacyBehavior>
+            <Link href="/#contact-us" legacyBehavior>
                 <a className="inline-block px-8 py-3 text-base font-semibold text-white transition-all duration-300 bg-gradient-to-r from-solar-flare-start to-solar-flare-end rounded-lg shadow-md hover:shadow-lg hover:scale-105">
                     Get a Free Quote
                 </a>

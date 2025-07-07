@@ -92,3 +92,11 @@ export interface Project {
     display_order?: number;
     is_published?: boolean;
 }
+
+
+// --- SUBSCRIBER RELATED TYPES --- (ADD THIS SECTION)
+export interface Subscriber {
+  id: string;
+  email: string;
+  created_at: string;
+}
