@@ -64,7 +64,7 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
     meta_description: initialData?.meta_description || '',
     featuresJson: initialData?.features ? JSON.stringify(initialData.features, null, 2) : '[]',
     call_to_action_label: initialData?.call_to_action_label || 'Get a Quote',
-    call_to_action_link: initialData?.call_to_action_link || '/contact',
+    call_to_action_link: initialData?.call_to_action_link || '/#contact-us',
     display_order: initialData?.display_order || 0,
     imageFiles: [],
     currentImageUrls: initialData?.image_urls || [],
@@ -234,7 +234,7 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
                         <div><label htmlFor="meta_title" className="block text-sm font-medium text-gray-700">Meta Title</label><input type="text" name="meta_title" id="meta_title" value={formData.meta_title || ''} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" /></div>
                         <div><label htmlFor="meta_description" className="block text-sm font-medium text-gray-700">Meta Description</label><textarea id="meta_description" name="meta_description" rows={3} value={formData.meta_description || ''} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" /></div>
                         <div><label htmlFor="call_to_action_label" className="block text-sm font-medium text-gray-700">CTA Button Label</label><input type="text" name="call_to_action_label" id="call_to_action_label" value={formData.call_to_action_label || ''} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" placeholder="e.g., Get Started" /></div>
-                        <div><label htmlFor="call_to_action_link" className="block text-sm font-medium text-gray-700">CTA Button Link</label><input type="text" name="call_to_action_link" id="call_to_action_link" value={formData.call_to_action_link || ''} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" placeholder="e.g., /contact-us" /></div>
+                        <div><label htmlFor="call_to_action_link" className="block text-sm font-medium text-gray-700">CTA Button Link</label><input type="text" name="call_to_action_link" id="call_to_action_link" value={formData.call_to_action_link || ''} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" placeholder="e.g., /#contact-us" /></div>
                     </div>
                 </SettingsCard>
             </motion.div>
