@@ -27,12 +27,8 @@ const itemVariants: Variants = {
     exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } },
 };
 
-// --- IMPRESSIVE NEW PRODUCT CARD COMPONENT ---
+// --- PRODUCT CARD COMPONENT ---
 const ProductCard = ({ product, onDelete }: { product: Product; onDelete: () => void; }) => {
-    const statusConfig = product.is_archived
-        ? { text: 'Archived', color: 'bg-slate-400' }
-        : { text: 'Published', color: 'bg-green-500' };
-
     return (
         <motion.div layout variants={itemVariants} exit="exit" className="bg-white rounded-xl shadow-sm border border-slate-200/80 flex flex-col">
             <div className="relative h-48 w-full bg-slate-100 rounded-t-xl overflow-hidden">
@@ -47,7 +43,11 @@ const ProductCard = ({ product, onDelete }: { product: Product; onDelete: () => 
                 <h3 className="font-bold text-slate-800 mt-1 line-clamp-2" title={product.name}>{product.name}</h3>
                 <div className="flex-grow"></div>
                 <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-200/80">
-                     <p className="font-bold text-slate-900">Ksh {product.price.toLocaleString()}</p>
+                     {/* --- THIS IS THE FIX --- */}
+                     {/* Always display the numeric price, even if it is 0 */}
+                     <p className="font-bold text-slate-900">
+                        Ksh {product.price.toLocaleString()}
+                     </p>
                     <div className="flex items-center gap-1">
                         <Link href={`/admin/products/edit/${product.id}`} className="p-2 rounded-lg text-slate-500 hover:bg-indigo-100 hover:text-indigo-600 transition-colors" title="Edit Product">
                             <PencilSquareIcon className="h-5 w-5"/>
@@ -62,7 +62,7 @@ const ProductCard = ({ product, onDelete }: { product: Product; onDelete: () => 
     );
 };
 
-// --- REDESIGNED ADMIN PRODUCTS PAGE ---
+// --- ADMIN PRODUCTS PAGE (No other changes needed) ---
 const AdminProductsPage = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -77,7 +77,6 @@ const AdminProductsPage = () => {
     setIsLoadingProducts(true);
     setFetchError(null);
     try {
-      // The API should ideally fetch all products for the admin view
       const response = await fetch('/api/admin/products/all'); 
       if (!response.ok) {
         const errorData = await response.json();
@@ -126,6 +125,7 @@ const AdminProductsPage = () => {
 
   const filteredProducts = useMemo(() => {
     return products
+        .filter(product => !product.is_archived)
         .filter(product => {
             if (activeCategory === 'All') return true;
             return product.category === activeCategory;
@@ -170,7 +170,6 @@ const AdminProductsPage = () => {
       </AnimatePresence>
       {fetchError && <p className="text-red-500 bg-red-100 p-3 rounded-md my-4">{fetchError}</p>}
 
-      {/* Search and Filter Controls */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200/80 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-1">
@@ -209,8 +208,6 @@ const AdminProductsPage = () => {
               </div>
           </div>
       </div>
-
-      {isLoadingProducts && products.length > 0 && <div className="text-center py-4 text-slate-500">Refreshing list...</div>}
 
       {!isLoadingProducts && filteredProducts.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-xl border-dashed border-2 border-slate-200">

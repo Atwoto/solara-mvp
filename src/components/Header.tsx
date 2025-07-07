@@ -11,7 +11,7 @@ import {
     ShoppingCartIcon, Bars3Icon, XMarkIcon, HeartIcon,
     ArrowsRightLeftIcon, UserCircleIcon, ArrowLeftOnRectangleIcon,
     ChevronDownIcon, BuildingStorefrontIcon, WrenchScrewdriverIcon,
-    ComputerDesktopIcon, StarIcon,
+    ComputerDesktopIcon, StarIcon, MapIcon // <-- NEW ICON
 } from '@heroicons/react/24/outline';
 import NextImage from 'next/image';
 import CartSidebar from './CartSidebar';
@@ -27,9 +27,10 @@ interface NavCategory {
     subcategories?: NavCategory[];
 }
 
-// --- NAVIGATION DATA (Unchanged) ---
+// --- NAVIGATION DATA (UPDATED) ---
 const mainNavLinks = [
     { name: 'Projects', href: '/projects' },
+    { name: 'County Resources', href: '/county-resources' }, // <-- ADDED THIS LINE
     { name: 'About Us', href: '/#about-us' },
     { name: 'Contact Us', href: '/#contact-us' },
     { name: 'Blog', href: '/#blog' },
@@ -273,7 +274,7 @@ const MobileMenu = ({ isOpen, closeMenu }: { isOpen: boolean; closeMenu: () => v
 };
 
 
-// --- FINAL HEADER ORCHESTRATOR (WITH FIX) ---
+// --- FINAL HEADER ORCHESTRATOR (Unchanged) ---
 const Header = () => {
     const pathname = usePathname();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -322,7 +323,6 @@ const Header = () => {
                 </div>
             </header>
             
-            {/* The MobileMenu is now OUTSIDE the header, making it a true overlay */}
             <MobileMenu isOpen={isMobileMenuOpen} closeMenu={() => setIsMobileMenuOpen(false)} />
             
             <CartSidebar /> 

@@ -100,3 +100,15 @@ export interface Subscriber {
   email: string;
   created_at: string;
 }
+
+// --- NEW: COUNTY RESOURCE TYPES ---
+export interface CountyResource {
+  id: string;
+  created_at: string;
+  county_name: string;
+  file_title: string;
+  file_description?: string | null;
+  file_url: string;
+  file_type?: string | null;
+  is_published: boolean;
+}

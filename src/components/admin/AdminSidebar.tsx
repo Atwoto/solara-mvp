@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
     ChartBarIcon, ShoppingBagIcon, CubeIcon, NewspaperIcon,
     WrenchScrewdriverIcon, ChatBubbleBottomCenterTextIcon, 
-    PhotoIcon, UsersIcon // <-- NEW ICON for Subscribers
+    PhotoIcon, UsersIcon, MapIcon // <-- NEW ICON for County Resources
 } from '@heroicons/react/24/outline';
 import { usePathname } from 'next/navigation';
 
@@ -17,7 +17,8 @@ const navigation = [
   { name: 'Projects', href: '/admin/projects', icon: PhotoIcon },
   { name: 'Articles', href: '/admin/blog', icon: NewspaperIcon },
   { name: 'Testimonials', href: '/admin/testimonials', icon: ChatBubbleBottomCenterTextIcon },
-  { name: 'Subscribers', href: '/admin/subscribers', icon: UsersIcon }, // <-- ADDED THIS LINE
+  { name: 'Subscribers', href: '/admin/subscribers', icon: UsersIcon },
+  { name: 'County Resources', href: '/admin/county-resources', icon: MapIcon }, // <-- ADDED THIS LINE
 ];
 
 const AdminSidebar = () => {

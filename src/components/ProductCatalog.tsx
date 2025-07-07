@@ -9,7 +9,7 @@ import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useComparison } from '@/context/ComparisonContext';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { CheckIcon, HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
+import { CheckIcon, HeartIcon as HeartSolid, PhoneArrowUpRightIcon } from '@heroicons/react/24/solid';
 import { HeartIcon as HeartOutline, ArrowsRightLeftIcon, ShoppingCartIcon } from '@heroicons/react/24/outline';
 import { Product as ProductType } from '@/types';
 
@@ -19,13 +19,12 @@ const itemVariants: Variants = {
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
 };
 
-// --- THIS IS THE FIX: Defining the props interface ---
 interface ProductCatalogProps {
     products: ProductType[];
     gridCols?: string;
 }
 
-// --- IMPRESSIVE NEW PRODUCT CARD COMPONENT ---
+// --- PRODUCT CARD COMPONENT ---
 const ProductCard = ({
     product,
     inWishlist,
@@ -96,33 +95,48 @@ const ProductCard = ({
                     </Link>
                 </div>
                 <div className="mt-4 flex items-end justify-between">
-                    <span className="text-xl font-bold text-deep-night">Ksh {product.price.toLocaleString()}</span>
-                    <button
-                        onClick={onAddToCart}
-                        disabled={isAddedToCart}
-                        className={`px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-md flex items-center justify-center gap-2 w-32 h-10 transition-all duration-300 ease-in-out transform active:scale-95 ${
-                            isAddedToCart ? 'bg-green-500' : 'bg-gradient-to-r from-solar-flare-start to-solar-flare-end hover:shadow-lg'
-                        }`}
-                    >
-                        <AnimatePresence mode="wait">
-                            {isAddedToCart ? (
-                                <motion.span key="added" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2">
-                                    <CheckIcon className="h-5 w-5"/> Added
-                                </motion.span>
-                            ) : (
-                                <motion.span key="add" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2">
-                                    <ShoppingCartIcon className="h-5 w-5"/> Add to Cart
-                                </motion.span>
-                            )}
-                        </AnimatePresence>
-                    </button>
+                    {/* --- THIS IS THE FIX --- */}
+                    {/* If price is greater than 0, show price and Add to Cart button */}
+                    {product.price > 0 ? (
+                        <>
+                            <span className="text-xl font-bold text-deep-night">Ksh {product.price.toLocaleString()}</span>
+                            <button
+                                onClick={onAddToCart}
+                                disabled={isAddedToCart}
+                                className={`px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-md flex items-center justify-center gap-2 w-32 h-10 transition-all duration-300 ease-in-out transform active:scale-95 ${
+                                    isAddedToCart ? 'bg-green-500' : 'bg-gradient-to-r from-solar-flare-start to-solar-flare-end hover:shadow-lg'
+                                }`}
+                            >
+                                <AnimatePresence mode="wait">
+                                    {isAddedToCart ? (
+                                        <motion.span key="added" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2">
+                                            <CheckIcon className="h-5 w-5"/> Added
+                                        </motion.span>
+                                    ) : (
+                                        <motion.span key="add" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2">
+                                            <ShoppingCartIcon className="h-5 w-5"/> Add to Cart
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
+                            </button>
+                        </>
+                    ) : (
+                        /* If price is 0, show "Get Quote" button instead */
+                        <Link
+                            href="/#contact-us"
+                            className="w-full h-10 px-4 py-2 text-sm font-semibold text-white bg-deep-night hover:bg-gray-700 rounded-lg shadow-md flex items-center justify-center gap-2 transition-all duration-300 ease-in-out transform active:scale-95"
+                        >
+                            <PhoneArrowUpRightIcon className="h-5 w-5"/>
+                            Get Quote
+                        </Link>
+                    )}
                 </div>
             </div>
         </div>
     );
 };
 
-// --- REDESIGNED PRODUCT CATALOG ---
+// --- PRODUCT CATALOG COMPONENT (No changes needed here) ---
 const ProductCatalog = ({
     products,
     gridCols = 'sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3',
@@ -163,7 +177,6 @@ const ProductCatalog = ({
 
     return (
         <div className={`grid grid-cols-1 gap-6 md:gap-8 ${gridCols}`}>
-            {/* --- THIS IS THE FIX: Explicitly typing 'product' --- */}
             {products.map((product: ProductType, index: number) => {
                 const isComparing = isInComparison(product.id);
                 return (
