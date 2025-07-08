@@ -37,12 +37,12 @@ export default async function CountyResourcesPage() {
   return (
     <>
       <PageHeader
-        title="County Resources"
-        subtitle="Download valuable guides, datasheets, and permit information for your county."
+        title="Resources"
+        subtitle="Download valuable guides, datasheets, and permit information."
         backgroundImageUrl="/images/projects-hero-bg.jpg"
         // --- THIS IS THE FIX ---
         // Added the missing 'href' property to the "County Resources" breadcrumb.
-        breadcrumbs={[{ name: 'Home', href: '/' }, { name: 'County Resources', href: '/county-resources' }]}
+        breadcrumbs={[{ name: 'Home', href: '/' }, { name: 'Resources', href: '/county-resources' }]}
       />
 
       <div className="bg-gray-50 py-16 sm:py-24">

@@ -109,8 +109,8 @@ const ContactPage: NextPage = () => {
                     <PhoneIcon className="h-6 w-6 text-solar-flare-start flex-shrink-0 mt-1" />
                     <div>
                       <h3 className="font-medium">Call Us</h3>
-                      <a href="tel:+254712345678" className="hover:text-solar-flare-end transition-colors">
-                        +254 712 345678 {/* Replace with actual phone */}
+                      <a href="tel:+2547795857846" className="hover:text-solar-flare-end transition-colors">
+                        +254 795 857 846
                       </a>
                     </div>
                   </div>

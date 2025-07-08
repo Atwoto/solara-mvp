@@ -133,7 +133,7 @@ const ContactSection = () => {
                                 Have a question or ready to get a quote? Fill out the form, and one of our solar experts will contact you to discuss your project.
                             </p>
                             <div className="mt-10 space-y-6">
-                                <a href="tel:+254702156134" className="group flex items-center gap-4 p-4 rounded-lg hover:bg-white/5 transition-colors duration-300">
+                                <a href="tel:+254795857846" className="group flex items-center gap-4 p-4 rounded-lg hover:bg-white/5 transition-colors duration-300">
                                     <PhoneIcon className="h-8 w-8 text-solar-flare-start transition-transform duration-300 group-hover:scale-110"/>
                                     <div>
                                         <h3 className="font-semibold">Call Us Directly</h3>
