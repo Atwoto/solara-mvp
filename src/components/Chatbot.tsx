@@ -88,6 +88,23 @@ export default function Chatbot() {
         hover: { scale: 1.05, boxShadow: "0px 10px 30px rgba(253, 184, 19, 0.4)" },
         tap: { scale: 0.95 }
     };
+    
+    // --- THIS IS THE FIX ---
+    // Animation variants for the new callout bubble
+    const calloutVariants: Variants = {
+        hidden: { opacity: 0, x: 20, scale: 0.9 },
+        visible: { 
+            opacity: 1, 
+            x: 0, 
+            scale: 1,
+            transition: { 
+                type: 'spring', 
+                stiffness: 200, 
+                damping: 20,
+                delay: 0.5 // Delay its appearance slightly
+            } 
+        },
+    };
 
     const displayMessages = messages.filter(m => m.role !== 'system');
 
@@ -99,15 +116,13 @@ export default function Chatbot() {
         }
     };
 
-    // --- THIS IS THE FIX ---
-    // This function now sends the user's name along with their login status.
     const handleFormSubmit = (e: FormEvent) => {
         e.preventDefault();
         handleSubmit(e, {
             options: {
                 body: {
                     isLoggedIn: !!session,
-                    userName: session?.user?.name || null, // Pass the user's name
+                    userName: session?.user?.name || null,
                 }
             }
         });
@@ -132,7 +147,26 @@ export default function Chatbot() {
                 )}
             </AnimatePresence>
 
-            <motion.div className="fixed bottom-6 right-6 z-[9999]">
+            {/* --- THIS IS THE FIX --- */}
+            {/* The main container for the button and the new callout */}
+            <div className="fixed bottom-6 right-6 z-[9999] flex items-center gap-4">
+                <AnimatePresence>
+                    {!isOpen && (
+                        <motion.div
+                            variants={calloutVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="hidden"
+                            className="bg-deep-night text-white p-3 rounded-xl shadow-2xl relative"
+                        >
+                            <p className="text-sm font-semibold">Have a question?</p>
+                            <p className="text-xs text-gray-300">Chat with our AI assistant</p>
+                            {/* Triangle pointer */}
+                            <div className="absolute top-1/2 -right-2 w-4 h-4 bg-deep-night transform -translate-y-1/2 rotate-45"></div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 <motion.button
                     variants={fabVariants}
                     initial="rest" whileHover="hover" whileTap="tap"
@@ -153,7 +187,7 @@ export default function Chatbot() {
                         )}
                     </AnimatePresence>
                 </motion.button>
-            </motion.div>
+            </div>
 
             <AnimatePresence>
                 {isOpen && (
