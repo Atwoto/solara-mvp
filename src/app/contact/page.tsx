@@ -118,7 +118,7 @@ const ContactPage: NextPage = () => {
                     <MapPinIcon className="h-6 w-6 text-solar-flare-start flex-shrink-0 mt-1" />
                     <div>
                       <h3 className="font-medium">Visit Us</h3>
-                      <p>123 Solar Street, Nairobi, Kenya</p> {/* Replace with actual address */}
+                      <p>The Mirages Westlands, Nairobi, Kenya</p> {/* Replace with actual address */}
                       <p>Open: Mon - Fri, 9 AM - 5 PM</p>
                     </div>
                   </div>
