@@ -137,7 +137,7 @@ const ContactSection = () => {
                                     <PhoneIcon className="h-8 w-8 text-solar-flare-start transition-transform duration-300 group-hover:scale-110"/>
                                     <div>
                                         <h3 className="font-semibold">Call Us Directly</h3>
-                                        <span className="text-gray-300 group-hover:text-white transition-colors">+254 702 156 134</span>
+                                        <span className="text-gray-300 group-hover:text-white transition-colors">254 795 857 846</span>
                                     </div>
                                 </a>
                                 <a href="mailto:onsolarbills@gmail.com" className="group flex items-center gap-4 p-4 rounded-lg hover:bg-white/5 transition-colors duration-300">

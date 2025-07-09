@@ -10,19 +10,19 @@ const features = [
         name: 'Quality Products',
         description: 'We source only the highest-grade solar panels and components from world-renowned brands to ensure longevity and maximum efficiency for your investment.',
         icon: ShieldCheckIcon,
-        imageUrl: '/images/test.jpg',
+        imageUrl: '/images/why1.jpg',
     },
     {
         name: 'Expert Installation',
         description: 'Our certified technicians ensure a seamless, safe, and efficient installation process, customized precisely for your property needs and compliant with all regulations.',
         icon: WrenchScrewdriverIcon,
-        imageUrl: '/images/test2.jpg',
+        imageUrl: '/images/why2.jpg',
     },
     {
         name: 'Dedicated Support',
         description: 'From your initial consultation to our comprehensive after-sales service and warranties, our dedicated team is here to support you every step of the way.',
         icon: ChatBubbleBottomCenterTextIcon,
-        imageUrl: '/images/test4.jpg',
+        imageUrl: '/images/why3.jpg',
     },
 ];
 

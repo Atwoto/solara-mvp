@@ -14,9 +14,9 @@ import 'swiper/css/pagination';
 
 // Slide data now includes a CSS class for the Ken Burns animation
 const slideData = [
-    { image: '/images/Hero.jpg', icon: GlobeAltIcon, preTitle: 'A World Innovator in Energy', line1: 'Manageable, Reliable', line2: 'Affordable Energy!', animationClass: 'animate-kenburns-br' },
-    { image: '/images/Hero1.jpg', icon: SunIcon, preTitle: 'Evergreen Producer of Solar Energy', line1: 'Powering Tomorrow,', line2: 'Sustainably.', animationClass: 'animate-kenburns-tl' },
-    { image: '/images/Hero2.jpg', icon: BoltIcon, preTitle: 'Biggest Producer of Clean Energy', line1: 'Harnessing Power', line2: 'From the Sun.', animationClass: 'animate-kenburns-bl' },
+    { image: '/images/back1.jpg', icon: GlobeAltIcon, preTitle: 'A World Innovator in Energy', line1: 'Manageable, Reliable', line2: 'Affordable Energy!', animationClass: 'animate-kenburns-br' },
+    { image: '/images/back2.jpg', icon: SunIcon, preTitle: 'Evergreen Producer of Solar Energy', line1: 'Powering Tomorrow,', line2: 'Sustainably.', animationClass: 'animate-kenburns-tl' },
+    { image: '/images/back3.jpg', icon: BoltIcon, preTitle: 'Biggest Producer of Clean Energy', line1: 'Harnessing Power', line2: 'From the Sun.', animationClass: 'animate-kenburns-bl' },
 ];
 
 // --- IMPRESSIVE WORD-BY-WORD ANIMATION COMPONENT ---
