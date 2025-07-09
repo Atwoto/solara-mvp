@@ -1,18 +1,17 @@
-// src/app/blog/[slug]/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import NextImage from 'next/image';
+// import NextImage from 'next/image'; // No longer needed
 import Head from 'next/head';
 import { BlogPost } from '@/types';
 import PageHeader from '@/components/PageHeader';
 import Link from 'next/link';
-import { CalendarDaysIcon, UserCircleIcon, TagIcon } from '@heroicons/react/24/outline';
+import { CalendarDaysIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import { motion, useScroll, useSpring } from 'framer-motion';
 import { FaFacebookF, FaTwitter, FaLinkedinIn } from 'react-icons/fa';
 
-// --- NEW: Reading Progress Bar Component ---
+// --- Reading Progress Bar Component ---
 const ReadingProgressBar = () => {
     const { scrollYProgress } = useScroll();
     const scaleX = useSpring(scrollYProgress, {
@@ -29,7 +28,7 @@ const ReadingProgressBar = () => {
     );
 };
 
-// --- REDESIGNED SINGLE ARTICLE PAGE ---
+// --- SINGLE ARTICLE PAGE ---
 const SingleArticlePage = () => {
     const params = useParams();
     const slug = params?.slug as string | undefined;
@@ -104,16 +103,15 @@ const SingleArticlePage = () => {
             <ReadingProgressBar />
 
             <article className="bg-white">
-                {/* --- IMPRESSIVE NEW HERO HEADER --- */}
                 <header className="relative h-[60vh] min-h-[400px] w-full">
                     <div className="absolute inset-0">
                         {article.image_url && (
-                            <NextImage
+                            // --- THIS IS THE FIX ---
+                            <img
                                 src={article.image_url}
                                 alt={article.title}
-                                fill
-                                className="object-cover"
-                                priority
+                                className="absolute inset-0 w-full h-full object-cover"
+                                loading="eager"
                             />
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/50 to-transparent"></div>
@@ -146,7 +144,6 @@ const SingleArticlePage = () => {
                     </div>
                 </header>
 
-                {/* --- ARTICLE CONTENT --- */}
                 <div className="py-12 sm:py-16">
                     <div className="container mx-auto px-4 max-w-3xl">
                         <motion.div
@@ -157,7 +154,6 @@ const SingleArticlePage = () => {
                             dangerouslySetInnerHTML={{ __html: article.content || '' }}
                         />
 
-                        {/* --- SHARE & AUTHOR SECTION --- */}
                         <div className="mt-12 border-t pt-8">
                             <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
                                 <div className="flex items-center gap-3">

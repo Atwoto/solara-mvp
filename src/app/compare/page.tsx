@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useComparison } from '@/context/ComparisonContext';
 import { useCart } from '@/context/CartContext';
 import { Product } from '@/types';
-import Image from 'next/image';
+// import Image from 'next/image'; // No longer needed
 import Link from 'next/link';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { XMarkIcon, TrashIcon, ScaleIcon, ShoppingCartIcon, CheckIcon } from '@heroicons/react/24/solid';
@@ -50,7 +50,8 @@ export default function ComparePage() {
     };
 
     const getProductValue = (product: Product, key: keyof Product) => {
-        return product[key] ?? 'N/A';
+        const value = product[key as keyof Product];
+        return value !== null && value !== undefined ? value : 'N/A';
     };
 
     return (
@@ -86,11 +87,9 @@ export default function ComparePage() {
                             </div>
                             <div className="overflow-x-auto">
                                 <div className="min-w-[900px]">
-                                    {/* --- THIS IS THE CORRECTED ROW-BASED STRUCTURE --- */}
-
                                     {/* Header Row with Product Cards */}
                                     <div className="grid grid-cols-4 gap-4">
-                                        <motion.div variants={itemVariants}></motion.div> {/* Empty cell for alignment */}
+                                        <motion.div variants={itemVariants}></motion.div> {/* Empty cell */}
                                         <AnimatePresence>
                                             {comparisonItems.map(product => (
                                                 <motion.div
@@ -104,8 +103,9 @@ export default function ComparePage() {
                                                 >
                                                     <Link href={`/products/${product.id}`}>
                                                         <div className="relative w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-100">
+                                                            {/* --- THIS IS THE FIX --- */}
                                                             {product.image_url && product.image_url[0] && (
-                                                                <Image src={product.image_url[0]} alt={product.name} fill className="object-contain" sizes="128px" />
+                                                                <img src={product.image_url[0]} alt={product.name} className="absolute inset-0 w-full h-full object-contain" loading="lazy" />
                                                             )}
                                                         </div>
                                                         <h3 className="text-sm font-bold text-graphite line-clamp-2 hover:text-solar-flare-end transition-colors">{product.name}</h3>
@@ -123,7 +123,6 @@ export default function ComparePage() {
                                             return (
                                                 <motion.div variants={itemVariants} key={attr.key} className="grid grid-cols-4 gap-4 items-center py-4">
                                                     <div className="col-span-1 text-sm font-semibold text-gray-600">{attr.label}</div>
-                                                    {/* Map through products for EACH attribute row */}
                                                     {comparisonItems.map(product => {
                                                         const value = getProductValue(product, attr.key as keyof Product);
                                                         const isHighlighted = highlightValue !== null && value === highlightValue;
@@ -144,7 +143,7 @@ export default function ComparePage() {
 
                                     {/* Add to Cart Button Row */}
                                     <motion.div variants={itemVariants} className="grid grid-cols-4 gap-4 items-center pt-6 mt-4 border-t">
-                                        <div className="col-span-1"></div> {/* Empty cell for alignment */}
+                                        <div className="col-span-1"></div> {/* Empty cell */}
                                         {comparisonItems.map(product => (
                                             <div key={`${product.id}-cart`} className="col-span-1 flex justify-center">
                                                 <button
