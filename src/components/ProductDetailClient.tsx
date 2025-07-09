@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+// import Image from 'next/image'; // We no longer need this
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
@@ -66,12 +66,11 @@ export default function ProductDetailClient({ product, initialIsWishlisted }: Pr
                   transition={{ duration: 0.2 }}
                   className="w-full h-full"
                 >
-                  <Image
+                  {/* --- THIS IS THE FIX --- */}
+                  <img
                     src={selectedImageUrl}
                     alt={product.name}
-                    fill
-                    className="object-cover"
-                    priority
+                    className="w-full h-full object-cover"
                   />
                 </motion.div>
               )}
@@ -87,7 +86,8 @@ export default function ProductDetailClient({ product, initialIsWishlisted }: Pr
                     ${selectedImageUrl === url ? 'ring-2 ring-solar-flare-start ring-offset-2' : 'hover:opacity-80'}`
                   }
                 >
-                  <Image src={url} alt={`${product.name} thumbnail`} fill className="object-cover" />
+                  {/* --- THIS IS THE FIX --- */}
+                  <img src={url} alt={`${product.name} thumbnail`} className="w-full h-full object-cover" loading="lazy" />
                 </button>
               ))}
             </div>
@@ -98,8 +98,6 @@ export default function ProductDetailClient({ product, initialIsWishlisted }: Pr
         <div className="flex flex-col">
           <h1 className="text-3xl md:text-4xl font-bold text-deep-night mb-4">{product.name}</h1>
           
-          {/* --- THIS IS THE FIX --- */}
-          {/* Conditionally render price or "Price on request" */}
           {product.price > 0 ? (
             <p className="text-3xl font-bold text-solar-flare-end mb-6">
               Ksh {product.price.toLocaleString()}
@@ -115,8 +113,6 @@ export default function ProductDetailClient({ product, initialIsWishlisted }: Pr
           </div>
 
           <div className="flex items-center space-x-4 mt-auto pt-8 border-t">
-            {/* --- THIS IS THE FIX --- */}
-            {/* Conditionally render "Add to Cart" or "Get Quote" button */}
             {product.price > 0 ? (
               <button
                 onClick={handleAddToCart}

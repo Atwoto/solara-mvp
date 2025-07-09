@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+// import Image from 'next/image'; // We no longer need this for the product card
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -13,7 +13,6 @@ import { CheckIcon, HeartIcon as HeartSolid, PhoneArrowUpRightIcon } from '@hero
 import { HeartIcon as HeartOutline, ArrowsRightLeftIcon, ShoppingCartIcon } from '@heroicons/react/24/outline';
 import { Product as ProductType } from '@/types';
 
-// --- ANIMATION VARIANTS ---
 const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
@@ -24,7 +23,6 @@ interface ProductCatalogProps {
     gridCols?: string;
 }
 
-// --- PRODUCT CARD COMPONENT ---
 const ProductCard = ({
     product,
     inWishlist,
@@ -53,13 +51,13 @@ const ProductCard = ({
             <div className="relative w-full h-64 bg-gray-200 rounded-t-2xl overflow-hidden">
                 <Link href={`/products/${product.id}`} className="absolute inset-0 z-0" aria-label={`View details for ${product.name}`} />
                 {product.image_url && product.image_url[0] ? (
-                    <Image
+                    // --- THIS IS THE FIX ---
+                    // Replaced Next.js <Image> with a standard <img> tag to bypass Vercel optimization.
+                    <img
                         src={product.image_url[0]}
                         alt={product.name}
-                        fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                        priority={priority}
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        loading={priority ? "eager" : "lazy"} // Use standard browser loading attributes
                     />
                 ) : (
                     <div className="flex items-center justify-center h-full bg-gray-100 text-gray-400">No Image</div>
@@ -95,8 +93,6 @@ const ProductCard = ({
                     </Link>
                 </div>
                 <div className="mt-4 flex items-end justify-between">
-                    {/* --- THIS IS THE FIX --- */}
-                    {/* If price is greater than 0, show price and Add to Cart button */}
                     {product.price > 0 ? (
                         <>
                             <span className="text-xl font-bold text-deep-night">Ksh {product.price.toLocaleString()}</span>
@@ -121,7 +117,6 @@ const ProductCard = ({
                             </button>
                         </>
                     ) : (
-                        /* If price is 0, show "Get Quote" button instead */
                         <Link
                             href="/#contact-us"
                             className="w-full h-10 px-4 py-2 text-sm font-semibold text-white bg-deep-night hover:bg-gray-700 rounded-lg shadow-md flex items-center justify-center gap-2 transition-all duration-300 ease-in-out transform active:scale-95"
