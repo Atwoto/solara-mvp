@@ -116,6 +116,7 @@ const AboutSection = () => {
                                 alt="Bills On Solar team working on a solar installation"
                                 layout="fill"
                                 objectFit="cover"
+                                unoptimized // ✅ disables Vercel optimization
                                 className="transition-transform duration-500 ease-in-out group-hover:scale-105"
                             />
                         </div>

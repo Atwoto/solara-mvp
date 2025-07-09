@@ -78,7 +78,13 @@ const MegaMenu = ({ categories, closeMenu, featuredItem }: { categories: NavCate
         </div>
         <div className="col-span-4">
             <Link href={featuredItem.href} onClick={closeMenu} className="group block h-full w-full rounded-lg overflow-hidden relative bg-gray-100 p-6">
-                 <NextImage src={featuredItem.image} alt={featuredItem.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                 <NextImage
+                    src={featuredItem.image}
+                    alt={featuredItem.name}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    unoptimized // ✅ add this
+                  />
                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                  <div className="relative h-full flex flex-col justify-end text-white">
                     <p className="text-xs font-bold uppercase tracking-wider">Featured</p>
@@ -193,7 +199,14 @@ const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void;
 // --- MOBILE MENU (Unchanged) ---
 const MobileFeaturedItem = ({ item, closeMenu }: { item: { name: string, href: string, image: string, description: string }, closeMenu: () => void }) => (
     <Link href={item.href} onClick={closeMenu} className="group block rounded-lg overflow-hidden relative bg-gray-100 p-4 my-2 mx-2">
-        <NextImage src={item.image} alt={item.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+        <NextImage
+            src={item.image}
+            alt={item.name}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            unoptimized // ✅ add this
+        />
+
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
         <div className="relative h-full flex flex-col justify-end text-white">
            <p className="text-xs font-bold uppercase tracking-wider flex items-center"><StarIcon className="h-4 w-4 mr-1.5 text-yellow-400"/>Featured</p>
