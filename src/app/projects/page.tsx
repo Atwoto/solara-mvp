@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import PageHeader from "@/components/PageHeader";
-import NextImage from 'next/image';
+// import NextImage from 'next/image'; // No longer needed
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { PhotoIcon, VideoCameraIcon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
 import { Project } from '@/types';
@@ -31,7 +31,7 @@ const getYouTubeEmbedUrl = (url: string): string => {
     return videoId ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&modestbranding=1&rel=0` : url;
 };
 
-// --- REDESIGNED PROJECTS PAGE ---
+// --- PROJECTS PAGE ---
 const ProjectsPage = () => {
     const [filter, setFilter] = useState('All');
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -48,7 +48,7 @@ const ProjectsPage = () => {
                 if (!response.ok) throw new Error('Failed to fetch projects.');
                 const data: Project[] = await response.json();
                 setAllProjects(data);
-            } catch (err: any) {
+            } catch (err: any) { // --- THIS IS THE FIX ---
                 setError(err.message);
             } finally {
                 setIsLoading(false);
@@ -71,7 +71,6 @@ const ProjectsPage = () => {
         setSelectedProject(filteredProjects[nextIndex]);
     };
 
-    // Handle keyboard navigation
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!selectedProject) return;
@@ -81,7 +80,7 @@ const ProjectsPage = () => {
         };
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [selectedProject]);
+    }, [selectedProject, filteredProjects]);
 
     return (
         <>
@@ -93,7 +92,6 @@ const ProjectsPage = () => {
             />
             <main className="bg-gray-50 py-16 sm:py-20">
                 <div className="container mx-auto px-4">
-                    {/* Filter Bar */}
                     <div className="flex justify-center items-center flex-wrap gap-2 sm:gap-3 mb-12">
                         {filters.map(f => (
                             <button
@@ -153,12 +151,11 @@ const ProjectsPage = () => {
                                         onClick={() => handleSelectProject(project)}
                                     >
                                         <div className="relative w-full h-72">
-                                            <NextImage 
+                                            <img 
                                                 src={displayImageSrc} 
                                                 alt={project.title} 
-                                                fill 
-                                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
-                                                className="object-cover transition-transform duration-300 group-hover:scale-110" 
+                                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                                                loading="lazy"
                                             />
                                         </div>
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-100 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -188,7 +185,6 @@ const ProjectsPage = () => {
                 </div>
             </main>
 
-            {/* ===== IMPROVED LIGHTBOX ===== */}
             <AnimatePresence>
                 {selectedProject && (
                     <motion.div
@@ -199,7 +195,6 @@ const ProjectsPage = () => {
                         className="fixed inset-0 z-[10000] bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
                         onClick={handleCloseLightbox}
                     >
-                        {/* Navigation Controls */}
                         {filteredProjects.length > 1 && (
                             <>
                                 <button 
@@ -219,7 +214,6 @@ const ProjectsPage = () => {
                             </>
                         )}
                         
-                        {/* Close Button */}
                         <button 
                             onClick={handleCloseLightbox} 
                             className="absolute top-4 right-4 z-20 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors backdrop-blur-sm" 
@@ -228,7 +222,6 @@ const ProjectsPage = () => {
                             <XMarkIcon className="h-6 w-6 text-white" />
                         </button>
 
-                        {/* Lightbox Content */}
                         <motion.div
                             initial={{ scale: 0.8, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
@@ -237,7 +230,6 @@ const ProjectsPage = () => {
                             className="relative w-full max-w-6xl max-h-[95vh] bg-deep-night/95 rounded-xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-sm"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {/* Media Display Area */}
                             <div className="relative flex-1 min-h-0 bg-black">
                                 {selectedProject.type === 'video' ? (
                                     <div className="w-full h-full min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]">
@@ -253,20 +245,16 @@ const ProjectsPage = () => {
                                     </div>
                                 ) : (
                                     <div className="relative w-full h-full min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]">
-                                        <NextImage
+                                        <img
                                             key={`image-${selectedProject.id}`}
                                             src={selectedProject.media_url}
                                             alt={selectedProject.title}
-                                            fill
-                                            className="object-contain"
-                                            sizes="100vw"
-                                            priority
+                                            className="w-full h-full object-contain"
                                         />
                                     </div>
                                 )}
                             </div>
 
-                            {/* Description Area */}
                             <div className="w-full p-5 sm:p-6 bg-gray-900/90 backdrop-blur-sm text-white border-t border-gray-700/50">
                                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                                     <div className="flex-1">
