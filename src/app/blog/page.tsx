@@ -1,9 +1,8 @@
-// src/app/blog/page.tsx
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import NextImage from 'next/image';
+// import NextImage from 'next/image'; // No longer needed
 import Head from 'next/head';
 import { BlogPost, BlogPostCategory } from '@/types';
 import PageHeader from '@/components/PageHeader';
@@ -22,7 +21,7 @@ const itemVariants: Variants = {
     exit: { opacity: 0, y: -20, scale: 0.98, transition: { duration: 0.3, ease: 'easeIn' } },
 };
 
-// --- IMPRESSIVE NEW ARTICLE CARD COMPONENT ---
+// --- ARTICLE CARD COMPONENT ---
 const ArticleCard = ({ post }: { post: BlogPost }) => (
     <motion.div
         layout
@@ -35,12 +34,12 @@ const ArticleCard = ({ post }: { post: BlogPost }) => (
         <Link href={`/blog/${post.slug}`} className="block">
             <div className="relative w-full h-56 bg-gray-200">
                 {post.image_url ? (
-                    <NextImage
+                    // --- THIS IS THE FIX ---
+                    <img
                         src={post.image_url}
                         alt={post.title}
-                        fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        loading="lazy"
                     />
                 ) : (
                     <div className="flex h-full w-full items-center justify-center text-gray-400">No Image</div>
@@ -77,7 +76,7 @@ const ArticleCard = ({ post }: { post: BlogPost }) => (
     </motion.div>
 );
 
-// --- REDESIGNED BLOG PAGE ---
+// --- BLOG PAGE ---
 const AllArticlesPage = () => {
     const [articles, setArticles] = useState<BlogPost[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -130,7 +129,6 @@ const AllArticlesPage = () => {
 
             <div className="bg-gray-50/70 py-16 sm:py-20">
                 <div className="container mx-auto px-4">
-                    {/* Impressive new Filter Bar */}
                     <div className="flex justify-center items-center flex-wrap gap-2 sm:gap-3 mb-12">
                         {categories.map(category => (
                             <button
