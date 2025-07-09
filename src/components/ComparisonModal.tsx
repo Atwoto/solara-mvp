@@ -3,7 +3,7 @@
 import { useComparison } from '@/context/ComparisonContext';
 import { useCart } from '@/context/CartContext';
 import { Product } from '@/types';
-import Image from 'next/image';
+// import Image from 'next/image'; // No longer needed
 import { XMarkIcon, TrashIcon, ScaleIcon, ShoppingCartIcon, CheckIcon } from '@heroicons/react/24/solid';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { useState } from 'react';
@@ -102,8 +102,9 @@ const ComparisonModal = ({ isOpen, onClose }: ComparisonModalProps) => {
                                                     >
                                                         <Link href={`/products/${product.id}`} onClick={onClose}>
                                                             <div className="relative w-24 h-24 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-100">
+                                                                {/* --- THIS IS THE FIX --- */}
                                                                 {product.image_url && product.image_url[0] ? (
-                                                                    <Image src={product.image_url[0]} alt={product.name} fill className="object-cover" sizes="96px" />
+                                                                    <img src={product.image_url[0]} alt={product.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
                                                                 ) : null}
                                                             </div>
                                                             <h3 className="text-sm font-bold text-graphite line-clamp-2 hover:text-solar-flare-end transition-colors">{product.name}</h3>

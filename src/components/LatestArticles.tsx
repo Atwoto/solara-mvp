@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import NextImage from 'next/image';
+// import NextImage from 'next/image'; // No longer needed
 import Link from 'next/link';
 import { motion, Variants } from 'framer-motion';
 import { BlogPost } from '@/types';
@@ -18,9 +18,7 @@ const itemVariants: Variants = {
     visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: 'easeOut' } },
 };
 
-// --- IMPRESSIVE NEW ARTICLE CARD COMPONENTS ---
-
-// Card for the main, featured article
+// --- ARTICLE CARD COMPONENTS ---
 const FeaturedArticleCard = ({ post }: { post: BlogPost }) => (
     <motion.article
         variants={itemVariants}
@@ -29,13 +27,12 @@ const FeaturedArticleCard = ({ post }: { post: BlogPost }) => (
         <Link href={`/blog/${post.slug}`} className="absolute inset-0 z-10" aria-label={`Read more about ${post.title}`}></Link>
         <div className="relative w-full h-64 sm:h-80 lg:h-96 bg-gray-200">
             {post.image_url && (
-                <NextImage
+                // --- THIS IS THE FIX ---
+                <img
                     src={post.image_url}
                     alt={post.title}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    priority
-                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading="eager" // Eager load the main featured image
                 />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent"></div>
@@ -58,7 +55,6 @@ const FeaturedArticleCard = ({ post }: { post: BlogPost }) => (
     </motion.article>
 );
 
-// Card for the two smaller, secondary articles
 const SecondaryArticleCard = ({ post }: { post: BlogPost }) => (
     <motion.article
         variants={itemVariants}
@@ -67,7 +63,8 @@ const SecondaryArticleCard = ({ post }: { post: BlogPost }) => (
         <div className="relative w-full h-48 bg-gray-200">
             <Link href={`/blog/${post.slug}`} className="absolute inset-0 z-10" aria-label={`Read more about ${post.title}`}></Link>
             {post.image_url ? (
-                <NextImage src={post.image_url} alt={post.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="33vw" />
+                // --- THIS IS THE FIX ---
+                <img src={post.image_url} alt={post.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
             ) : (
                 <div className="flex h-full w-full items-center justify-center text-gray-400">No Image</div>
             )}
@@ -98,9 +95,8 @@ const SecondaryArticleCard = ({ post }: { post: BlogPost }) => (
 );
 
 
-// --- REDESIGNED LATEST ARTICLES SECTION ---
+// --- LATEST ARTICLES SECTION ---
 const LatestArticles = () => {
-    // Data fetching and state management logic remains unchanged
     const [posts, setPosts] = useState<BlogPost[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -149,7 +145,6 @@ const LatestArticles = () => {
 
     return (
         <div className="relative bg-cloud-white py-20 sm:py-28 overflow-hidden">
-            {/* Subtle background pattern */}
             <div className="absolute inset-0 bg-[url('/images/patterns/subtle-grid.svg')] opacity-40"></div>
             <div className="relative container mx-auto px-4">
                 <motion.div
@@ -162,7 +157,6 @@ const LatestArticles = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {featuredPost && <FeaturedArticleCard post={featuredPost} />}
                         
-                        {/* Container for the two secondary posts */}
                         <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-8">
                             {secondaryPosts.map((post) => (
                                 <SecondaryArticleCard key={post.id} post={post} />

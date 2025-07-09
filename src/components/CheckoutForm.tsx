@@ -5,11 +5,10 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useCart } from "@/context/CartContext";
 import Link from 'next/link';
-import NextImage from 'next/image';
-import { motion, AnimatePresence, Variants } from 'framer-motion';
+// import NextImage from 'next/image'; // No longer needed
+import { motion, AnimatePresence } from 'framer-motion';
 import { LockClosedIcon, ExclamationTriangleIcon, ShoppingBagIcon, UserIcon, EnvelopeIcon, PhoneIcon, MapPinIcon } from '@heroicons/react/24/outline';
 
-// This global interface definition for Paystack remains the same
 declare global {
     interface Window {
         PaystackPop?: {
@@ -20,7 +19,6 @@ declare global {
     }
 }
 
-// A reusable, styled input component for a cleaner form structure
 const FormInput = ({ id, name, type = 'text', value, onChange, placeholder, icon, required = false, readOnly = false }: {
     id: string;
     name: string;
@@ -55,9 +53,7 @@ const FormInput = ({ id, name, type = 'text', value, onChange, placeholder, icon
     </div>
 );
 
-// --- REDESIGNED CHECKOUT FORM ---
 export default function CheckoutForm() {
-    // All hooks and state management logic remain the same
     const { data: session, status } = useSession();
     const router = useRouter();
     const { cartItems, clearCart, isLoading: isCartLoading } = useCart();
@@ -161,7 +157,6 @@ export default function CheckoutForm() {
             <div className="container mx-auto px-4">
                 <form onSubmit={handlePayment}>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-                        {/* Shipping Information Column */}
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -183,7 +178,6 @@ export default function CheckoutForm() {
                             </div>
                         </motion.div>
 
-                        {/* Order Summary Column */}
                         <motion.div
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -197,7 +191,8 @@ export default function CheckoutForm() {
                                         <div key={item.id} className="flex items-center justify-between text-sm">
                                             <div className="flex items-center gap-3">
                                                 <div className="relative h-16 w-16 rounded-md border bg-gray-100 overflow-hidden flex-shrink-0">
-                                                    {item.image_url && item.image_url[0] && <NextImage src={item.image_url[0]} alt={item.name} fill className="object-cover" sizes="64px"/>}
+                                                    {/* --- THIS IS THE FIX --- */}
+                                                    {item.image_url && item.image_url[0] && <img src={item.image_url[0]} alt={item.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />}
                                                 </div>
                                                 <div>
                                                     <span className="font-medium text-graphite block line-clamp-1">{item.name}</span>

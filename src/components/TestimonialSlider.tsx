@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import NextImage from 'next/image';
+// import NextImage from 'next/image'; // No longer needed
 import { Testimonial as TestimonialType } from '@/types';
 import { StarIcon } from '@heroicons/react/24/solid';
 
 const AUTOPLAY_INTERVAL = 7000; // 7 seconds
 
-// --- IMPRESSIVE NEW TESTIMONIAL CARD ---
+// --- TESTIMONIAL CARD ---
 const TestimonialCard = ({ testimonial }: { testimonial: TestimonialType }) => {
     return (
         <div className="flex flex-col justify-between h-full w-full bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl">
@@ -20,12 +20,12 @@ const TestimonialCard = ({ testimonial }: { testimonial: TestimonialType }) => {
             </blockquote>
             <div className="relative z-10 mt-6 flex items-center gap-4">
                 <div className="relative h-14 w-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-solar-flare-start/50">
-                    <NextImage
+                    {/* --- THIS IS THE FIX --- */}
+                    <img
                         src={testimonial.image_url || '/images/default-avatar.png'}
                         alt={testimonial.client_name}
-                        fill
-                        sizes="56px"
-                        className="object-cover"
+                        className="absolute inset-0 w-full h-full object-cover"
+                        loading="lazy"
                     />
                 </div>
                 <div>
@@ -44,7 +44,7 @@ const TestimonialCard = ({ testimonial }: { testimonial: TestimonialType }) => {
     );
 };
 
-// --- REDESIGNED TESTIMONIAL SLIDER ---
+// --- TESTIMONIAL SLIDER ---
 const TestimonialSlider = () => {
     const [testimonials, setTestimonials] = useState<TestimonialType[]>([]);
     const [activeIndex, setActiveIndex] = useState(0);
@@ -53,7 +53,6 @@ const TestimonialSlider = () => {
     const [error, setError] = useState<string | null>(null);
     const [isHovered, setIsHovered] = useState(false);
 
-    // Data fetching logic remains the same
     useEffect(() => {
         const fetchTestimonials = async () => {
             setIsLoading(true);
@@ -72,7 +71,6 @@ const TestimonialSlider = () => {
         fetchTestimonials();
     }, []);
 
-    // Auto-play logic
     useEffect(() => {
         if (isHovered || testimonials.length <= 1) return;
         const interval = setInterval(() => {
@@ -87,24 +85,10 @@ const TestimonialSlider = () => {
         setActiveIndex(index);
     };
 
-    // Animation variants for the sliding effect
     const slideVariants: Variants = {
-        enter: (direction: number) => ({
-            x: direction > 0 ? '100%' : '-100%',
-            opacity: 0,
-        }),
-        center: {
-            x: 0,
-            opacity: 1,
-            zIndex: 1,
-            transition: { duration: 0.5, ease: 'easeOut' }
-        },
-        exit: (direction: number) => ({
-            x: direction < 0 ? '100%' : '-100%',
-            opacity: 0,
-            zIndex: 0,
-            transition: { duration: 0.5, ease: 'easeIn' }
-        }),
+        enter: (direction: number) => ({ x: direction > 0 ? '100%' : '-100%', opacity: 0 }),
+        center: { x: 0, opacity: 1, zIndex: 1, transition: { duration: 0.5, ease: 'easeOut' } },
+        exit: (direction: number) => ({ x: direction < 0 ? '100%' : '-100%', opacity: 0, zIndex: 0, transition: { duration: 0.5, ease: 'easeIn' } }),
     };
 
     if (isLoading || error || testimonials.length === 0) {
@@ -124,7 +108,6 @@ const TestimonialSlider = () => {
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
-            {/* Immersive Background Image */}
             <AnimatePresence>
                 <motion.div
                     key={activeIndex}
@@ -134,11 +117,12 @@ const TestimonialSlider = () => {
                     transition={{ duration: 1, ease: 'easeInOut' }}
                     className="absolute inset-0"
                 >
-                    <NextImage
+                    {/* --- THIS IS THE FIX --- */}
+                    <img
                         src={testimonials[activeIndex]?.image_url || '/images/default-avatar.png'}
                         alt="Client background"
-                        fill
-                        className="object-cover w-full h-full filter blur-2xl scale-125"
+                        className="absolute inset-0 object-cover w-full h-full filter blur-2xl scale-125"
+                        loading="lazy"
                     />
                     <div className="absolute inset-0 bg-deep-night/70"></div>
                 </motion.div>
@@ -150,7 +134,6 @@ const TestimonialSlider = () => {
                     <h2 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight">What Our Clients Say</h2>
                 </div>
                 
-                {/* Main carousel container */}
                 <div className="relative h-[420px] sm:h-[350px] max-w-3xl mx-auto">
                     <AnimatePresence custom={direction}>
                         <motion.div
@@ -167,7 +150,6 @@ const TestimonialSlider = () => {
                     </AnimatePresence>
                 </div>
 
-                {/* Interactive Avatar Navigation */}
                 <div className="flex justify-center items-end gap-3 sm:gap-4 mt-12 h-20">
                     {testimonials.map((testimonial, index) => (
                         <button
@@ -177,23 +159,22 @@ const TestimonialSlider = () => {
                             aria-label={`View testimonial from ${testimonial.client_name}`}
                         >
                             <div className={`relative rounded-full overflow-hidden transition-all duration-300 ease-out ${activeIndex === index ? 'h-16 w-16' : 'h-12 w-12 opacity-50 hover:opacity-100'}`}>
-                                <NextImage
+                                {/* --- THIS IS THE FIX --- */}
+                                <img
                                     src={testimonial.image_url || '/images/default-avatar.png'}
                                     alt={testimonial.client_name}
-                                    fill
-                                    sizes={activeIndex === index ? '64px' : '48px'}
-                                    className="object-cover"
+                                    className="absolute inset-0 w-full h-full object-cover"
+                                    loading="lazy"
                                 />
                             </div>
-                            {/* Animated Progress Ring */}
                             {activeIndex === index && (
                                 <motion.svg className="absolute -inset-1 h-[calc(100%+8px)] w-[calc(100%+8px)]" viewBox="0 0 100 100">
                                     <motion.circle
-                                        key={activeIndex} // Reset animation on change
+                                        key={activeIndex}
                                         cx="50"
                                         cy="50"
                                         r="48"
-                                        stroke="#FDB813" // solar-flare-start
+                                        stroke="#FDB813"
                                         strokeWidth="3"
                                         fill="transparent"
                                         initial={{ pathLength: 0 }}

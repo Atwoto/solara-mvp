@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
-import NextImage from 'next/image';
+// import NextImage from 'next/image'; // No longer needed
 import Link from 'next/link';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { XMarkIcon, ShoppingBagIcon, PlusIcon, MinusIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -48,6 +48,8 @@ const AnimatedSubtotal = ({ value }: { value: number }) => {
 
 // --- REDESIGNED CART SIDEBAR ---
 const CartSidebar = () => {
+    // --- THIS IS THE FIX ---
+    // Using the correct function name 'updateItemQuantity' from your context
     const { cartItems, removeFromCart, clearCart, updateItemQuantity, getCartTotal, isCartOpen, closeCart } = useCart();
     const subtotal = getCartTotal();
 
@@ -58,7 +60,6 @@ const CartSidebar = () => {
                     key="cart-backdrop"
                     variants={backdropVariants}
                     initial="hidden" animate="visible" exit="hidden"
-                    // --- THE DEFINITIVE FIX PART 1: Set a very high z-index for the backdrop ---
                     className="fixed inset-0 z-[10000] bg-black bg-opacity-50 backdrop-blur-sm"
                     onClick={closeCart}
                 >
@@ -66,7 +67,6 @@ const CartSidebar = () => {
                         key="cart-sidebar"
                         variants={sidebarVariants}
                         initial="hidden" animate="visible" exit="hidden"
-                        // --- THE DEFINITIVE FIX PART 2: Set an even higher z-index for the sidebar panel itself ---
                         className="fixed top-0 right-0 z-[10001] h-full w-full max-w-lg bg-white/80 backdrop-blur-2xl shadow-2xl flex flex-col border-l border-white/20"
                         onClick={(e) => e.stopPropagation()}
                         aria-modal="true" role="dialog"
@@ -96,12 +96,16 @@ const CartSidebar = () => {
                                         {cartItems.map((item) => (
                                             <motion.li key={item.id} variants={itemVariants} exit="exit" layout className="flex items-start py-5 gap-4">
                                                 <div className="relative h-20 w-20 rounded-lg overflow-hidden border bg-gray-50 flex-shrink-0">
-                                                    {item.image_url && item.image_url[0] && <NextImage src={item.image_url[0]} alt={item.name} fill className="object-cover" sizes="80px" />}
+                                                    {/* --- THIS IS THE FIX --- */}
+                                                    {/* Replaced NextImage with a standard img tag */}
+                                                    {item.image_url && item.image_url[0] && <img src={item.image_url[0]} alt={item.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />}
                                                 </div>
                                                 <div className="flex-grow">
                                                     <Link href={`/products/${item.id}`} onClick={closeCart} className="text-sm font-medium text-graphite hover:text-solar-flare-start line-clamp-2">{item.name}</Link>
                                                     <p className="text-sm text-gray-500 mt-1">Ksh {item.price.toLocaleString()}</p>
                                                     <div className="flex items-center mt-3">
+                                                        {/* --- THIS IS THE FIX --- */}
+                                                        {/* Using the correct function name 'updateItemQuantity' */}
                                                         <button onClick={() => updateItemQuantity(item.id, item.quantity - 1)} className="p-1.5 border rounded-md text-gray-600 hover:bg-gray-100 disabled:opacity-50" aria-label="Decrease quantity"><MinusIcon className="h-4 w-4" /></button>
                                                         <span className="px-4 py-1 text-sm font-medium text-gray-700">{item.quantity}</span>
                                                         <button onClick={() => updateItemQuantity(item.id, item.quantity + 1)} className="p-1.5 border rounded-md text-gray-600 hover:bg-gray-100" aria-label="Increase quantity"><PlusIcon className="h-4 w-4" /></button>
