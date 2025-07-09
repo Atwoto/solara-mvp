@@ -231,7 +231,7 @@ const MobileRecursiveMenu = ({ items, closeMenu, level = 0 }: { items: NavCatego
 const MobileMenu = ({ isOpen, closeMenu }: { isOpen: boolean; closeMenu: () => void; }) => {
     const { data: session, status: sessionStatus } = useSession();
     const featuredProduct = { name: "Complete 5kW Hybrid System", href: "/products/solar-kits/5kw-hybrid-system", image: "/images/featured-product.jpg", description: "Our bestselling all-in-one solution." };
-    const featuredService = { name: "Commercial Solar Solutions", href: "/services/commercial-solar-solutions", image: "/images/featured-service.jpg", description: "Power your business with solar." };
+    const featuredService = { name: "Commercial Solar Solutions", href: "/services/commercial-solar-solutions", image: "/images/hero-bg-3.jpg", description: "Power your business with solar." };
 
     return (
         <AnimatePresence>
