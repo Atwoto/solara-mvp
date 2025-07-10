@@ -1,45 +1,32 @@
-// src/app/api/admin/county-resources/route.ts
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+// src/app/admin/county-resources/page.tsx
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase/server'; // Use the admin client for elevated privileges
+import { CountyResource } from '@/types';
+import ResourceClientPage from './ResourceClientPage';
 
-// This is the admin's email, ensuring only they can use this endpoint.
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+// This forces the page to be dynamically rendered, ensuring you always see the latest data.
+export const dynamic = 'force-dynamic';
 
-export async function POST(req: NextRequest) {
-  const supabase = createRouteHandlerClient({ cookies });
+const AdminCountyResourcesPage = async () => {
+  const supabase = createServerComponentClient({ cookies });
 
-  // First, check if the logged-in user is the admin.
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.user.email !== ADMIN_EMAIL) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  // Fetch all resources from the database, ordered by county name.
+  const { data, error } = await supabase
+    .from('county_resources')
+    .select('*')
+    .order('county_name', { ascending: true })
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching county resources:', error);
+    // Render a more user-friendly error message
+    return <div className="p-8 text-red-500">Error loading resources. Please check the server logs.</div>;
   }
 
-  try {
-    const resourceData = await req.json();
+  const resources: CountyResource[] = data || [];
 
-    // Validate incoming data
-    if (!resourceData.county_name || !resourceData.file_title || !resourceData.file_url) {
-        return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
-    }
+  // Pass the fetched data to the client component that will handle the UI and interactions.
+  return <ResourceClientPage initialResources={resources} />;
+};
 
-    // Use the admin client to perform the database operation.
-    // This has the necessary permissions to bypass RLS for trusted server-side operations.
-    const { data, error } = await supabaseAdmin
-      .from('county_resources')
-      .upsert(resourceData) // upsert will create or update
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Database Error:", error);
-      throw new Error(error.message);
-    }
-
-    return NextResponse.json(data);
-
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
+export default AdminCountyResourcesPage;
