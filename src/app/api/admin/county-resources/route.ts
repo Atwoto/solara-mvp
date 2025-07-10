@@ -40,11 +40,11 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// --- THIS IS THE NEW DELETE FUNCTION ---
+// --- THIS IS THE CORRECTED DELETE FUNCTION ---
 export async function DELETE(req: NextRequest) {
     const supabase = createRouteHandlerClient({ cookies });
   
-    // First, check if the logged-in user is the admin.
+    // Step 1: Verify the user is the admin.
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user.email !== ADMIN_EMAIL) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
@@ -57,19 +57,20 @@ export async function DELETE(req: NextRequest) {
         return NextResponse.json({ error: 'Missing required data for deletion.' }, { status: 400 });
       }
   
-      // Step 1: Delete the file from Supabase Storage.
+      // Step 2: Delete the file from Storage using the ADMIN client.
       const fileName = fileUrl.split('/').pop();
       if (fileName) {
         const { error: storageError } = await supabaseAdmin.storage.from('county-resources').remove([fileName]);
         if (storageError) {
-          // Log the error but don't stop the process, as we still want to remove the database entry.
-          console.error('Could not delete file from storage, but proceeding with DB deletion:', storageError.message);
+          console.error('Storage Deletion Error:', storageError.message);
+          // We can choose to continue even if file deletion fails, to remove the DB record.
         }
       }
   
-      // Step 2: Delete the row from the database table.
+      // Step 3: Delete the row from the database using the ADMIN client.
       const { error: dbError } = await supabaseAdmin.from('county_resources').delete().eq('id', resourceId);
       if (dbError) {
+        console.error('Database Deletion Error:', dbError.message);
         throw new Error(dbError.message);
       }
   
