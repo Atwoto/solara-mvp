@@ -112,3 +112,15 @@ export interface CountyResource {
   file_type?: string | null;
   is_published: boolean;
 }
+
+
+// --- NEW: DYNAMIC SERVICE CATEGORY TYPES ---
+export interface ServiceCategory {
+  id: string;
+  created_at: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  parent_id?: string | null; // Will link to the id of the parent category
+  display_order: number;
+}

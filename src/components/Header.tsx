@@ -11,7 +11,7 @@ import {
     ShoppingCartIcon, Bars3Icon, XMarkIcon, HeartIcon,
     ArrowsRightLeftIcon, UserCircleIcon, ArrowLeftOnRectangleIcon,
     ChevronDownIcon, BuildingStorefrontIcon, WrenchScrewdriverIcon,
-    ComputerDesktopIcon, StarIcon, MapIcon // <-- NEW ICON
+    ComputerDesktopIcon, StarIcon, MapIcon
 } from '@heroicons/react/24/outline';
 import NextImage from 'next/image';
 import CartSidebar from './CartSidebar';
@@ -19,7 +19,7 @@ import ComparisonModal from './ComparisonModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { productCategoriesData } from '@/lib/navigationData';
 
-// --- TYPE DEFINITIONS (Unchanged) ---
+// --- TYPE DEFINITIONS ---
 interface NavCategory {
     name: string;
     href: string;
@@ -27,28 +27,17 @@ interface NavCategory {
     subcategories?: NavCategory[];
 }
 
-// --- NAVIGATION DATA (UPDATED) ---
+// --- MAIN NAVIGATION LINKS (Unchanged) ---
 const mainNavLinks = [
     { name: 'Projects', href: '/projects' },
-    { name: 'Resources', href: '/county-resources' }, // <-- ADDED THIS LINE
+    { name: 'Resources', href: '/county-resources' },
     { name: 'About Us', href: '/#about-us' },
     { name: 'Contact Us', href: '/#contact-us' },
     { name: 'Blog', href: '/#blog' },
 ];
 
-const installationServiceCategories: NavCategory[] = [
-    { name: 'Residential', href: '/services/residential', subcategories: [
-        { name: 'Solar Hybrid Systems', href: '/services/residential-solar-hybrid-systems', subcategories: [
-            { name: '3kW Solar Hybrid System', href: '/services/residential-solar-hybrid-3kw' },
-            { name: '5kW Solar Hybrid System', href: '/services/residential-solar-hybrid-5kw' },
-            { name: '8kW Solar Hybrid System', href: '/services/residential-solar-hybrid-8kw' },
-        ]},
-        { name: 'Power Backup Systems', href: '/services/residential-power-backup-systems' }
-    ]},
-    { name: 'Commercial', href: '/services/commercial-solar-solutions' },
-    { name: 'Industrial', href: '/services/industrial-solar-solutions' },
-    { name: 'Water Pumps Installation', href: '/services/water-pump-installation' }
-];
+// --- HARDCODED SERVICE CATEGORIES REMOVED ---
+// const installationServiceCategories: NavCategory[] = [ ... ]; // This is now fetched from the API
 
 // --- DESKTOP MEGA MENU (Unchanged) ---
 const MegaMenu = ({ categories, closeMenu, featuredItem }: { categories: NavCategory[], closeMenu: () => void, featuredItem: { name: string, href: string, image: string, description: string } }) => (
@@ -83,7 +72,7 @@ const MegaMenu = ({ categories, closeMenu, featuredItem }: { categories: NavCate
                     alt={featuredItem.name}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    unoptimized // ✅ add this
+                    unoptimized
                   />
                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                  <div className="relative h-full flex flex-col justify-end text-white">
@@ -96,9 +85,28 @@ const MegaMenu = ({ categories, closeMenu, featuredItem }: { categories: NavCate
     </div>
 );
 
-// --- DESKTOP NAVIGATION (Unchanged) ---
+// --- DESKTOP NAVIGATION (UPDATED) ---
 const DesktopNav = ({ pathname }: { pathname: string }) => {
     const [activeMenu, setActiveMenu] = useState<'products' | 'services' | null>(null);
+    // --- THIS IS THE FIX ---
+    // State to hold the dynamic service categories
+    const [dynamicServiceCategories, setDynamicServiceCategories] = useState<NavCategory[]>([]);
+
+    useEffect(() => {
+        // Fetch the categories when the component mounts
+        const fetchServiceCategories = async () => {
+            try {
+                const response = await fetch('/api/service-categories');
+                const data = await response.json();
+                if (response.ok) {
+                    setDynamicServiceCategories(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch service categories:", error);
+            }
+        };
+        fetchServiceCategories();
+    }, []); // Empty dependency array means this runs once on mount
 
     const NavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
         const isActive = pathname === href || (href !== "/" && pathname.startsWith(href) && href.length > 1 && pathname.split('/')[1] === href.split('/')[1]);
@@ -134,7 +142,9 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
                         {activeMenu === 'products' ? (
                             <MegaMenu categories={productCategoriesData} closeMenu={() => setActiveMenu(null)} featuredItem={featuredProduct} />
                         ) : (
-                            <MegaMenu categories={installationServiceCategories} closeMenu={() => setActiveMenu(null)} featuredItem={featuredService} />
+                            // --- THIS IS THE FIX ---
+                            // Use the dynamic categories from the state
+                            <MegaMenu categories={dynamicServiceCategories} closeMenu={() => setActiveMenu(null)} featuredItem={featuredService} />
                         )}
                     </motion.div>
                 )}
@@ -143,7 +153,7 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
     );
 };
 
-// --- ACTION ICONS & USER MENU (Unchanged) ---
+// --- ACTION ICONS & USER MENU (UPDATED) ---
 const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void; }) => {
     const { openCart, getTotalItems } = useCart();
     const { wishlistProducts, isLoading: isWishlistLoading } = useWishlist();
@@ -163,7 +173,7 @@ const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void;
                     <div className="relative">
                         <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}>
                            {session.user?.image ?
-                                <NextImage src={session.user.image} alt="User" width={32} height={32} className="rounded-full ring-2 ring-offset-2 ring-transparent hover:ring-solar-flare-start transition-all" /> :
+                                <NextImage src={session.user.image} alt="User" width={32} height={32} className="rounded-full ring-2 ring-offset-2 ring-transparent hover:ring-solar-flare-start transition-all" unoptimized /> :
                                 <UserCircleIcon className="h-8 w-8 text-gray-500 hover:text-solar-flare-end transition-colors" />
                            }
                         </button>
@@ -196,53 +206,30 @@ const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void;
     );
 };
 
-// --- MOBILE MENU (Unchanged) ---
-const MobileFeaturedItem = ({ item, closeMenu }: { item: { name: string, href: string, image: string, description: string }, closeMenu: () => void }) => (
-    <Link href={item.href} onClick={closeMenu} className="group block rounded-lg overflow-hidden relative bg-gray-100 p-4 my-2 mx-2">
-        <NextImage
-            src={item.image}
-            alt={item.name}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
-            unoptimized // ✅ add this
-        />
-
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-        <div className="relative h-full flex flex-col justify-end text-white">
-           <p className="text-xs font-bold uppercase tracking-wider flex items-center"><StarIcon className="h-4 w-4 mr-1.5 text-yellow-400"/>Featured</p>
-           <h3 className="font-bold text-md mt-1">{item.name}</h3>
-        </div>
-    </Link>
-);
-
-const MobileRecursiveMenu = ({ items, closeMenu, level = 0 }: { items: NavCategory[]; closeMenu: () => void; level?: number; }) => {
-    const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
-    const toggleItem = (name: string) => setOpenItems(prev => ({ ...prev, [name]: !prev[name] }));
-    const hasSubcategories = (item: NavCategory) => (item.subcategories && item.subcategories.length > 0);
-
-    return (
-        <div className={`space-y-1 ${level > 0 ? `pl-4 border-l-2 border-solar-flare-start/20 ml-2` : ''}`}>
-            {items.map((item) => (
-                <div key={item.name}>
-                    <div className="flex items-center justify-between rounded-md hover:bg-gray-100">
-                        <Link href={item.href || '#'} onClick={(e) => { if (!hasSubcategories(item)) { closeMenu(); } else { e.preventDefault(); toggleItem(item.name); } }} className="flex-grow py-3 px-2 text-md font-medium text-gray-800">{item.name}</Link>
-                        {hasSubcategories(item) && (<button onClick={() => toggleItem(item.name)} className="p-3 text-gray-400"><ChevronDownIcon className={`h-5 w-5 transition-transform duration-300 ${openItems[item.name] ? 'rotate-180 text-solar-flare-end' : ''}`} /></button>)}
-                    </div>
-                    <AnimatePresence>
-                        {hasSubcategories(item) && openItems[item.name] && (
-                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: 'easeInOut' }} className="overflow-hidden">
-                                <MobileRecursiveMenu items={item.subcategories!} closeMenu={closeMenu} level={level + 1} />
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-            ))}
-        </div>
-    );
-};
-
+// --- MOBILE MENU (UPDATED) ---
 const MobileMenu = ({ isOpen, closeMenu }: { isOpen: boolean; closeMenu: () => void; }) => {
     const { data: session, status: sessionStatus } = useSession();
+    // --- THIS IS THE FIX ---
+    // State to hold the dynamic service categories for mobile
+    const [dynamicServiceCategories, setDynamicServiceCategories] = useState<NavCategory[]>([]);
+
+    useEffect(() => {
+        if (isOpen) { // Only fetch when the menu is open
+            const fetchServiceCategories = async () => {
+                try {
+                    const response = await fetch('/api/service-categories');
+                    const data = await response.json();
+                    if (response.ok) {
+                        setDynamicServiceCategories(data);
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch service categories for mobile:", error);
+                }
+            };
+            fetchServiceCategories();
+        }
+    }, [isOpen]); // Re-fetch if the menu is re-opened
+
     const featuredProduct = { name: "Complete 5kW Hybrid System", href: "/products/solar-kits/5kw-hybrid-system", image: "/images/featured-product.jpg", description: "Our bestselling all-in-one solution." };
     const featuredService = { name: "Commercial Solar Solutions", href: "/services/commercial-solar-solutions", image: "/images/hero-bg-3.jpg", description: "Power your business with solar." };
 
@@ -265,7 +252,9 @@ const MobileMenu = ({ isOpen, closeMenu }: { isOpen: boolean; closeMenu: () => v
                                 <div className="border-b pb-2">
                                     <h3 className="px-4 pt-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Services</h3>
                                     <MobileFeaturedItem item={featuredService} closeMenu={closeMenu} />
-                                    <div className="px-2"><MobileRecursiveMenu items={installationServiceCategories} closeMenu={closeMenu} /></div>
+                                    {/* --- THIS IS THE FIX --- */}
+                                    {/* Use the dynamic categories for the mobile menu */}
+                                    <div className="px-2"><MobileRecursiveMenu items={dynamicServiceCategories} closeMenu={closeMenu} /></div>
                                 </div>
                                 <div className="pt-2 px-2">
                                     {mainNavLinks.map((link) => (<Link key={link.name} href={link.href} className="block py-3 px-2 text-md font-medium text-gray-800 hover:bg-gray-100 rounded-md" onClick={closeMenu}>{link.name}</Link>))}
@@ -287,7 +276,7 @@ const MobileMenu = ({ isOpen, closeMenu }: { isOpen: boolean; closeMenu: () => v
 };
 
 
-// --- FINAL HEADER ORCHESTRATOR (Unchanged) ---
+// --- FINAL HEADER ORCHESTRATOR ---
 const Header = () => {
     const pathname = usePathname();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -319,7 +308,7 @@ const Header = () => {
                         <div className="flex-shrink-0">
                             <Link href="/" className="flex items-center group">
                                 <div className="relative h-10 w-10 sm:h-12 sm:w-12">
-                                    <NextImage src="/images/logo.png" alt="Bills On Solar EA Limited Logo" fill className="object-contain" sizes="48px"/>
+                                    <NextImage src="/images/logo.png" alt="Bills On Solar EA Limited Logo" fill className="object-contain" sizes="48px" unoptimized />
                                 </div>
                                 <span className="hidden sm:block ml-3 text-xl font-bold text-gray-900 group-hover:text-solar-flare-end transition-colors">Bills On Solar</span>
                             </Link>
@@ -343,5 +332,50 @@ const Header = () => {
         </>
     );
 };
+
+// --- MobileRecursiveMenu (Unchanged) ---
+const MobileRecursiveMenu = ({ items, closeMenu, level = 0 }: { items: NavCategory[]; closeMenu: () => void; level?: number; }) => {
+    const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
+    const toggleItem = (name: string) => setOpenItems(prev => ({ ...prev, [name]: !prev[name] }));
+    const hasSubcategories = (item: NavCategory) => (item.subcategories && item.subcategories.length > 0);
+
+    return (
+        <div className={`space-y-1 ${level > 0 ? `pl-4 border-l-2 border-solar-flare-start/20 ml-2` : ''}`}>
+            {items.map((item) => (
+                <div key={item.name}>
+                    <div className="flex items-center justify-between rounded-md hover:bg-gray-100">
+                        <Link href={item.href || '#'} onClick={(e) => { if (!hasSubcategories(item)) { closeMenu(); } else { e.preventDefault(); toggleItem(item.name); } }} className="flex-grow py-3 px-2 text-md font-medium text-gray-800">{item.name}</Link>
+                        {hasSubcategories(item) && (<button onClick={() => toggleItem(item.name)} className="p-3 text-gray-400"><ChevronDownIcon className={`h-5 w-5 transition-transform duration-300 ${openItems[item.name] ? 'rotate-180 text-solar-flare-end' : ''}`} /></button>)}
+                    </div>
+                    <AnimatePresence>
+                        {hasSubcategories(item) && openItems[item.name] && (
+                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: 'easeInOut' }} className="overflow-hidden">
+                                <MobileRecursiveMenu items={item.subcategories!} closeMenu={closeMenu} level={level + 1} />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+// --- MobileFeaturedItem (Unchanged) ---
+const MobileFeaturedItem = ({ item, closeMenu }: { item: { name: string, href: string, image: string, description: string }, closeMenu: () => void }) => (
+    <Link href={item.href} onClick={closeMenu} className="group block rounded-lg overflow-hidden relative bg-gray-100 p-4 my-2 mx-2">
+        <NextImage
+            src={item.image}
+            alt={item.name}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            unoptimized 
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+        <div className="relative h-full flex flex-col justify-end text-white">
+           <p className="text-xs font-bold uppercase tracking-wider flex items-center"><StarIcon className="h-4 w-4 mr-1.5 text-yellow-400"/>Featured</p>
+           <h3 className="font-bold text-md mt-1">{item.name}</h3>
+        </div>
+    </Link>
+);
 
 export default Header;
