@@ -1,3 +1,4 @@
+// src/app/admin/services/page.tsx
 'use client';
 
 import { useSession } from 'next-auth/react';
@@ -5,13 +6,12 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import PageHeader from '@/components/admin/PageHeader'; 
-import { ServicePageData } from '@/types';
+import { ServicePageData, ServiceCategory } from '@/types'; // Import ServiceCategory
 import PageLoader from '@/components/PageLoader';    
 import { PlusIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
-import { serviceOptions } from '@/lib/serviceOptions';
 import { motion, Variants } from 'framer-motion';
 
-const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com'; 
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL; 
 
 export type ManagedService = {
   isCreated: boolean;
@@ -31,13 +31,12 @@ const itemVariants: Variants = {
     visible: { opacity: 1, y: 0 },
 };
 
-// --- IMPRESSIVE NEW SERVICE CARD COMPONENT ---
+// --- SERVICE CARD COMPONENT (Your original, better component) ---
 const ServiceCard = ({ service }: { service: ManagedService }) => {
     const statusConfig = service.isCreated
-        ? { text: 'Created', color: 'bg-green-500' }
-        : { text: 'Not Created', color: 'bg-slate-400' };
+        ? { text: 'Created', color: 'bg-green-100 text-green-700' }
+        : { text: 'Not Created', color: 'bg-slate-100 text-slate-600' };
 
-    // The "Create" link will now pass the slug and label to pre-fill the form
     const createLink = `/admin/services/new?slug=${encodeURIComponent(service.slug)}&label=${encodeURIComponent(service.label)}`;
     const editLink = `/admin/services/edit/${service.dbData?.id}`;
 
@@ -47,8 +46,8 @@ const ServiceCard = ({ service }: { service: ManagedService }) => {
                 <div className="flex justify-between items-center">
                     <h3 className="font-bold text-md text-slate-800">{service.label}</h3>
                     <div className="flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-full" >
-                        <div className={`h-2 w-2 rounded-full ${statusConfig.color}`}></div>
-                        <span className={`${statusConfig.color.replace('bg-', 'text-')}`}>{statusConfig.text}</span>
+                        <div className={`h-2 w-2 rounded-full ${statusConfig.color.replace('text-', 'bg-')}`}></div>
+                        <span className={statusConfig.color}>{statusConfig.text}</span>
                     </div>
                 </div>
                 <p className="text-xs text-slate-500 font-mono bg-slate-50 inline-block px-2 py-1 rounded-md mt-2">
@@ -73,7 +72,7 @@ const ServiceCard = ({ service }: { service: ManagedService }) => {
 };
 
 
-// --- REDESIGNED ADMIN SERVICES PAGE ---
+// --- ADMIN SERVICES PAGE (Now using dynamic data) ---
 const AdminServicesPage = () => {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
@@ -81,29 +80,38 @@ const AdminServicesPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // Data fetching logic remains the same
+  // --- THIS IS THE FIX ---
+  // This function now fetches BOTH the defined service categories AND the created pages,
+  // then it compares them to build the list.
   const fetchAndProcessServices = useCallback(async () => {
     setIsLoading(true);
     setFetchError(null);
     try {
-      const response = await fetch('/api/admin/services'); 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch existing services');
-      }
-      const existingServices: ServicePageData[] = await response.json();
-      const existingSlugs = new Map(existingServices.map(s => [s.slug, s]));
+      // Fetch all service categories defined by the admin
+      const categoriesResponse = await fetch('/api/admin/service-categories/flat'); 
+      if (!categoriesResponse.ok) throw new Error('Failed to fetch service categories');
+      const allServiceCategories: ServiceCategory[] = await categoriesResponse.json();
+      
+      // Fetch all service pages that have actually been created
+      const pagesResponse = await fetch('/api/admin/services'); 
+      if (!pagesResponse.ok) throw new Error('Failed to fetch existing service pages');
+      const existingServicePages: ServicePageData[] = await pagesResponse.json();
+      
+      // Create a Map for quick lookups of created pages
+      const existingPagesMap = new Map(existingServicePages.map(p => [p.slug, p]));
 
-      const allServices: ManagedService[] = serviceOptions.map(option => {
-        const dbData = existingSlugs.get(option.value);
+      // Build the final list for display
+      const allServices: ManagedService[] = allServiceCategories.map(category => {
+        const dbData = existingPagesMap.get(category.slug);
         return {
           isCreated: !!dbData,
-          label: option.label,
-          slug: option.value,
+          label: category.name,
+          slug: category.slug,
           dbData: dbData,
         };
       });
       setManagedServices(allServices);
+
     } catch (error: any) {
       setFetchError(error.message || 'Could not load services.');
       console.error("Error processing services:", error);
@@ -118,7 +126,6 @@ const AdminServicesPage = () => {
     }
   }, [sessionStatus, session, fetchAndProcessServices]); 
 
-  // Auth checks remain the same
   useEffect(() => {
     if (sessionStatus === 'loading') return; 
     if (sessionStatus === 'unauthenticated') {
@@ -136,11 +143,12 @@ const AdminServicesPage = () => {
   }
 
   return (
-    <>
+    <div className="p-6 sm:p-8">
       <PageHeader 
         title="Manage Services"
         description="View all available services and their status. Create new pages or edit existing ones."
       >
+        {/* This button is for a one-off custom service, not tied to a category */}
         <Link href="/admin/services/new" className="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-colors duration-150 inline-flex items-center">
           <PlusIcon className="h-5 w-5 mr-2" />
           Add Custom Service
@@ -159,7 +167,7 @@ const AdminServicesPage = () => {
             <ServiceCard key={service.slug} service={service} />
         ))}
       </motion.div>
-    </>
+    </div>
   );
 };
 
