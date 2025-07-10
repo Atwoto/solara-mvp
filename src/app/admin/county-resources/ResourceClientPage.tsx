@@ -13,7 +13,7 @@ const kenyanCounties = [
   "Baringo", "Bomet", "Bungoma", "Busia", "Elgeyo Marakwet", "Embu", "Garissa", "Homa Bay", "Isiolo", "Kajiado", "Kakamega", "Kericho", "Kiambu", "Kilifi", "Kirinyaga", "Kisii", "Kisumu", "Kitui", "Kwale", "Laikipia", "Lamu", "Machakos", "Makueni", "Mandera", "Marsabit", "Meru", "Migori", "Mombasa", "Murang'a", "Nairobi", "Nakuru", "Nandi", "Narok", "Nyamira", "Nyandarua", "Nyeri", "Samburu", "Siaya", "Taita Taveta", "Tana River", "Tharaka Nithi", "Trans Nzoia", "Turkana", "Uasin Gishu", "Vihiga", "Wajir", "West Pokot"
 ];
 
-// --- Main Client Component (No changes needed here) ---
+// --- Main Client Component ---
 export default function ResourceClientPage({ initialResources }: { initialResources: CountyResource[] }) {
   const [resources, setResources] = useState<CountyResource[]>(initialResources);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,25 +37,41 @@ export default function ResourceClientPage({ initialResources }: { initialResour
     setSelectedResource(null);
   };
 
+  // --- THIS IS THE FINAL FIX ---
+  // This version of handleDelete correctly calls the API and handles the UI update.
   const handleDelete = async (resourceId: string, fileUrl: string) => {
-    if (!window.confirm("Are you sure you want to delete this resource?")) {
-      return;
+    if (!window.confirm("Are you sure you want to delete this resource? This cannot be undone.")) {
+        return;
     }
-    try {
-      const { error: dbError } = await supabase.from('county_resources').delete().eq('id', resourceId);
-      if (dbError) throw dbError;
+    
+    // Immediately remove the item from the UI for a fast user experience.
+    const originalResources = resources;
+    setResources(prev => prev.filter(r => r.id !== resourceId));
 
-      const fileName = fileUrl.split('/').pop();
-      if (fileName) {
-        await supabase.storage.from('county-resources').remove([fileName]);
-      }
-      
-      setResources(prev => prev.filter(r => r.id !== resourceId));
-      alert("Resource deleted successfully.");
+    try {
+        const response = await fetch('/api/admin/county-resources', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ resourceId, fileUrl }),
+        });
+
+        if (!response.ok) {
+            // If the API call fails, show an error and revert the UI change.
+            const result = await response.json();
+            throw new Error(result.error || 'Failed to delete the resource.');
+        }
+        
+        // If the API call is successful, we don't need to do anything else,
+        // as the UI has already been updated.
+        console.log("Resource deleted successfully from the database.");
+
     } catch (error: any) {
-      alert(`Error: ${error.message}`);
+        alert(`Error: ${error.message}`);
+        // If there was an error, put the item back into the list.
+        setResources(originalResources);
     }
   };
+
 
   return (
     <div className="p-6 sm:p-8">
@@ -125,7 +141,7 @@ export default function ResourceClientPage({ initialResources }: { initialResour
   );
 }
 
-// --- Form Modal Component (Updated Logic) ---
+// --- Form Modal Component (No changes needed here) ---
 function ResourceFormModal({ resource, onClose, onSuccess }: { resource: CountyResource | null; onClose: () => void; onSuccess: () => void; }) {
   const [formData, setFormData] = useState({
     county_name: resource?.county_name || '',
@@ -168,13 +184,11 @@ function ResourceFormModal({ resource, onClose, onSuccess }: { resource: CountyR
         file_type = fileExt?.toUpperCase() || '';
       }
 
-      // --- THIS IS THE FIX ---
-      // Instead of writing to DB directly, we call our new secure API endpoint.
       const response = await fetch('/api/admin/county-resources', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-              ...(resource && { id: resource.id }), // include id if updating
+              ...(resource && { id: resource.id }),
               ...formData,
               file_url,
               file_type,
