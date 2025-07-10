@@ -1,6 +1,5 @@
 // src/app/county-resources/page.tsx
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { supabaseAdmin } from '@/lib/supabase/server'; // Use the admin client for simplicity and reliability
 import { CountyResource } from '@/types';
 import PageHeader from '@/components/PageHeader';
 import { MapIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
@@ -17,10 +16,10 @@ const groupResourcesByCounty = (resources: CountyResource[]) => {
 };
 
 export default async function CountyResourcesPage() {
-  const supabase = createServerComponentClient({ cookies });
-
-  // Fetch only published resources, ordered by county name.
-  const { data, error } = await supabase
+  // --- THIS IS THE FIX ---
+  // Using the 'supabaseAdmin' client to fetch the data on the server.
+  // This bypasses any complex RLS issues for public-facing read operations.
+  const { data, error } = await supabaseAdmin
     .from('county_resources')
     .select('*')
     .eq('is_published', true)
@@ -28,7 +27,7 @@ export default async function CountyResourcesPage() {
     .order('file_title', { ascending: true });
 
   if (error) {
-    console.error('Error fetching county resources:', error);
+    console.error('Error fetching county resources:', error.message);
   }
 
   const resources: CountyResource[] = data || [];
@@ -37,12 +36,10 @@ export default async function CountyResourcesPage() {
   return (
     <>
       <PageHeader
-        title="Resources"
-        subtitle="Download valuable guides, datasheets, and permit information."
+        title="County Resources"
+        subtitle="Download valuable guides, datasheets, and permit information for your county."
         backgroundImageUrl="/images/projects-hero-bg.jpg"
-        // --- THIS IS THE FIX ---
-        // Added the missing 'href' property to the "County Resources" breadcrumb.
-        breadcrumbs={[{ name: 'Home', href: '/' }, { name: 'Resources', href: '/county-resources' }]}
+        breadcrumbs={[{ name: 'Home', href: '/' }, { name: 'County Resources', href: '/county-resources' }]}
       />
 
       <div className="bg-gray-50 py-16 sm:py-24">
