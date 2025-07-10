@@ -1,47 +1,43 @@
 // src/app/admin/service-categories/ServiceCategoryClientPage.tsx
 'use client';
 
-import { useState, useMemo, FormEvent } from 'react';
+import { useState, useMemo, FormEvent, Fragment } from 'react';
 import { ServiceCategory } from '@/types';
 import { useRouter } from 'next/navigation';
-import { PlusIcon, PencilIcon, TrashIcon, XMarkIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// --- Category List Item Component ---
-const CategoryItem = ({ category, level = 0, onEdit, onDelete, isExpanded, onToggle }: {
+// --- Category List Item Component (Recursive) ---
+// This component is now designed to call itself to render children, creating a nested "tree" view.
+const CategoryItem = ({ category, level = 0, onEdit, onDelete }: {
   category: ServiceCategory & { children?: ServiceCategory[] };
   level?: number;
   onEdit: (category: ServiceCategory) => void;
   onDelete: (id: string, name: string) => void;
-  isExpanded: boolean;
-  onToggle: (id: string) => void;
 }) => {
   const hasChildren = category.children && category.children.length > 0;
 
   return (
     <>
-      <div className={`flex items-center bg-white p-3 rounded-md shadow-sm border transition-colors ${isExpanded ? 'border-indigo-200' : 'border-gray-200'}`}>
-        <div style={{ paddingLeft: `${level * 24}px` }} className="flex-grow flex items-center">
-          {hasChildren && (
-            <button onClick={() => onToggle(category.id)} className="p-1 rounded-full hover:bg-gray-100 mr-2">
-              {isExpanded ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
-            </button>
-          )}
-          {!hasChildren && <div className="w-6 mr-2"></div>}
+      <div className="flex items-center bg-white p-3 rounded-lg shadow-sm border border-gray-200 hover:border-indigo-300">
+        <div style={{ paddingLeft: `${level * 28}px` }} className="flex-grow flex items-center">
+          {level > 0 && <span className="text-gray-300 mr-2">↳</span>}
           <span className="font-medium text-gray-800">{category.name}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => onEdit(category)} className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"><PencilIcon className="h-4 w-4" /></button>
-          <button onClick={() => onDelete(category.id, category.name)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"><TrashIcon className="h-4 w-4" /></button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button onClick={() => onEdit(category)} className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" title="Edit Category">
+            <PencilIcon className="h-4 w-4" />
+          </button>
+          <button onClick={() => onDelete(category.id, category.name)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Delete Category">
+            <TrashIcon className="h-4 w-4" />
+          </button>
         </div>
       </div>
-      {hasChildren && isExpanded && (
-        <div className="pl-6 border-l-2 border-gray-200 ml-3">
-          <div className="space-y-2 mt-2">
-            {category.children?.map(child => (
-              <CategoryItem key={child.id} category={child} level={level + 1} onEdit={onEdit} onDelete={onDelete} isExpanded={isExpanded} onToggle={onToggle}/>
-            ))}
-          </div>
+      {hasChildren && (
+        <div className="space-y-2">
+          {category.children?.map(child => (
+            <CategoryItem key={child.id} category={child} level={level + 1} onEdit={onEdit} onDelete={onDelete} />
+          ))}
         </div>
       )}
     </>
@@ -50,15 +46,15 @@ const CategoryItem = ({ category, level = 0, onEdit, onDelete, isExpanded, onTog
 
 // --- Main Client Page Component ---
 export default function ServiceCategoryClientPage({ initialCategories }: { initialCategories: ServiceCategory[] }) {
-  const [categories, setCategories] = useState<ServiceCategory[]>(initialCategories);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<ServiceCategory | null>(null);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const router = useRouter();
 
   const categoryTree = useMemo(() => {
+    const categories = [...initialCategories]; // Create a mutable copy
     const map = new Map(categories.map(cat => [cat.id, { ...cat, children: [] as ServiceCategory[] }]));
     const tree: (ServiceCategory & { children: ServiceCategory[] })[] = [];
+    
     map.forEach(cat => {
       if (cat.parent_id && map.has(cat.parent_id)) {
         map.get(cat.parent_id)?.children.push(cat);
@@ -67,19 +63,7 @@ export default function ServiceCategoryClientPage({ initialCategories }: { initi
       }
     });
     return tree;
-  }, [categories]);
-
-  const handleToggleExpand = (id: string) => {
-    setExpandedIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  };
+  }, [initialCategories]);
 
   const handleOpenModal = (category: ServiceCategory | null = null) => {
     setSelectedCategory(category);
@@ -120,16 +104,22 @@ export default function ServiceCategoryClientPage({ initialCategories }: { initi
           Add New Category
         </button>
       </div>
-      <div className="space-y-2">
-        {categoryTree.map(cat => (
-          <CategoryItem key={cat.id} category={cat} onEdit={handleOpenModal} onDelete={handleDelete} isExpanded={expandedIds.has(cat.id)} onToggle={handleToggleExpand} />
-        ))}
+      <div className="p-4 bg-gray-50 rounded-xl border">
+        {categoryTree.length > 0 ? (
+          <div className="space-y-2">
+            {categoryTree.map(cat => (
+              <CategoryItem key={cat.id} category={cat} onEdit={handleOpenModal} onDelete={handleDelete} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-gray-500 py-8">No categories created yet. Click "Add New Category" to start.</p>
+        )}
       </div>
       <AnimatePresence>
         {isModalOpen && (
           <CategoryFormModal
             category={selectedCategory}
-            allCategories={categories}
+            allCategories={initialCategories}
             onClose={handleCloseModal}
             onSuccess={() => {
               handleCloseModal();
@@ -160,7 +150,6 @@ function CategoryFormModal({ category, allCategories, onClose, onSuccess }: {
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newName = e.target.value;
     setName(newName);
-    // Auto-generate slug from name if creating a new category
     if (!category) {
       setSlug(newName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
     }
@@ -232,7 +221,7 @@ function CategoryFormModal({ category, allCategories, onClose, onSuccess }: {
           </div>
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea id="description" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full border-gray-300 rounded-md shadow-sm"/>
+            <textarea id="description" rows={3} value={description || ''} onChange={(e) => setDescription(e.target.value)} className="w-full border-gray-300 rounded-md shadow-sm"/>
           </div>
           <div>
             <label htmlFor="displayOrder" className="block text-sm font-medium text-gray-700 mb-1">Display Order</label>
