@@ -9,12 +9,11 @@ import PageHeader from '@/components/admin/PageHeader';
 import { PlusIcon, MapIcon, DocumentTextIcon, TrashIcon, PencilIcon, XMarkIcon, ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// A list of Kenyan counties for the dropdown menu
 const kenyanCounties = [
   "Baringo", "Bomet", "Bungoma", "Busia", "Elgeyo Marakwet", "Embu", "Garissa", "Homa Bay", "Isiolo", "Kajiado", "Kakamega", "Kericho", "Kiambu", "Kilifi", "Kirinyaga", "Kisii", "Kisumu", "Kitui", "Kwale", "Laikipia", "Lamu", "Machakos", "Makueni", "Mandera", "Marsabit", "Meru", "Migori", "Mombasa", "Murang'a", "Nairobi", "Nakuru", "Nandi", "Narok", "Nyamira", "Nyandarua", "Nyeri", "Samburu", "Siaya", "Taita Taveta", "Tana River", "Tharaka Nithi", "Trans Nzoia", "Turkana", "Uasin Gishu", "Vihiga", "Wajir", "West Pokot"
 ];
 
-// --- Main Client Component ---
+// --- Main Client Component (No changes needed here) ---
 export default function ResourceClientPage({ initialResources }: { initialResources: CountyResource[] }) {
   const [resources, setResources] = useState<CountyResource[]>(initialResources);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -39,19 +38,16 @@ export default function ResourceClientPage({ initialResources }: { initialResour
   };
 
   const handleDelete = async (resourceId: string, fileUrl: string) => {
-    if (!window.confirm("Are you sure you want to delete this resource? This action cannot be undone.")) {
+    if (!window.confirm("Are you sure you want to delete this resource?")) {
       return;
     }
     try {
-      // Delete from database
       const { error: dbError } = await supabase.from('county_resources').delete().eq('id', resourceId);
       if (dbError) throw dbError;
 
-      // Delete file from storage
       const fileName = fileUrl.split('/').pop();
       if (fileName) {
-        const { error: storageError } = await supabase.storage.from('county-resources').remove([fileName]);
-        if (storageError) console.warn("Could not delete file from storage, but DB entry was removed:", storageError.message);
+        await supabase.storage.from('county-resources').remove([fileName]);
       }
       
       setResources(prev => prev.filter(r => r.id !== resourceId));
@@ -120,7 +116,7 @@ export default function ResourceClientPage({ initialResources }: { initialResour
             onClose={handleCloseModal}
             onSuccess={() => {
               handleCloseModal();
-              router.refresh(); // Refresh server component data
+              router.refresh(); 
             }}
           />
         )}
@@ -129,7 +125,7 @@ export default function ResourceClientPage({ initialResources }: { initialResour
   );
 }
 
-// --- Form Modal Component ---
+// --- Form Modal Component (Updated Logic) ---
 function ResourceFormModal({ resource, onClose, onSuccess }: { resource: CountyResource | null; onClose: () => void; onSuccess: () => void; }) {
   const [formData, setFormData] = useState({
     county_name: resource?.county_name || '',
@@ -146,7 +142,7 @@ function ResourceFormModal({ resource, onClose, onSuccess }: { resource: CountyR
       setError("County and File Title are required.");
       return;
     }
-    if (!resource && !file) { // Require file for new resources
+    if (!resource && !file) {
       setError("A file is required to create a new resource.");
       return;
     }
@@ -158,7 +154,6 @@ function ResourceFormModal({ resource, onClose, onSuccess }: { resource: CountyR
       let file_url = resource?.file_url || '';
       let file_type = resource?.file_type || '';
 
-      // 1. Upload file if a new one is provided
       if (file) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${formData.county_name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.${fileExt}`;
@@ -168,21 +163,28 @@ function ResourceFormModal({ resource, onClose, onSuccess }: { resource: CountyR
 
         if (uploadError) throw new Error(`Storage Error: ${uploadError.message}`);
         
-        // Get public URL of the uploaded file
         const { data: urlData } = supabase.storage.from('county-resources').getPublicUrl(uploadData.path);
         file_url = urlData.publicUrl;
         file_type = fileExt?.toUpperCase() || '';
       }
 
-      // 2. Prepare data for the database
-      const dbData = { ...formData, file_url, file_type };
+      // --- THIS IS THE FIX ---
+      // Instead of writing to DB directly, we call our new secure API endpoint.
+      const response = await fetch('/api/admin/county-resources', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              ...(resource && { id: resource.id }), // include id if updating
+              ...formData,
+              file_url,
+              file_type,
+          }),
+      });
 
-      // 3. Upsert (update or insert) data into the database
-      const { error: dbError } = await supabase.from('county_resources').upsert(
-        resource ? { ...dbData, id: resource.id } : dbData
-      );
-
-      if (dbError) throw dbError;
+      if (!response.ok) {
+          const errorResult = await response.json();
+          throw new Error(errorResult.error || 'Failed to save resource.');
+      }
 
       alert(`Resource ${resource ? 'updated' : 'created'} successfully!`);
       onSuccess();
