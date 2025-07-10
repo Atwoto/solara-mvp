@@ -6,12 +6,15 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import PageHeader from '@/components/admin/PageHeader'; 
-import { ServicePageData, ServiceCategory } from '@/types'; // Import ServiceCategory
+import { ServicePageData, ServiceCategory } from '@/types';
 import PageLoader from '@/components/PageLoader';    
 import { PlusIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import { motion, Variants } from 'framer-motion';
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL; 
+// --- THIS IS THE FIX ---
+// Hardcoding the admin email to match your other working admin pages.
+// Note: Using environment variables is generally more secure, but this will work.
+const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com'; 
 
 export type ManagedService = {
   isCreated: boolean;
@@ -31,7 +34,7 @@ const itemVariants: Variants = {
     visible: { opacity: 1, y: 0 },
 };
 
-// --- SERVICE CARD COMPONENT (Your original, better component) ---
+// --- SERVICE CARD COMPONENT ---
 const ServiceCard = ({ service }: { service: ManagedService }) => {
     const statusConfig = service.isCreated
         ? { text: 'Created', color: 'bg-green-100 text-green-700' }
@@ -72,7 +75,7 @@ const ServiceCard = ({ service }: { service: ManagedService }) => {
 };
 
 
-// --- ADMIN SERVICES PAGE (Now using dynamic data) ---
+// --- ADMIN SERVICES PAGE ---
 const AdminServicesPage = () => {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
@@ -80,27 +83,20 @@ const AdminServicesPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // --- THIS IS THE FIX ---
-  // This function now fetches BOTH the defined service categories AND the created pages,
-  // then it compares them to build the list.
   const fetchAndProcessServices = useCallback(async () => {
     setIsLoading(true);
     setFetchError(null);
     try {
-      // Fetch all service categories defined by the admin
       const categoriesResponse = await fetch('/api/admin/service-categories/flat'); 
       if (!categoriesResponse.ok) throw new Error('Failed to fetch service categories');
       const allServiceCategories: ServiceCategory[] = await categoriesResponse.json();
       
-      // Fetch all service pages that have actually been created
       const pagesResponse = await fetch('/api/admin/services'); 
       if (!pagesResponse.ok) throw new Error('Failed to fetch existing service pages');
       const existingServicePages: ServicePageData[] = await pagesResponse.json();
       
-      // Create a Map for quick lookups of created pages
       const existingPagesMap = new Map(existingServicePages.map(p => [p.slug, p]));
 
-      // Build the final list for display
       const allServices: ManagedService[] = allServiceCategories.map(category => {
         const dbData = existingPagesMap.get(category.slug);
         return {
@@ -148,7 +144,6 @@ const AdminServicesPage = () => {
         title="Manage Services"
         description="View all available services and their status. Create new pages or edit existing ones."
       >
-        {/* This button is for a one-off custom service, not tied to a category */}
         <Link href="/admin/services/new" className="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-colors duration-150 inline-flex items-center">
           <PlusIcon className="h-5 w-5 mr-2" />
           Add Custom Service

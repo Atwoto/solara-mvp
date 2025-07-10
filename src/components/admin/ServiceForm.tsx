@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect, FormEvent, ChangeEvent, ReactNode, useCallback } from 'react'; // --- FIX: Added useCallback ---
+import { useState, useEffect, FormEvent, ChangeEvent, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import TipTapEditor from '@/components/admin/TipTapEditor';
-import { ServicePageData } from '@/types'; 
-import Image from 'next/image';
-import { serviceOptions } from '@/lib/serviceOptions';
+import { ServicePageData, ServiceCategory } from '@/types'; // Import ServiceCategory
+// import { serviceOptions } from '@/lib/serviceOptions'; // No longer needed
 import { XCircleIcon, PhotoIcon, ChevronUpIcon } from '@heroicons/react/24/solid';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
@@ -52,6 +51,10 @@ const SettingsCard = ({ title, children }: { title: string, children: ReactNode 
 export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFormProps) {
   const router = useRouter();
 
+  // --- THIS IS THE FIX ---
+  // State to hold the dynamic list of service categories for the dropdown
+  const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>([]);
+
   const getInitialFormState = useCallback((): ServiceFormState => ({
     title: initialData?.title || '',
     slug: initialData?.slug || '',
@@ -75,6 +78,22 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+
+  useEffect(() => {
+    // --- THIS IS THE FIX ---
+    // Fetch the service categories when the component mounts
+    const fetchCategories = async () => {
+        try {
+            const response = await fetch('/api/admin/service-categories/flat');
+            if (!response.ok) throw new Error('Failed to fetch service categories');
+            const data: ServiceCategory[] = await response.json();
+            setServiceCategories(data);
+        } catch (err) {
+            console.error("Error fetching categories for form dropdown:", err);
+        }
+    };
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     setFormData(getInitialFormState());
@@ -101,8 +120,8 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
 
   const handleServiceSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedSlug = e.target.value;
-    const selectedService = serviceOptions.find(opt => opt.value === selectedSlug);
-    if (selectedService) setFormData(prev => ({...prev, title: selectedService.label, slug: selectedService.value}));
+    const selectedService = serviceCategories.find(opt => opt.slug === selectedSlug);
+    if (selectedService) setFormData(prev => ({...prev, title: selectedService.name, slug: selectedService.slug}));
   };
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -178,13 +197,14 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
   return (
     <form onSubmit={handleSubmit}>
         <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-            {/* Main Content Column */}
             <div className="lg:col-span-2 space-y-6">
                 <motion.div variants={itemVariants} className="p-6 bg-white rounded-xl shadow-sm border border-slate-200/80">
                     <label htmlFor="service-title-select" className="block text-sm font-medium text-slate-700 mb-1">Service Title <span className="text-red-500">*</span></label>
+                    {/* --- THIS IS THE FIX --- */}
+                    {/* The dropdown now uses the dynamic 'serviceCategories' from the state */}
                     <select id="service-title-select" name="title" value={formData.slug} onChange={handleServiceSelectChange} required className="mt-1 block w-full px-3 py-2.5 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm">
                         <option value="" disabled>-- Select a service to pre-fill --</option>
-                        {serviceOptions.map(option => (<option key={option.value} value={option.value}>{option.label}</option>))}
+                        {serviceCategories.map(option => (<option key={option.id} value={option.slug}>{option.name}</option>))}
                     </select>
                 </motion.div>
                 <motion.div variants={itemVariants} className="p-6 bg-white rounded-xl shadow-sm border border-slate-200/80">
@@ -193,7 +213,6 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
                 </motion.div>
             </div>
 
-            {/* Sidebar Column */}
             <motion.div variants={itemVariants} className="lg:col-span-1 space-y-6 lg:sticky top-28">
                 <SettingsCard title="Publishing">
                     <div className="space-y-4">
@@ -220,10 +239,10 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
                     {(formData.currentImageUrls.length > 0 || imagePreviews.length > 0) && (
                         <div className="mt-4 grid grid-cols-3 gap-3">
                             {formData.currentImageUrls.map((url) => (
-                                <div key={url} className="relative group aspect-square"><Image src={url} alt="Existing image" fill className="object-cover rounded-md border" sizes="15vw"/><button type="button" onClick={() => removeExistingImage(url)} className="absolute -top-2 -right-2 bg-white rounded-full transition-transform hover:scale-110"><XCircleIcon className="h-6 w-6 text-red-500 hover:text-red-700" /></button></div>
+                                <div key={url} className="relative group aspect-square"><img src={url} alt="Existing image" className="absolute inset-0 w-full h-full object-cover rounded-md border" loading="lazy" /><button type="button" onClick={() => removeExistingImage(url)} className="absolute -top-2 -right-2 bg-white rounded-full transition-transform hover:scale-110"><XCircleIcon className="h-6 w-6 text-red-500 hover:text-red-700" /></button></div>
                             ))}
                             {imagePreviews.map((previewUrl, index) => (
-                                <div key={previewUrl} className="relative group aspect-square"><Image src={previewUrl} alt="New preview" fill className="object-cover rounded-md border" sizes="15vw"/><button type="button" onClick={() => removeNewImage(index)} className="absolute -top-2 -right-2 bg-white rounded-full transition-transform hover:scale-110"><XCircleIcon className="h-6 w-6 text-red-500 hover:text-red-700" /></button></div>
+                                <div key={previewUrl} className="relative group aspect-square"><img src={previewUrl} alt="New preview" className="absolute inset-0 w-full h-full object-cover rounded-md border" loading="lazy" /><button type="button" onClick={() => removeNewImage(index)} className="absolute -top-2 -right-2 bg-white rounded-full transition-transform hover:scale-110"><XCircleIcon className="h-6 w-6 text-red-500 hover:text-red-700" /></button></div>
                             ))}
                         </div>
                     )}
@@ -238,11 +257,8 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
                     </div>
                 </SettingsCard>
             </motion.div>
-
-        {/* --- THE FIX: Added the missing closing tag --- */}
         </motion.div>
 
-        {/* Sticky Footer Action Bar */}
         <div className="sticky bottom-0 left-0 right-0 py-4 bg-white/70 backdrop-blur-lg border-t border-slate-200 mt-8 -mx-8 px-8">
              <div className="container mx-auto px-4">
                 <div className="flex justify-end max-w-5xl mx-auto">
