@@ -76,7 +76,7 @@ export default function ResourceClientPage({ initialResources }: { initialResour
   return (
     <div className="p-6 sm:p-8">
       <PageHeader
-        title="County Resources"
+        title="Resources"
         description="Manage downloadable documents for each county profile."
       >
         <button

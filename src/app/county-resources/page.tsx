@@ -36,10 +36,10 @@ export default async function CountyResourcesPage() {
   return (
     <>
       <PageHeader
-        title="County Resources"
+        title="Resources"
         subtitle="Download valuable guides, datasheets, and permit information for your county."
         backgroundImageUrl="/images/projects-hero-bg.jpg"
-        breadcrumbs={[{ name: 'Home', href: '/' }, { name: 'County Resources', href: '/county-resources' }]}
+        breadcrumbs={[{ name: 'Home', href: '/' }, { name: 'Resources', href: '/county-resources' }]}
       />
 
       <div className="bg-gray-50 py-16 sm:py-24">

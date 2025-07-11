@@ -16,7 +16,7 @@ const AdminCountyResourcesPage = async () => {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching county resources:', error);
+    console.error('Error fetching resources:', error);
     return <div className="p-8 text-red-500">Error loading resources. Please check the server logs.</div>;
   }
 
