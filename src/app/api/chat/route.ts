@@ -34,20 +34,22 @@ export async function POST(req: Request) {
   let productKnowledge = 'No product information available.';
   let servicePageKnowledge = 'No installation service page content available.';
   let articleKnowledge = 'No blog article information available.';
-  // --- THIS IS THE FIX ---
-  // Added new variables for projects and service categories
   let projectKnowledge = 'No project information available.';
   let serviceCategoryKnowledge = 'No service categories defined.';
+  // --- THIS IS THE FIX ---
+  // Added a new variable for county resources
+  let countyResourceKnowledge = 'No county-specific resources available.';
 
   try {
     // --- THIS IS THE FIX ---
-    // Added 'projects' and 'service_categories' to the data fetching
-    const [productsRes, servicesRes, articlesRes, projectsRes, serviceCategoriesRes] = await Promise.all([
+    // Added 'county_resources' to the data fetching
+    const [productsRes, servicesRes, articlesRes, projectsRes, serviceCategoriesRes, countyResourcesRes] = await Promise.all([
         dbClient.from('products').select('id, name, price, wattage, category, description').limit(100),
         dbClient.from('service_pages').select('id, title, slug, excerpt').eq('status', 'published'),
         dbClient.from('articles').select('id, title, slug, excerpt, category').filter('published_at', 'lte', new Date().toISOString()),
         dbClient.from('projects').select('id, title, category, description').eq('is_published', true),
         dbClient.from('service_categories').select('id, name, slug, parent_id').order('display_order'),
+        dbClient.from('county_resources').select('county_name, file_title, file_description').eq('is_published', true),
     ]);
 
     if (productsRes.data && productsRes.data.length > 0) {
@@ -58,7 +60,7 @@ export async function POST(req: Request) {
     
     if (servicesRes.data && servicesRes.data.length > 0) {
       servicePageKnowledge = servicesRes.data.map((s: any) => 
-        `\n- Service Page: "${s.title}", URL Slug: "/services/${s.slug}", Summary: "${stripHtml(s.excerpt)}"`
+        `\n- Service Page Content: For the service with URL "/services/${s.slug}", the detailed summary is: "${stripHtml(s.excerpt)}"`
       ).join('');
     }
     
@@ -68,15 +70,12 @@ export async function POST(req: Request) {
       ).join('');
     }
 
-    // --- THIS IS THE FIX ---
-    // Process project data into knowledge
     if (projectsRes.data && projectsRes.data.length > 0) {
         projectKnowledge = projectsRes.data.map((p: any) =>
             `\n- Project: "${p.title}", Category: "${p.category}", Description: "${p.description}"`
         ).join('');
     }
 
-    // Process service category data into a nested structure for the AI to understand
     if (serviceCategoriesRes.data && serviceCategoriesRes.data.length > 0) {
         const categories = serviceCategoriesRes.data;
         const categoryMap = new Map(categories.map(cat => [cat.id, { ...cat, children: [] as any[] }]));
@@ -101,12 +100,20 @@ export async function POST(req: Request) {
         };
         serviceCategoryKnowledge = buildKnowledgeString(tree);
     }
+
+    // --- THIS IS THE FIX ---
+    // Process county resource data into knowledge
+    if (countyResourcesRes.data && countyResourcesRes.data.length > 0) {
+        countyResourceKnowledge = countyResourcesRes.data.map((r: any) =>
+            `\n- Resource for ${r.county_name} County: "${r.file_title}", Description: "${r.file_description}"`
+        ).join('');
+    }
     
   } catch (e: any) {
     console.error("Chatbot API: Critical error fetching knowledge base:", e.message);
   }
   
-  // --- Cart and Wishlist knowledge remain the same ---
+  // Cart and Wishlist knowledge remain the same
   let cartKnowledge = 'The user\'s shopping cart is currently empty.';
   if (cart && cart.length > 0) {
     cartKnowledge = 'The user\'s shopping cart currently contains:' + cart.map(
@@ -125,7 +132,7 @@ export async function POST(req: Request) {
     } catch(e) { /* Graceful degradation */ }
   }
 
-  // --- UPGRADED SYSTEM PROMPT ---
+  // --- FULLY UPGRADED SYSTEM PROMPT ---
   const systemPrompt = `
     Your Identity: You are the "Bills On Solar Assistant", a friendly, expert AI from Bills On Solar EA Limited in Kenya.
     Your Primary Goal: Assist users by answering their questions and guiding them through the website. You MUST base your answers strictly on the information provided in the KNOWLEDGE BASE.
@@ -137,7 +144,7 @@ export async function POST(req: Request) {
         - Home Page: "/"
         - All Products Page: "/products"
         - Projects Page: "/projects"
-        - Resources Page: "/county-resources"
+        - County Resources Page: "/county-resources"
         - About Us Page: "/#about-us"
         - Contact Us Page: "/#contact-us"
         - Blog Page: "/blog"
@@ -147,10 +154,11 @@ export async function POST(req: Request) {
     4.  **Available Products:** ${productKnowledge}
     5.  **Available Service Categories:** ${serviceCategoryKnowledge}
     6.  **Showcased Projects:** ${projectKnowledge}
-    7.  **Available Blog Articles:** ${articleKnowledge}
-    8.  **Created Service Pages (Content):** ${servicePageKnowledge}
-    9.  **Current User's Shopping Cart:** ${cartKnowledge}
-    10. **Current User's Wishlist:** ${wishlistKnowledge}
+    7.  **Downloadable County Resources:** ${countyResourceKnowledge}
+    8.  **Available Blog Articles:** ${articleKnowledge}
+    9.  **Created Service Pages (Content):** ${servicePageKnowledge}
+    10. **Current User's Shopping Cart:** ${cartKnowledge}
+    11. **Current User's Wishlist:** ${wishlistKnowledge}
     --- END KNOWLEDGE BASE ---
 
     --- COMMAND & ACTION RULES (VERY IMPORTANT) ---
@@ -168,7 +176,7 @@ export async function POST(req: Request) {
         - Format: ACTION_BUTTON[Button Text|actionType|value]
   `;
 
-  // --- No changes to the rest of the file ---
+  // No changes to the rest of the file
   const finalMessages: Message[] = (messages.length > 0 && messages[0].role !== 'system') 
     ? [{ role: 'system', content: systemPrompt, id: 'system-prompt' }, ...messages]
     : messages.map((m: Message, index: number) => 
