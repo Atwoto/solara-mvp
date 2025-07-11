@@ -156,7 +156,7 @@ export async function POST(req: Request) {
     6.  **Showcased Projects:** ${projectKnowledge}
     7.  **Downloadable County Resources:** ${countyResourceKnowledge}
     8.  **Available Blog Articles:** ${articleKnowledge}
-    9.  **Created Service Pages (Content):** ${servicePageKnowledge}
+    
     10. **Current User's Shopping Cart:** ${cartKnowledge}
     11. **Current User's Wishlist:** ${wishlistKnowledge}
     --- END KNOWLEDGE BASE ---
