@@ -1,8 +1,6 @@
 // /src/app/api/chat/route.ts
-// /src/app/api/chat/route.ts
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 import OpenAI from 'openai';
-import { Product as ProductTypeFromTypes, ServicePageData, BlogPost } from '@/types';
 import type { Message } from 'ai'; 
 
 import { supabaseAdmin } from '@/lib/supabase/server';
@@ -23,57 +21,98 @@ const stripHtml = (html: string | null | undefined): string => {
 };
 
 export async function POST(req: Request) {
-  // --- THE FIX: Added `userName` to the request body ---
   const { messages, cart, wishlist, isLoggedIn, userName }: { 
     messages: Message[];
     cart: { id: string; name: string; quantity: number }[];
     wishlist: string[];
     isLoggedIn: boolean;
-    userName: string | null; // Receive the user's name
+    userName: string | null;
   } = await req.json();
   
   const dbClient = supabaseAdmin; 
 
   let productKnowledge = 'No product information available.';
-  let serviceKnowledge = 'No installation service information available.';
+  let servicePageKnowledge = 'No installation service page content available.';
   let articleKnowledge = 'No blog article information available.';
+  // --- THIS IS THE FIX ---
+  // Added new variables for projects and service categories
+  let projectKnowledge = 'No project information available.';
+  let serviceCategoryKnowledge = 'No service categories defined.';
 
   try {
-    const [productsRes, servicesRes, articlesRes] = await Promise.all([
-        dbClient.from('products').select('id, name, price, wattage, category, description'),
-        dbClient.from('service_pages').select('id, title, slug, excerpt, content_html').eq('status', 'published'),
-        dbClient.from('articles').select('id, title, slug, excerpt, category').filter('published_at', 'lte', new Date().toISOString())
+    // --- THIS IS THE FIX ---
+    // Added 'projects' and 'service_categories' to the data fetching
+    const [productsRes, servicesRes, articlesRes, projectsRes, serviceCategoriesRes] = await Promise.all([
+        dbClient.from('products').select('id, name, price, wattage, category, description').limit(100),
+        dbClient.from('service_pages').select('id, title, slug, excerpt').eq('status', 'published'),
+        dbClient.from('articles').select('id, title, slug, excerpt, category').filter('published_at', 'lte', new Date().toISOString()),
+        dbClient.from('projects').select('id, title, category, description').eq('is_published', true),
+        dbClient.from('service_categories').select('id, name, slug, parent_id').order('display_order'),
     ]);
 
     if (productsRes.data && productsRes.data.length > 0) {
       productKnowledge = productsRes.data.map((p: any) => 
-        `\n- Product ID: ${p.id}, Name: "${p.name}", Category: "${p.category}", Price: Ksh ${p.price}, Description: "${p.description}"`
+        `\n- Product ID: ${p.id}, Name: "${p.name}", Category: "${p.category}", Price: Ksh ${p.price}`
       ).join('');
     }
     
     if (servicesRes.data && servicesRes.data.length > 0) {
-      serviceKnowledge = servicesRes.data.map((s: any) => 
-        `\n- Service: "${s.title}", URL Slug: "/services/${s.slug}", Summary: "${stripHtml(s.excerpt)}"`
+      servicePageKnowledge = servicesRes.data.map((s: any) => 
+        `\n- Service Page: "${s.title}", URL Slug: "/services/${s.slug}", Summary: "${stripHtml(s.excerpt)}"`
       ).join('');
     }
     
     if (articlesRes.data && articlesRes.data.length > 0) {
       articleKnowledge = articlesRes.data.map((a: any) => 
-        `\n- Article: "${a.title}", URL Slug: "/blog/${a.slug}", Category: "${a.category}", Summary: "${stripHtml(a.excerpt)}"`
+        `\n- Article: "${a.title}", URL Slug: "/blog/${a.slug}", Category: "${a.category}"`
       ).join('');
+    }
+
+    // --- THIS IS THE FIX ---
+    // Process project data into knowledge
+    if (projectsRes.data && projectsRes.data.length > 0) {
+        projectKnowledge = projectsRes.data.map((p: any) =>
+            `\n- Project: "${p.title}", Category: "${p.category}", Description: "${p.description}"`
+        ).join('');
+    }
+
+    // Process service category data into a nested structure for the AI to understand
+    if (serviceCategoriesRes.data && serviceCategoriesRes.data.length > 0) {
+        const categories = serviceCategoriesRes.data;
+        const categoryMap = new Map(categories.map(cat => [cat.id, { ...cat, children: [] as any[] }]));
+        const tree: any[] = [];
+        categories.forEach(cat => {
+            if (cat.parent_id && categoryMap.has(cat.parent_id)) {
+                categoryMap.get(cat.parent_id)?.children.push(categoryMap.get(cat.id));
+            } else {
+                tree.push(categoryMap.get(cat.id));
+            }
+        });
+        
+        const buildKnowledgeString = (nodes: any[], level = 0) => {
+            let str = '';
+            nodes.forEach(node => {
+                str += `\n${'  '.repeat(level)}- Category: "${node.name}", URL: "/services/${node.slug}"`;
+                if (node.children.length > 0) {
+                    str += buildKnowledgeString(node.children, level + 1);
+                }
+            });
+            return str;
+        };
+        serviceCategoryKnowledge = buildKnowledgeString(tree);
     }
     
   } catch (e: any) {
     console.error("Chatbot API: Critical error fetching knowledge base:", e.message);
   }
   
+  // --- Cart and Wishlist knowledge remain the same ---
   let cartKnowledge = 'The user\'s shopping cart is currently empty.';
   if (cart && cart.length > 0) {
     cartKnowledge = 'The user\'s shopping cart currently contains:' + cart.map(
       (item) => `\n- ${item.quantity}x "${item.name}" (ID: ${item.id})`
     ).join('');
   }
-
   let wishlistKnowledge = 'The user\'s wishlist is currently empty.';
   if (wishlist && wishlist.length > 0) {
     try {
@@ -86,10 +125,9 @@ export async function POST(req: Request) {
     } catch(e) { /* Graceful degradation */ }
   }
 
-  // --- UPGRADED SYSTEM PROMPT WITH PERSONALIZATION ---
+  // --- UPGRADED SYSTEM PROMPT ---
   const systemPrompt = `
     Your Identity: You are the "Bills On Solar Assistant", a friendly, expert AI from Bills On Solar EA Limited in Kenya.
-
     Your Primary Goal: Assist users by answering their questions and guiding them through the website. You MUST base your answers strictly on the information provided in the KNOWLEDGE BASE.
 
     --- CONTEXT & KNOWLEDGE BASE ---
@@ -99,42 +137,38 @@ export async function POST(req: Request) {
         - Home Page: "/"
         - All Products Page: "/products"
         - Projects Page: "/projects"
+        - Resources Page: "/county-resources"
         - About Us Page: "/#about-us"
         - Contact Us Page: "/#contact-us"
         - Blog Page: "/blog"
         - Compare Page: "/compare"
-        - Wishlist Page: "/wishlist" (Requires user to be logged in)
-        - Cart Page: The cart is a sidebar, not a page. If asked to "see my cart", use EXECUTE_ACTION[openCart|].
-        - Checkout Page: "/checkout" (Requires user to be logged in)
-        - My Account/Dashboard/My Orders/Order List: "/account" (Requires user to be logged in)
+        - Wishlist Page: "/wishlist" (Requires login)
+        - My Account/Dashboard: "/account" (Requires login)
     4.  **Available Products:** ${productKnowledge}
-    5.  **Installation Services Offered:** ${serviceKnowledge}
-    6.  **Available Blog Articles:** ${articleKnowledge}
-    7.  **Current User's Shopping Cart:** ${cartKnowledge}
-    8.  **Current User's Wishlist:** ${wishlistKnowledge}
+    5.  **Available Service Categories:** ${serviceCategoryKnowledge}
+    6.  **Showcased Projects:** ${projectKnowledge}
+    7.  **Available Blog Articles:** ${articleKnowledge}
+    8.  **Created Service Pages (Content):** ${servicePageKnowledge}
+    9.  **Current User's Shopping Cart:** ${cartKnowledge}
+    10. **Current User's Wishlist:** ${wishlistKnowledge}
     --- END KNOWLEDGE BASE ---
 
     --- COMMAND & ACTION RULES (VERY IMPORTANT) ---
-
-    1.  **Personalization:** If you know the user's name, start the conversation by greeting them (e.g., "Hello, Jane!"). Use their first name in subsequent responses where it feels natural and helpful. If you don't know their name, use a general greeting.
-
-    2.  **Analyze User Intent:** Understand if the user is asking a question, giving a command, or requesting to go to a page. Be flexible with phrasing (e.g., "show me projects" and "project page" both mean go to "/projects").
-
-    3.  **Answering Questions:** If the user asks a question, answer it conversationally using ONLY information from the knowledge base. If the information is not present, state, "I don't have that specific information, but I can help with..."
-
+    1.  **Personalization:** If you know the user's name, greet them warmly.
+    2.  **Analyze User Intent:** Understand if the user is asking a question, giving a command, or requesting to go to a page.
+    3.  **Answering Questions:** Use ONLY information from the knowledge base. If asked about a service, refer to the "Available Service Categories" first.
     4.  **Automatic Navigation (AUTO_NAVIGATE command):**
-        - **Authentication Check:** Before navigating to "/wishlist", "/checkout", or "/account", YOU MUST check the user's login status. If they are NOT logged in, you MUST tell them they need to log in first and suggest navigating to the login page.
-        - **Format:** After your natural language response, add the command on a NEW LINE: AUTO_NAVIGATE[url]
-
-    5.  **Executing Direct Commands (EXECUTE_ACTION):**
-        - Use for cart/wishlist actions like "add to cart" or "open cart".
+        - Before navigating to a page requiring login, check the user's login status. If they are not logged in, tell them they need to log in first and suggest navigating to the login page.
+        - Format: AUTO_NAVIGATE[url]
+    5.  **Executing Actions (EXECUTE_ACTION):**
+        - Use for cart/wishlist actions.
         - Format: EXECUTE_ACTION[actionType|productId_or_empty]
-
-    6.  **Proactive Suggestions (ACTION_BUTTON):**
-        - Use this for suggestions when the user's intent is not a direct navigation command.
+    6.  **Suggesting Actions (ACTION_BUTTON):**
+        - Use this for suggestions.
         - Format: ACTION_BUTTON[Button Text|actionType|value]
   `;
 
+  // --- No changes to the rest of the file ---
   const finalMessages: Message[] = (messages.length > 0 && messages[0].role !== 'system') 
     ? [{ role: 'system', content: systemPrompt, id: 'system-prompt' }, ...messages]
     : messages.map((m: Message, index: number) => 
