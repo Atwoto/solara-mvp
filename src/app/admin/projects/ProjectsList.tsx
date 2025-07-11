@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Project } from '@/types';
 import Link from 'next/link';
-import Image from 'next/image';
+// import Image from 'next/image'; // No longer needed
 import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 export default function ProjectsList() {
@@ -13,7 +13,6 @@ export default function ProjectsList() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchProjects = useCallback(async () => {
-    // ... (fetch logic remains the same)
     setIsLoading(true);
     setError(null);
     try {
@@ -33,7 +32,14 @@ export default function ProjectsList() {
   }, [fetchProjects]);
   
   const handleDelete = async (projectId: string) => {
-    // ... (delete logic will be implemented with the edit page)
+    if (!window.confirm("Are you sure you want to delete this project?")) return;
+    try {
+        const response = await fetch(`/api/admin/projects/${projectId}`, { method: 'DELETE' });
+        if (!response.ok) throw new Error('Failed to delete project.');
+        fetchProjects(); // Re-fetch the list after deletion
+    } catch (err: any) {
+        setError(err.message);
+    }
   }
 
   if (isLoading) return <p className="text-center py-8">Loading projects...</p>;
@@ -54,7 +60,6 @@ export default function ProjectsList() {
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {projects.map((project) => {
-            // --- THIS IS THE FIX: Simplified image source logic ---
             const imageSrc = project.thumbnail_url || (project.type === 'image' ? project.media_url : null);
 
             return (
@@ -62,11 +67,12 @@ export default function ProjectsList() {
                 <td className="px-6 py-4">
                   <div className="relative h-12 w-20 rounded-md overflow-hidden bg-gray-200">
                     {imageSrc ? (
-                      <Image
+                      // --- THIS IS THE FIX ---
+                      <img
                         src={imageSrc}
                         alt={project.title}
-                        fill
-                        className="object-cover"
+                        className="absolute inset-0 w-full h-full object-cover"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="flex items-center justify-center h-full text-xs text-gray-400">No Thumb</div>

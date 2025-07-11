@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Project, projectCategories } from '@/types';
 import Link from 'next/link';
-import Image from 'next/image';
+// import Image from 'next/image'; // No longer needed
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { PlusIcon, PencilSquareIcon, TrashIcon, EyeIcon, PhotoIcon, VideoCameraIcon } from '@heroicons/react/24/outline';
 import PageHeader from '@/components/admin/PageHeader';
@@ -27,7 +27,7 @@ const itemVariants: Variants = {
     exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } },
 };
 
-// --- IMPRESSIVE NEW PROJECT CARD COMPONENT ---
+// --- PROJECT CARD COMPONENT ---
 const ProjectCard = ({ project, onDelete }: { project: Project; onDelete: (id: string, title: string) => void }) => {
     const imageSrc = project.thumbnail_url || (project.type === 'image' ? project.media_url : '/images/default-video-thumb.jpg');
     const statusConfig = project.is_published
@@ -37,7 +37,8 @@ const ProjectCard = ({ project, onDelete }: { project: Project; onDelete: (id: s
     return (
         <motion.div layout variants={itemVariants} exit="exit" className="bg-white rounded-xl shadow-sm border border-slate-200/80 flex flex-col">
             <div className="relative h-48 w-full bg-slate-100 rounded-t-xl overflow-hidden">
-                <Image src={imageSrc} alt={project.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 33vw" />
+                {/* --- THIS IS THE FIX --- */}
+                <img src={imageSrc} alt={project.title} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
                 <div className={`absolute top-2 right-2 text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1.5 text-white ${project.type === 'video' ? 'bg-red-500/80' : 'bg-sky-500/80'}`}>
                     {project.type === 'video' ? <VideoCameraIcon className="h-4 w-4" /> : <PhotoIcon className="h-4 w-4" />}
                     <span className="capitalize">{project.type}</span>
@@ -69,7 +70,7 @@ const ProjectCard = ({ project, onDelete }: { project: Project; onDelete: (id: s
     );
 };
 
-// --- REDESIGNED ADMIN PROJECTS PAGE ---
+// --- ADMIN PROJECTS PAGE ---
 export default function AdminProjectsPage() {
     const { data: session, status: sessionStatus } = useSession();
     const router = useRouter();
@@ -130,7 +131,7 @@ export default function AdminProjectsPage() {
     }
 
     return (
-        <>
+        <div className="p-6 sm:p-8">
             <PageHeader
                 title="Manage Projects"
                 description="Add, edit, or delete showcase projects from your portfolio."
@@ -185,6 +186,6 @@ export default function AdminProjectsPage() {
                     </AnimatePresence>
                 </motion.div>
             )}
-        </>
+        </div>
     );
 }

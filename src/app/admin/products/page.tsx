@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+// import Image from 'next/image'; // No longer needed
 import { Product, PRODUCT_CATEGORY_SLUGS } from '@/types';
 import PageHeader from '@/components/admin/PageHeader'; 
 import PageLoader from '@/components/PageLoader';     
@@ -33,7 +33,13 @@ const ProductCard = ({ product, onDelete }: { product: Product; onDelete: () => 
         <motion.div layout variants={itemVariants} exit="exit" className="bg-white rounded-xl shadow-sm border border-slate-200/80 flex flex-col">
             <div className="relative h-48 w-full bg-slate-100 rounded-t-xl overflow-hidden">
                 {product.image_url && product.image_url[0] ? (
-                    <Image src={product.image_url[0]} alt={product.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, 33vw" />
+                    // --- THIS IS THE FIX ---
+                    <img 
+                        src={product.image_url[0]} 
+                        alt={product.name} 
+                        className="absolute inset-0 w-full h-full object-cover" 
+                        loading="lazy"
+                    />
                 ) : (
                     <div className="flex h-full w-full items-center justify-center text-slate-400"><CubeIcon className="h-10 w-10"/></div>
                 )}
@@ -43,8 +49,6 @@ const ProductCard = ({ product, onDelete }: { product: Product; onDelete: () => 
                 <h3 className="font-bold text-slate-800 mt-1 line-clamp-2" title={product.name}>{product.name}</h3>
                 <div className="flex-grow"></div>
                 <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-200/80">
-                     {/* --- THIS IS THE FIX --- */}
-                     {/* Always display the numeric price, even if it is 0 */}
                      <p className="font-bold text-slate-900">
                         Ksh {product.price.toLocaleString()}
                      </p>
@@ -62,7 +66,7 @@ const ProductCard = ({ product, onDelete }: { product: Product; onDelete: () => 
     );
 };
 
-// --- ADMIN PRODUCTS PAGE (No other changes needed) ---
+// --- ADMIN PRODUCTS PAGE ---
 const AdminProductsPage = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -107,19 +111,21 @@ const AdminProductsPage = () => {
   }, [session, status, router]);
 
   const handleDeleteProduct = async (productId: string, productName: string) => {
-    if (!window.confirm(`Are you sure you want to delete the product: "${productName}"? This action cannot be undone.`)) {
+    if (!window.confirm(`Are you sure you want to archive the product: "${productName}"?`)) {
         return;
     }
     setActionMessage(null);
     try {
-        const response = await fetch(`/api/admin/products/${productId}`, { method: 'DELETE' });
+        // We use an archive endpoint now instead of DELETE
+        const response = await fetch(`/api/admin/products/archive/${productId}`, { method: 'PUT' });
         const result = await response.json();
-        if (!response.ok) throw new Error(result.message || 'Failed to delete product');
+        if (!response.ok) throw new Error(result.message || 'Failed to archive product');
         
         setActionMessage({ type: 'success', text: result.message });
-        setProducts(prevProducts => prevProducts.filter(product => product.id !== productId));
+        // Instead of filtering, we just refetch the list to show the change
+        fetchAdminProducts();
     } catch (err: any) {
-        setActionMessage({ type: 'error', text: `Error deleting product: ${err.message}` });
+        setActionMessage({ type: 'error', text: `Error archiving product: ${err.message}` });
     }
   };
 
@@ -128,7 +134,8 @@ const AdminProductsPage = () => {
         .filter(product => !product.is_archived)
         .filter(product => {
             if (activeCategory === 'All') return true;
-            return product.category === activeCategory;
+            // Case-insensitive filtering
+            return product.category?.toLowerCase() === activeCategory.toLowerCase();
         })
         .filter(product => {
             const search = searchTerm.toLowerCase();
@@ -145,7 +152,7 @@ const AdminProductsPage = () => {
   }
 
   return (
-    <>
+    <div className="p-6 sm:p-8">
       <PageHeader 
         title="Manage Products"
         description="View, add, edit, or delete products from the catalog."
@@ -230,7 +237,7 @@ const AdminProductsPage = () => {
             </AnimatePresence>
          </motion.div>
       )}
-    </>
+    </div>
   );
 };
 
