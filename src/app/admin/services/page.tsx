@@ -8,12 +8,9 @@ import Link from 'next/link';
 import PageHeader from '@/components/admin/PageHeader'; 
 import { ServicePageData, ServiceCategory } from '@/types';
 import PageLoader from '@/components/PageLoader';    
-import { PlusIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline'; // <-- Added TrashIcon
 import { motion, Variants } from 'framer-motion';
 
-// --- THIS IS THE FIX ---
-// Hardcoding the admin email to match your other working admin pages.
-// Note: Using environment variables is generally more secure, but this will work.
 const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com'; 
 
 export type ManagedService = {
@@ -34,8 +31,8 @@ const itemVariants: Variants = {
     visible: { opacity: 1, y: 0 },
 };
 
-// --- SERVICE CARD COMPONENT ---
-const ServiceCard = ({ service }: { service: ManagedService }) => {
+// --- SERVICE CARD COMPONENT (UPDATED) ---
+const ServiceCard = ({ service, onDelete }: { service: ManagedService, onDelete: (id: string, label: string) => void }) => {
     const statusConfig = service.isCreated
         ? { text: 'Created', color: 'bg-green-100 text-green-700' }
         : { text: 'Not Created', color: 'bg-slate-100 text-slate-600' };
@@ -59,10 +56,21 @@ const ServiceCard = ({ service }: { service: ManagedService }) => {
             </div>
             <div className="mt-4">
                 {service.isCreated ? (
-                    <Link href={editLink} className="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-semibold text-white bg-deep-night hover:bg-slate-800 rounded-lg shadow-sm transition-colors">
-                        <PencilSquareIcon className="h-4 w-4 mr-2"/>
-                        Edit Page
-                    </Link>
+                    // --- THIS IS THE FIX ---
+                    // Added a flex container for Edit and Delete buttons
+                    <div className="flex gap-2">
+                        <Link href={editLink} className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white bg-deep-night hover:bg-slate-800 rounded-lg shadow-sm transition-colors">
+                            <PencilSquareIcon className="h-4 w-4 mr-2"/>
+                            Edit Page
+                        </Link>
+                        <button 
+                            onClick={() => service.dbData?.id && onDelete(service.dbData.id, service.label)}
+                            className="px-3 py-2 text-sm font-semibold text-red-600 bg-red-100 hover:bg-red-200 rounded-lg shadow-sm transition-colors"
+                            title="Delete Service Page"
+                        >
+                            <TrashIcon className="h-5 w-5" />
+                        </button>
+                    </div>
                 ) : (
                     <Link href={createLink} className="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-solar-flare-start to-solar-flare-end hover:opacity-90 rounded-lg shadow-sm transition-opacity">
                         <PlusIcon className="h-4 w-4 mr-2"/>
@@ -116,6 +124,27 @@ const AdminServicesPage = () => {
     }
   }, []);
 
+  // --- THIS IS THE FIX ---
+  // Added a function to handle deletion by calling the API
+  const handleDeleteService = async (id: string, label: string) => {
+    if (!window.confirm(`Are you sure you want to delete the service page for "${label}"? This will not delete the category itself.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/admin/services/${id}`, { method: 'DELETE' });
+        if (!response.ok) {
+            const result = await response.json();
+            throw new Error(result.message || 'Failed to delete service page.');
+        }
+        
+        alert('Service page deleted successfully.');
+        fetchAndProcessServices(); // Refresh the list after deletion
+    } catch (error: any) {
+        alert(`Error: ${error.message}`);
+    }
+  };
+
   useEffect(() => {
     if (sessionStatus === 'authenticated' && session?.user?.email === ADMIN_EMAIL) {
       fetchAndProcessServices();
@@ -159,7 +188,9 @@ const AdminServicesPage = () => {
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6"
       >
         {managedServices.map((service) => (
-            <ServiceCard key={service.slug} service={service} />
+            // --- THIS IS THE FIX ---
+            // Pass the onDelete handler to the ServiceCard
+            <ServiceCard key={service.slug} service={service} onDelete={handleDeleteService} />
         ))}
       </motion.div>
     </div>
