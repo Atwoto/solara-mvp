@@ -6,12 +6,12 @@ import { authOptions } from "@/lib/auth";
 import type { Session } from 'next-auth';
 
 const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com';
-const ACTIVITY_LIMIT = 5; // Number of items to fetch per category
+const ACTIVITY_LIMIT = 5;
 
 export interface ActivityItem {
   id: string;
   type: 'order' | 'newUser' | 'newProduct' | 'newArticle' | 'newTestimonial';
-  timestamp: string; // ISO string for sorting
+  timestamp: string;
   title: string;
   description?: string;
   link?: string;
@@ -21,7 +21,7 @@ export interface ActivityItem {
 interface OrderData {
   id: string;
   created_at: string;
-  total_price: number; // Corrected field name
+  total_price: number; // This was the original bug, it's now corrected
   user_id: string;
   status: string;
   shipping_address?: {
@@ -91,7 +91,6 @@ export async function GET(request: NextRequest) {
       supabaseAdmin.from('testimonials').select('id, client_name, created_at, approved').order('created_at', { ascending: false }).limit(ACTIVITY_LIMIT)
     ]);
     
-    // Process recent orders
     if (ordersRes.error) console.error("Error fetching recent orders:", ordersRes.error.message);
     if (ordersRes.data) {
       allActivities.push(...(ordersRes.data as OrderData[]).map(order => ({
@@ -100,11 +99,10 @@ export async function GET(request: NextRequest) {
         timestamp: String(order.created_at),
         title: `Order #${String(order.id).substring(0,8)} placed`,
         description: `Status: ${order.status}, Total: Ksh ${order.total_price.toLocaleString()}. By: ${order.shipping_address?.fullName || 'Guest'}`,
-        link: `/admin/orders`, // Link to the main orders page
+        link: `/admin/orders`,
       })));
     }
 
-    // Process recent new users
     if (usersRes.error) console.error("Error fetching recent users:", usersRes.error.message);
     if (usersRes.data) {
       allActivities.push(...(usersRes.data as UserData[]).map((user) => ({
@@ -113,11 +111,10 @@ export async function GET(request: NextRequest) {
         timestamp: String(user.created_at),
         title: `New user registered`,
         description: `${user.display_name || user.email}`,
-        link: `/admin/users`, // Link to a future users page
+        link: `/admin/users`,
       })));
     }
 
-    // Process recent products
     if (productsRes.error) console.error("Error fetching recent products:", productsRes.error.message);
     if (productsRes.data) {
       allActivities.push(...(productsRes.data as ProductData[]).map(product => ({
@@ -126,11 +123,10 @@ export async function GET(request: NextRequest) {
         timestamp: String(product.created_at),
         title: `Product added: ${product.name}`,
         description: `Category: ${product.category}`,
-        link: `/admin/products`, // Link to the main products page
+        link: `/admin/products`,
       })));
     }
     
-    // Process recent articles
     if (articlesRes.error) console.error("Error fetching recent articles:", articlesRes.error.message);
     if (articlesRes.data) {
       allActivities.push(...(articlesRes.data as ArticleData[]).map(article => ({
@@ -139,11 +135,10 @@ export async function GET(request: NextRequest) {
         timestamp: String(article.created_at),
         title: `Article created: ${article.title}`,
         description: `Category: ${article.category}, Status: ${article.published_at ? 'Published' : 'Draft'}`,
-        link: `/admin/blog`, // Link to the main blog management page
+        link: `/admin/blog`,
       })));
     }
 
-    // Process recent testimonials
     if (testimonialsRes.error) console.error("Error fetching recent testimonials:", testimonialsRes.error.message);
     if (testimonialsRes.data) {
       allActivities.push(...(testimonialsRes.data as TestimonialData[]).map(testimonial => ({
@@ -156,7 +151,6 @@ export async function GET(request: NextRequest) {
       })));
     }
 
-    // Sort all activities by timestamp and take the latest
     allActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     const recentActivities = allActivities.slice(0, 10);
 
