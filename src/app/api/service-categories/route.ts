@@ -9,41 +9,54 @@ interface NavCategory extends ServiceCategory {
   subcategories?: NavCategory[];
 }
 
-// This function takes a flat list of categories from the database
-// and builds a nested (hierarchical) tree structure.
+// --- THIS IS THE CORRECTED FUNCTION ---
+// This function now correctly builds a nested tree from a flat list of categories
 const buildCategoryTree = (categories: ServiceCategory[]): NavCategory[] => {
   const categoryMap = new Map<string, NavCategory>();
-  const tree: NavCategory[] = [];
-
-  // First, map each category by its ID and add a 'subcategories' array and 'href'
+  
+  // First, map each category by its ID and add the href and an empty subcategories array
   categories.forEach(category => {
     categoryMap.set(category.id, {
       ...category,
-      href: `/services/${category.slug}`, // Construct the link
+      href: `/services/${category.slug}`,
       subcategories: [],
     });
   });
 
-  // Then, build the tree by linking children to their parents
+  const tree: NavCategory[] = [];
+
+  // Now, iterate again to place each category under its parent
   categoryMap.forEach(category => {
     if (category.parent_id && categoryMap.has(category.parent_id)) {
+      // This is a sub-category, push it to its parent's subcategories array
       const parent = categoryMap.get(category.parent_id);
       parent?.subcategories?.push(category);
     } else {
-      // If a category has no parent, it's a top-level item
+      // This is a top-level category
       tree.push(category);
     }
   });
 
+  // Sort children within each parent based on display_order
+  categoryMap.forEach(parent => {
+    if (parent.subcategories && parent.subcategories.length > 0) {
+        parent.subcategories.sort((a, b) => a.display_order - b.display_order);
+    }
+  });
+
+  // Finally, sort the top-level categories
+  tree.sort((a,b) => a.display_order - b.display_order);
+
   return tree;
 };
+
 
 export async function GET() {
   try {
     const { data, error } = await supabaseAdmin
       .from('service_categories')
       .select('*')
-      .order('display_order', { ascending: true })
+      // We don't need to order here anymore, the function handles it
       .order('name', { ascending: true });
 
     if (error) {

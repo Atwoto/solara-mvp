@@ -2,7 +2,6 @@
 'use client';
 
 import { useState } from 'react';
-// import Image from 'next/image'; // We no longer need this
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
@@ -66,7 +65,6 @@ export default function ProductDetailClient({ product, initialIsWishlisted }: Pr
                   transition={{ duration: 0.2 }}
                   className="w-full h-full"
                 >
-                  {/* --- THIS IS THE FIX --- */}
                   <img
                     src={selectedImageUrl}
                     alt={product.name}
@@ -86,7 +84,6 @@ export default function ProductDetailClient({ product, initialIsWishlisted }: Pr
                     ${selectedImageUrl === url ? 'ring-2 ring-solar-flare-start ring-offset-2' : 'hover:opacity-80'}`
                   }
                 >
-                  {/* --- THIS IS THE FIX --- */}
                   <img src={url} alt={`${product.name} thumbnail`} className="w-full h-full object-cover" loading="lazy" />
                 </button>
               ))}
@@ -108,9 +105,13 @@ export default function ProductDetailClient({ product, initialIsWishlisted }: Pr
             </p>
           )}
 
-          <div className="prose max-w-none text-gray-600 mb-8">
-            <p>{product.description}</p>
-          </div>
+          {/* --- THIS IS THE FIX --- */}
+          {/* Using 'dangerouslySetInnerHTML' to render the HTML from the editor */}
+          {/* The 'prose' class from Tailwind Typography styles the HTML content */}
+          <div
+            className="prose max-w-none text-gray-600 mb-8"
+            dangerouslySetInnerHTML={{ __html: product.description || '' }}
+          />
 
           <div className="flex items-center space-x-4 mt-auto pt-8 border-t">
             {product.price > 0 ? (

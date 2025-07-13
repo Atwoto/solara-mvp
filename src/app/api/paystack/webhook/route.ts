@@ -1,33 +1,64 @@
+// src/app/api/webhooks/paystack/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
 import { supabaseAdmin } from '@/lib/supabase/server';
+import crypto from 'crypto';
 
-const PAYSTACK_WEBHOOK_SECRET = process.env.PAYSTACK_WEBHOOK_SECRET!;
+const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 
 export async function POST(req: NextRequest) {
-  const signature = req.headers.get('x-paystack-signature');
-  const body = await req.text();
+    try {
+        // 1. Verify the request is from Paystack
+        const signature = req.headers.get('x-paystack-signature');
+        const body = await req.text(); // Get the raw body as text
 
-  const hash = crypto.createHmac('sha512', PAYSTACK_WEBHOOK_SECRET).update(body).digest('hex');
-  if (hash !== signature) {
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
-  }
+        const hash = crypto
+            .createHmac('sha512', PAYSTACK_SECRET_KEY)
+            .update(body)
+            .digest('hex');
 
-  const event = JSON.parse(body);
+        if (hash !== signature) {
+            console.error("Webhook Error: Invalid signature");
+            return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+        }
 
-  if (event.event === 'charge.success') {
-    const chargeData = event.data;
-    // Use the database order ID we stored in metadata
-    const dbOrderId = chargeData.metadata?.db_order_id; 
+        // 2. Parse the event data
+        const event = JSON.parse(body);
 
-    if (dbOrderId) {
-      await supabaseAdmin
-        .from('orders')
-        .update({ status: 'paid' })
-        .eq('id', dbOrderId);
-        // TODO: Here you would trigger a confirmation email to the user
+        // 3. Handle the 'charge.success' event
+        if (event.event === 'charge.success') {
+            const { reference } = event.data;
+
+            // Find the order with the matching Paystack reference
+            const { data: order, error: findError } = await supabaseAdmin
+                .from('orders')
+                .select('*')
+                .eq('paystack_reference', reference)
+                .single();
+            
+            if (findError || !order) {
+                console.error(`Webhook Error: Order with reference ${reference} not found.`);
+                return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+            }
+
+            // Update the order status to 'Processing'
+            const { error: updateError } = await supabaseAdmin
+                .from('orders')
+                .update({ status: 'Processing' })
+                .eq('id', order.id);
+
+            if (updateError) {
+                console.error(`Webhook Error: Failed to update order ${order.id}.`, updateError);
+                throw updateError;
+            }
+
+            console.log(`Order ${order.id} successfully updated to 'Processing'.`);
+        }
+
+        // 4. Acknowledge receipt of the event
+        return NextResponse.json({ received: true }, { status: 200 });
+
+    } catch (error: any) {
+        console.error("Webhook processing failed:", error.message);
+        return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
     }
-  }
-
-  return NextResponse.json({ received: true });
 }
