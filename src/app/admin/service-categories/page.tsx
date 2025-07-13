@@ -1,32 +1,46 @@
 // src/app/admin/service-categories/page.tsx
-import { supabaseAdmin } from '@/lib/supabase/server';
-import { ServiceCategory } from '@/types';
-import PageHeader from '@/components/admin/PageHeader';
-import ServiceCategoryClientPage from './ServiceCategoryClientPage';
+import { createServerComponentClient } from &#39;@supabase/auth-helpers-nextjs&#39;;
+import { cookies } from &#39;next/headers&#39;;
+import { ServiceCategory } from &#39;@/types&#39;;
+import PageHeader from &#39;@/components/admin/PageHeader&#39;;
+import ServiceCategoryClientPage from &#39;./ServiceCategoryClientPage&#39;;
+import { redirect } from &#39;next/navigation&#39;;
+import { Session, getServerSession } from &quot;next-auth&quot;;
+import { authOptions } from &#39;@/lib/auth&#39;;
 
 export const dynamic = 'force-dynamic';
 
+const ADMIN\_EMAIL = 'kenbillsonsolararea@gmail.com'; // Hardcoded for reliability
+
 export default async function AdminServiceCategoriesPage() {
-  const { data, error } = await supabaseAdmin
-    .from('service_categories')
-    .select('*')
-    .order('display_order', { ascending: true })
-    .order('name', { ascending: true });
+const supabase = createServerComponentClient({ cookies });
+const session = await getServerSession(authOptions) as Session | null;
 
-  if (error) {
-    console.error("Error fetching service categories:", error);
-    return <div className="p-8 text-red-500">Error loading categories.</div>;
-  }
+// Security Check: Redirect if not the admin
+if (\!session || session.user?.email \!== ADMIN\_EMAIL) {
+redirect('/'); // Or to a dedicated 'unauthorized' page
+}
 
-  const categories: ServiceCategory[] = data || [];
+const { data, error } = await supabase
+.from('service\_categories')
+.select('\*')
+.order('display\_order', { ascending: true })
+.order('name', { ascending: true });
 
-  return (
-    <div className="p-6 sm:p-8">
-      <PageHeader
-        title="Manage Service Categories"
-        description="Add, edit, and organize the service categories for the main navigation menu."
-      />
-      <ServiceCategoryClientPage initialCategories={categories} />
-    </div>
-  );
+if (error) {
+console.error("Error fetching service categories:", error);
+return &lt;div className=&quot;p-8 text-red-500&quot;&gt;Error loading categories. Please ensure you have run the database migration for 'service\_categories' and have set the correct RLS policies.&lt;/div&gt;;
+}
+
+const categories: ServiceCategory[] = data || [];
+
+return (
+&lt;div className=&quot;p-6 sm:p-8&quot;&gt;
+&lt;PageHeader
+title=&quot;Manage Service Categories&quot;
+description=&quot;Add, edit, and organize the service categories for the main navigation menu.&quot;
+/&gt;
+&lt;ServiceCategoryClientPage initialCategories={categories} /&gt;
+&lt;/div&gt;
+);
 }
