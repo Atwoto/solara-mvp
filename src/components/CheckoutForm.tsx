@@ -5,9 +5,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useCart } from "@/context/CartContext";
 import Link from 'next/link';
-// import NextImage from 'next/image'; // No longer needed
 import { motion, AnimatePresence } from 'framer-motion';
-import { LockClosedIcon, ExclamationTriangleIcon, ShoppingBagIcon, UserIcon, EnvelopeIcon, PhoneIcon, MapPinIcon } from '@heroicons/react/24/outline';
+import { LockClosedIcon, ExclamationTriangleIcon, ShoppingBagIcon, UserIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, TruckIcon } from '@heroicons/react/24/outline';
 
 declare global {
     interface Window {
@@ -63,8 +62,10 @@ export default function CheckoutForm() {
     const [formError, setFormError] = useState('');
 
     const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const shippingCost = subtotal > 0 ? 500 : 0;
-    const total = subtotal + shippingCost;
+    // --- THIS IS THE FIX ---
+    // Shipping cost is no longer a fixed number in the calculation.
+    const shippingCost = 0; 
+    const total = subtotal + shippingCost; // Total is now just the subtotal.
 
     useEffect(() => {
         const script = document.createElement('script');
@@ -103,7 +104,7 @@ export default function CheckoutForm() {
                     cartItems,
                     shippingDetails: { ...formData, email: session?.user?.email },
                     subtotal,
-                    shippingCost,
+                    shippingCost: "To be calculated", // Send a string instead of a number
                     total,
                 }),
             });
@@ -191,7 +192,6 @@ export default function CheckoutForm() {
                                         <div key={item.id} className="flex items-center justify-between text-sm">
                                             <div className="flex items-center gap-3">
                                                 <div className="relative h-16 w-16 rounded-md border bg-gray-100 overflow-hidden flex-shrink-0">
-                                                    {/* --- THIS IS THE FIX --- */}
                                                     {item.image_url && item.image_url[0] && <img src={item.image_url[0]} alt={item.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />}
                                                 </div>
                                                 <div>
@@ -205,9 +205,21 @@ export default function CheckoutForm() {
                                 </div>
                                 <div className="py-4 border-t border-b space-y-2 text-sm">
                                     <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>Ksh {subtotal.toLocaleString()}</span></div>
-                                    <div className="flex justify-between text-gray-600"><span>Shipping</span><span>Ksh {shippingCost.toLocaleString()}</span></div>
+                                    {/* --- THIS IS THE FIX --- */}
+                                    <div className="flex justify-between text-gray-600"><span>Shipping</span><span className="font-medium text-right">Calculated at checkout</span></div>
                                 </div>
-                                <div className="flex justify-between text-lg font-bold text-graphite pt-4 pb-5"><span>Total</span><span>Ksh {total.toLocaleString()}</span></div>
+                                <div className="flex justify-between text-lg font-bold text-graphite pt-4 pb-5">
+                                    {/* --- THIS IS THE FIX --- */}
+                                    <span>Order Total</span>
+                                    <span>Ksh {total.toLocaleString()}</span>
+                                </div>
+
+                                {/* --- THIS IS THE FIX --- */}
+                                {/* Added a new descriptive note about shipping */}
+                                <div className="p-3 bg-blue-50 text-blue-800 rounded-lg text-xs flex items-start gap-2.5 mb-5 border border-blue-200">
+                                    <TruckIcon className="h-5 w-5 flex-shrink-0 mt-0.5"/>
+                                    <span>Free delivery within Nairobi. Shipping costs for other counties will be communicated after checkout.</span>
+                                </div>
                                 
                                 <AnimatePresence>
                                 {formError && (
