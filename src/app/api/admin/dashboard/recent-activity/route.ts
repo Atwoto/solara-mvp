@@ -21,7 +21,7 @@ export interface ActivityItem {
 interface OrderData {
   id: string;
   created_at: string;
-  total_amount: number;
+  total_price: number; // Corrected field name
   user_id: string;
   status: string;
   shipping_address?: {
@@ -58,19 +58,19 @@ interface TestimonialData {
   approved: boolean;
 }
 
-// You must have this RPC function in your Supabase SQL Editor for this to work
 /*
-CREATE OR REPLACE FUNCTION get_recent_users(limit_count INT)
-RETURNS TABLE(id UUID, email TEXT, created_at TIMESTAMPTZ, display_name TEXT)
-LANGUAGE sql SECURITY DEFINER AS $$
-  SELECT id, email, created_at, raw_user_meta_data->>'full_name' as display_name
-  FROM auth.users ORDER BY created_at DESC LIMIT limit_count;
-$$;
-GRANT EXECUTE ON FUNCTION get_recent_users(INT) TO service_role;
+  This RPC function should be in your Supabase SQL Editor for this to work:
+
+  CREATE OR REPLACE FUNCTION get_recent_users(limit_count INT)
+  RETURNS TABLE(id UUID, email TEXT, created_at TIMESTAMPTZ, display_name TEXT)
+  LANGUAGE sql SECURITY DEFINER AS $$
+    SELECT id, email, created_at, raw_user_meta_data->>'full_name' as display_name
+    FROM auth.users ORDER BY created_at DESC LIMIT limit_count;
+  $$;
+  GRANT EXECUTE ON FUNCTION get_recent_users(INT) TO service_role;
 */
 
 export async function GET(request: NextRequest) {
-  console.log("API: GET /api/admin/dashboard/recent-activity hit");
   const session = await getServerSession(authOptions) as Session | null;
 
   if (!session || !session.user || session.user.email !== ADMIN_EMAIL) {
@@ -83,9 +83,8 @@ export async function GET(request: NextRequest) {
   try {
     let allActivities: ActivityItem[] = [];
 
-    // Fetch all data sources concurrently for better performance
     const [ordersRes, usersRes, productsRes, articlesRes, testimonialsRes] = await Promise.all([
-      supabaseAdmin.from('orders').select('id, created_at, total_amount, user_id, status, shipping_address').order('created_at', { ascending: false }).limit(ACTIVITY_LIMIT),
+      supabaseAdmin.from('orders').select('id, created_at, total_price, user_id, status, shipping_address').order('created_at', { ascending: false }).limit(ACTIVITY_LIMIT),
       supabaseAdmin.rpc('get_recent_users', { limit_count: ACTIVITY_LIMIT }),
       supabaseAdmin.from('products').select('id, name, created_at, category').order('created_at', { ascending: false }).limit(ACTIVITY_LIMIT),
       supabaseAdmin.from('articles').select('id, title, created_at, category, published_at').order('created_at', { ascending: false }).limit(ACTIVITY_LIMIT),
@@ -100,8 +99,8 @@ export async function GET(request: NextRequest) {
         type: 'order' as const,
         timestamp: String(order.created_at),
         title: `Order #${String(order.id).substring(0,8)} placed`,
-        description: `Status: ${order.status}, Total: Ksh ${order.total_amount.toLocaleString()}. By: ${order.shipping_address?.fullName || 'Guest'}`,
-        link: `/admin/orders/${order.id}`,
+        description: `Status: ${order.status}, Total: Ksh ${order.total_price.toLocaleString()}. By: ${order.shipping_address?.fullName || 'Guest'}`,
+        link: `/admin/orders`, // Link to the main orders page
       })));
     }
 
@@ -114,7 +113,7 @@ export async function GET(request: NextRequest) {
         timestamp: String(user.created_at),
         title: `New user registered`,
         description: `${user.display_name || user.email}`,
-        link: `/admin/users/${user.id}`, // If you have a user management page
+        link: `/admin/users`, // Link to a future users page
       })));
     }
 
@@ -127,7 +126,7 @@ export async function GET(request: NextRequest) {
         timestamp: String(product.created_at),
         title: `Product added: ${product.name}`,
         description: `Category: ${product.category}`,
-        link: `/admin/products/edit/${product.id}`,
+        link: `/admin/products`, // Link to the main products page
       })));
     }
     
@@ -139,8 +138,8 @@ export async function GET(request: NextRequest) {
         type: 'newArticle' as const,
         timestamp: String(article.created_at),
         title: `Article created: ${article.title}`,
-        description: `Category: ${article.category}, Status: ${article.published_at ? 'Published/Scheduled' : 'Draft'}`,
-        link: `/admin/blog/edit/${article.id}`,
+        description: `Category: ${article.category}, Status: ${article.published_at ? 'Published' : 'Draft'}`,
+        link: `/admin/blog`, // Link to the main blog management page
       })));
     }
 
@@ -157,7 +156,7 @@ export async function GET(request: NextRequest) {
       })));
     }
 
-    // Sort all activities by timestamp descending and take the latest N (e.g., 10 overall)
+    // Sort all activities by timestamp and take the latest
     allActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     const recentActivities = allActivities.slice(0, 10);
 
