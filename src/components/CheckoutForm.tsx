@@ -62,10 +62,8 @@ export default function CheckoutForm() {
     const [formError, setFormError] = useState('');
 
     const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    // --- THIS IS THE FIX ---
-    // Shipping cost is no longer a fixed number in the calculation.
     const shippingCost = 0; 
-    const total = subtotal + shippingCost; // Total is now just the subtotal.
+    const total = subtotal + shippingCost;
 
     useEffect(() => {
         const script = document.createElement('script');
@@ -104,7 +102,7 @@ export default function CheckoutForm() {
                     cartItems,
                     shippingDetails: { ...formData, email: session?.user?.email },
                     subtotal,
-                    shippingCost: "To be calculated", // Send a string instead of a number
+                    shippingCost: "To be calculated",
                     total,
                 }),
             });
@@ -205,20 +203,17 @@ export default function CheckoutForm() {
                                 </div>
                                 <div className="py-4 border-t border-b space-y-2 text-sm">
                                     <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>Ksh {subtotal.toLocaleString()}</span></div>
-                                    {/* --- THIS IS THE FIX --- */}
-                                    <div className="flex justify-between text-gray-600"><span>Shipping</span><span className="font-medium text-right">Calculated at checkout</span></div>
+                                    <div className="flex justify-between text-gray-600"><span>Shipping</span><span className="font-medium text-right">Calculated after checkout</span></div>
                                 </div>
                                 <div className="flex justify-between text-lg font-bold text-graphite pt-4 pb-5">
-                                    {/* --- THIS IS THE FIX --- */}
                                     <span>Order Total</span>
                                     <span>Ksh {total.toLocaleString()}</span>
                                 </div>
-
-                                {/* --- THIS IS THE FIX --- */}
-                                {/* Added a new descriptive note about shipping */}
+                                
                                 <div className="p-3 bg-blue-50 text-blue-800 rounded-lg text-xs flex items-start gap-2.5 mb-5 border border-blue-200">
                                     <TruckIcon className="h-5 w-5 flex-shrink-0 mt-0.5"/>
-                                    <span>Free delivery within Nairobi. Shipping costs for other counties will be communicated after checkout.</span>
+                                    {/* --- THIS IS THE FIX --- */}
+                                    <span>All shipping and delivery costs will be communicated after your order is placed.</span>
                                 </div>
                                 
                                 <AnimatePresence>
