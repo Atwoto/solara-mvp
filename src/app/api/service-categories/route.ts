@@ -1,63 +1,76 @@
-// src/app/api/service-categories/route.ts
-import { NextResponse } from 'next/server';
+// src/app/api/admin/service-categories/route.ts
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
-import { ServiceCategory } from '@/types';
+import { revalidatePath } from 'next/cache';
 
-interface NavCategory extends ServiceCategory {
-  href: string;
-  subcategories?: NavCategory[];
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+
+async function isAdmin(req: NextRequest) {
+    const supabase = createRouteHandlerClient({ cookies });
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user.email === ADMIN_EMAIL;
 }
 
-const buildCategoryTree = (categories: ServiceCategory[]): NavCategory[] => {
-  const nodeMap = new Map<string, NavCategory>();
-
-  categories.forEach(cat => {
-    nodeMap.set(cat.id, {
-      ...cat,
-      href: `/services/${cat.slug}`,
-      subcategories: [],
-    });
-  });
-
-  const tree: NavCategory[] = [];
-
-  nodeMap.forEach(node => {
-    if (node.parent_id && nodeMap.has(node.parent_id)) {
-      const parentNode = nodeMap.get(node.parent_id)!;
-      parentNode.subcategories?.push(node);
-    } else {
-      tree.push(node);
-    }
-  });
-
-  const sortChildren = (node: NavCategory) => {
-    if (node.subcategories && node.subcategories.length > 0) {
-      node.subcategories.sort((a, b) => a.display_order - b.display_order);
-      node.subcategories.forEach(sortChildren);
-    }
-  };
-
-  tree.forEach(sortChildren);
-  tree.sort((a, b) => a.display_order - b.display_order);
-
-  return tree;
-};
-
-export async function GET() {
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('service_categories')
-      .select('*');
-
-    if (error) {
-      console.error("Error fetching service categories from DB:", error.message);
-      throw error;
+// Function to CREATE or UPDATE a category
+export async function POST(req: NextRequest) {
+    if (!await isAdmin(req)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const categoryTree = buildCategoryTree(data || []);
-    return NextResponse.json(categoryTree);
+    try {
+        const categoryData = await req.json();
+        
+        if (!categoryData.name || !categoryData.slug) {
+            return NextResponse.json({ error: 'Name and slug are required.' }, { status: 400 });
+        }
 
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+        const { data, error } = await supabaseAdmin
+            .from('service_categories')
+            .upsert(categoryData)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        // Revalidate all necessary paths
+        revalidatePath('/'); // Revalidates the layout, which includes the header menu.
+        revalidatePath('/admin/services'); // Revalidates the admin services page.
+        revalidatePath('/api/service-categories'); // Explicitly revalidate the API route
+
+        return NextResponse.json(data);
+    } catch (error: any) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}
+
+// Function to DELETE a category
+export async function DELETE(req: NextRequest) {
+    if (!await isAdmin(req)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    try {
+        const { id } = await req.json();
+        if (!id) {
+            return NextResponse.json({ error: 'Category ID is required.' }, { status: 400 });
+        }
+
+        const { error } = await supabaseAdmin
+            .from('service_categories')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        // Revalidate all necessary paths
+        revalidatePath('/');
+        revalidatePath('/admin/services');
+        revalidatePath('/api/service-categories');
+
+        return NextResponse.json({ message: 'Category deleted successfully.' });
+    } catch (error: any) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 }
