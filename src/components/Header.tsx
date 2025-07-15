@@ -10,10 +10,8 @@ import { useSession, signOut } from 'next-auth/react';
 import {
     ShoppingCartIcon, Bars3Icon, XMarkIcon, HeartIcon,
     ArrowsRightLeftIcon, UserCircleIcon, ArrowLeftOnRectangleIcon,
-    ChevronDownIcon, BuildingStorefrontIcon, WrenchScrewdriverIcon,
-    ComputerDesktopIcon, StarIcon, MapIcon
+    ChevronDownIcon, ComputerDesktopIcon, StarIcon
 } from '@heroicons/react/24/outline';
-import NextImage from 'next/image';
 import CartSidebar from './CartSidebar';
 import ComparisonModal from './ComparisonModal';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,7 +25,7 @@ interface NavCategory {
     subcategories?: NavCategory[];
 }
 
-// --- MAIN NAVIGATION LINKS (Unchanged) ---
+// --- MAIN NAVIGATION LINKS ---
 const mainNavLinks = [
     { name: 'Projects', href: '/projects' },
     { name: 'Resources', href: '/county-resources' },
@@ -36,10 +34,8 @@ const mainNavLinks = [
     { name: 'Blog', href: '/#blog' },
 ];
 
-// --- HARDCODED SERVICE CATEGORIES REMOVED ---
-// const installationServiceCategories: NavCategory[] = [ ... ]; // This is now fetched from the API
 
-// --- DESKTOP MEGA MENU (Unchanged) ---
+// --- DESKTOP MEGA MENU ---
 const MegaMenu = ({ categories, closeMenu, featuredItem }: { categories: NavCategory[], closeMenu: () => void, featuredItem: { name: string, href: string, image: string, description: string } }) => (
     <div className="grid grid-cols-12 gap-x-8 p-6">
         <div className="col-span-8 grid grid-cols-3 gap-x-6 gap-y-8">
@@ -67,12 +63,10 @@ const MegaMenu = ({ categories, closeMenu, featuredItem }: { categories: NavCate
         </div>
         <div className="col-span-4">
             <Link href={featuredItem.href} onClick={closeMenu} className="group block h-full w-full rounded-lg overflow-hidden relative bg-gray-100 p-6">
-                 <NextImage
+                 <img
                     src={featuredItem.image}
                     alt={featuredItem.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    unoptimized
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                  <div className="relative h-full flex flex-col justify-end text-white">
@@ -85,18 +79,17 @@ const MegaMenu = ({ categories, closeMenu, featuredItem }: { categories: NavCate
     </div>
 );
 
-// --- DESKTOP NAVIGATION (UPDATED) ---
+// --- DESKTOP NAVIGATION ---
 const DesktopNav = ({ pathname }: { pathname: string }) => {
     const [activeMenu, setActiveMenu] = useState<'products' | 'services' | null>(null);
-    // --- THIS IS THE FIX ---
-    // State to hold the dynamic service categories
     const [dynamicServiceCategories, setDynamicServiceCategories] = useState<NavCategory[]>([]);
 
     useEffect(() => {
-        // Fetch the categories when the component mounts
         const fetchServiceCategories = async () => {
             try {
-                const response = await fetch('/api/service-categories');
+                // --- THIS IS THE FIX ---
+                // Added { cache: 'no-store' } to ensure we always get fresh data
+                const response = await fetch('/api/service-categories', { cache: 'no-store' });
                 const data = await response.json();
                 if (response.ok) {
                     setDynamicServiceCategories(data);
@@ -106,7 +99,7 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
             }
         };
         fetchServiceCategories();
-    }, []); // Empty dependency array means this runs once on mount
+    }, []);
 
     const NavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
         const isActive = pathname === href || (href !== "/" && pathname.startsWith(href) && href.length > 1 && pathname.split('/')[1] === href.split('/')[1]);
@@ -142,8 +135,6 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
                         {activeMenu === 'products' ? (
                             <MegaMenu categories={productCategoriesData} closeMenu={() => setActiveMenu(null)} featuredItem={featuredProduct} />
                         ) : (
-                            // --- THIS IS THE FIX ---
-                            // Use the dynamic categories from the state
                             <MegaMenu categories={dynamicServiceCategories} closeMenu={() => setActiveMenu(null)} featuredItem={featuredService} />
                         )}
                     </motion.div>
@@ -153,7 +144,7 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
     );
 };
 
-// --- ACTION ICONS & USER MENU (UPDATED) ---
+// --- ACTION ICONS & USER MENU ---
 const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void; }) => {
     const { openCart, getTotalItems } = useCart();
     const { wishlistProducts, isLoading: isWishlistLoading } = useWishlist();
@@ -173,7 +164,7 @@ const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void;
                     <div className="relative">
                         <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}>
                            {session.user?.image ?
-                                <NextImage src={session.user.image} alt="User" width={32} height={32} className="rounded-full ring-2 ring-offset-2 ring-transparent hover:ring-solar-flare-start transition-all" unoptimized /> :
+                                <img src={session.user.image} alt="User" className="h-8 w-8 rounded-full ring-2 ring-offset-2 ring-transparent hover:ring-solar-flare-start transition-all" /> :
                                 <UserCircleIcon className="h-8 w-8 text-gray-500 hover:text-solar-flare-end transition-colors" />
                            }
                         </button>
@@ -206,18 +197,58 @@ const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void;
     );
 };
 
-// --- MOBILE MENU (UPDATED) ---
+// --- MOBILE MENU ---
+const MobileFeaturedItem = ({ item, closeMenu }: { item: { name: string, href: string, image: string, description: string }, closeMenu: () => void }) => (
+    <Link href={item.href} onClick={closeMenu} className="group block rounded-lg overflow-hidden relative bg-gray-100 p-4 my-2 mx-2">
+        <img
+            src={item.image}
+            alt={item.name}
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+        <div className="relative h-full flex flex-col justify-end text-white">
+           <p className="text-xs font-bold uppercase tracking-wider flex items-center"><StarIcon className="h-4 w-4 mr-1.5 text-yellow-400"/>Featured</p>
+           <h3 className="font-bold text-md mt-1">{item.name}</h3>
+        </div>
+    </Link>
+);
+
+const MobileRecursiveMenu = ({ items, closeMenu, level = 0 }: { items: NavCategory[]; closeMenu: () => void; level?: number; }) => {
+    const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
+    const toggleItem = (name: string) => setOpenItems(prev => ({ ...prev, [name]: !prev[name] }));
+    const hasSubcategories = (item: NavCategory) => (item.subcategories && item.subcategories.length > 0);
+
+    return (
+        <div className={`space-y-1 ${level > 0 ? `pl-4 border-l-2 border-solar-flare-start/20 ml-2` : ''}`}>
+            {items.map((item) => (
+                <div key={item.name}>
+                    <div className="flex items-center justify-between rounded-md hover:bg-gray-100">
+                        <Link href={item.href || '#'} onClick={(e) => { if (!hasSubcategories(item)) { closeMenu(); } else { e.preventDefault(); toggleItem(item.name); } }} className="flex-grow py-3 px-2 text-md font-medium text-gray-800">{item.name}</Link>
+                        {hasSubcategories(item) && (<button onClick={() => toggleItem(item.name)} className="p-3 text-gray-400"><ChevronDownIcon className={`h-5 w-5 transition-transform duration-300 ${openItems[item.name] ? 'rotate-180 text-solar-flare-end' : ''}`} /></button>)}
+                    </div>
+                    <AnimatePresence>
+                        {hasSubcategories(item) && openItems[item.name] && (
+                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: 'easeInOut' }} className="overflow-hidden">
+                                <MobileRecursiveMenu items={item.subcategories!} closeMenu={closeMenu} level={level + 1} />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 const MobileMenu = ({ isOpen, closeMenu }: { isOpen: boolean; closeMenu: () => void; }) => {
     const { data: session, status: sessionStatus } = useSession();
-    // --- THIS IS THE FIX ---
-    // State to hold the dynamic service categories for mobile
     const [dynamicServiceCategories, setDynamicServiceCategories] = useState<NavCategory[]>([]);
 
     useEffect(() => {
-        if (isOpen) { // Only fetch when the menu is open
+        if (isOpen) {
             const fetchServiceCategories = async () => {
                 try {
-                    const response = await fetch('/api/service-categories');
+                    // --- THIS IS THE FIX ---
+                    const response = await fetch('/api/service-categories', { cache: 'no-store' });
                     const data = await response.json();
                     if (response.ok) {
                         setDynamicServiceCategories(data);
@@ -228,10 +259,10 @@ const MobileMenu = ({ isOpen, closeMenu }: { isOpen: boolean; closeMenu: () => v
             };
             fetchServiceCategories();
         }
-    }, [isOpen]); // Re-fetch if the menu is re-opened
+    }, [isOpen]);
 
     const featuredProduct = { name: "Complete 5kW Hybrid System", href: "/products/solar-kits/5kw-hybrid-system", image: "/images/featured-product.jpg", description: "Our bestselling all-in-one solution." };
-    const featuredService = { name: "Commercial Solar Solutions", href: "/services/commercial-solar-solutions", image: "/images/hero-bg-3.jpg", description: "Power your business with solar." };
+    const featuredService = { name: "Commercial Solar Solutions", href: "/services/commercial-solar-solutions", image: "/images/featured-service1.jpg", description: "Power your business with solar." };
 
     return (
         <AnimatePresence>
@@ -252,8 +283,6 @@ const MobileMenu = ({ isOpen, closeMenu }: { isOpen: boolean; closeMenu: () => v
                                 <div className="border-b pb-2">
                                     <h3 className="px-4 pt-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Services</h3>
                                     <MobileFeaturedItem item={featuredService} closeMenu={closeMenu} />
-                                    {/* --- THIS IS THE FIX --- */}
-                                    {/* Use the dynamic categories for the mobile menu */}
                                     <div className="px-2"><MobileRecursiveMenu items={dynamicServiceCategories} closeMenu={closeMenu} /></div>
                                 </div>
                                 <div className="pt-2 px-2">
@@ -308,7 +337,7 @@ const Header = () => {
                         <div className="flex-shrink-0">
                             <Link href="/" className="flex items-center group">
                                 <div className="relative h-10 w-10 sm:h-12 sm:w-12">
-                                    <NextImage src="/images/logo.png" alt="Bills On Solar EA Limited Logo" fill className="object-contain" sizes="48px" unoptimized />
+                                    <img src="/images/logo.png" alt="Bills On Solar EA Limited Logo" className="h-full w-full object-contain" />
                                 </div>
                                 <span className="hidden sm:block ml-3 text-xl font-bold text-gray-900 group-hover:text-solar-flare-end transition-colors">Bills On Solar</span>
                             </Link>
@@ -332,50 +361,5 @@ const Header = () => {
         </>
     );
 };
-
-// --- MobileRecursiveMenu (Unchanged) ---
-const MobileRecursiveMenu = ({ items, closeMenu, level = 0 }: { items: NavCategory[]; closeMenu: () => void; level?: number; }) => {
-    const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
-    const toggleItem = (name: string) => setOpenItems(prev => ({ ...prev, [name]: !prev[name] }));
-    const hasSubcategories = (item: NavCategory) => (item.subcategories && item.subcategories.length > 0);
-
-    return (
-        <div className={`space-y-1 ${level > 0 ? `pl-4 border-l-2 border-solar-flare-start/20 ml-2` : ''}`}>
-            {items.map((item) => (
-                <div key={item.name}>
-                    <div className="flex items-center justify-between rounded-md hover:bg-gray-100">
-                        <Link href={item.href || '#'} onClick={(e) => { if (!hasSubcategories(item)) { closeMenu(); } else { e.preventDefault(); toggleItem(item.name); } }} className="flex-grow py-3 px-2 text-md font-medium text-gray-800">{item.name}</Link>
-                        {hasSubcategories(item) && (<button onClick={() => toggleItem(item.name)} className="p-3 text-gray-400"><ChevronDownIcon className={`h-5 w-5 transition-transform duration-300 ${openItems[item.name] ? 'rotate-180 text-solar-flare-end' : ''}`} /></button>)}
-                    </div>
-                    <AnimatePresence>
-                        {hasSubcategories(item) && openItems[item.name] && (
-                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: 'easeInOut' }} className="overflow-hidden">
-                                <MobileRecursiveMenu items={item.subcategories!} closeMenu={closeMenu} level={level + 1} />
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-            ))}
-        </div>
-    );
-};
-
-// --- MobileFeaturedItem (Unchanged) ---
-const MobileFeaturedItem = ({ item, closeMenu }: { item: { name: string, href: string, image: string, description: string }, closeMenu: () => void }) => (
-    <Link href={item.href} onClick={closeMenu} className="group block rounded-lg overflow-hidden relative bg-gray-100 p-4 my-2 mx-2">
-        <NextImage
-            src={item.image}
-            alt={item.name}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
-            unoptimized 
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-        <div className="relative h-full flex flex-col justify-end text-white">
-           <p className="text-xs font-bold uppercase tracking-wider flex items-center"><StarIcon className="h-4 w-4 mr-1.5 text-yellow-400"/>Featured</p>
-           <h3 className="font-bold text-md mt-1">{item.name}</h3>
-        </div>
-    </Link>
-);
 
 export default Header;
