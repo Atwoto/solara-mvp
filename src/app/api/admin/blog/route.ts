@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { BlogPost, BlogPostCategory } from '@/types';
 
 const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com';
-const SUPABASE_ARTICLES_IMAGE_BUCKET = 'article-images'; // Standardizing on this bucket
+const SUPABASE_ARTICLES_IMAGE_BUCKET = 'article-images';
 
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions) as Session | null;
@@ -34,6 +34,9 @@ export async function POST(req: NextRequest) {
         const author_name = formData.get('author_name') as string | null;
         const published_at_string = formData.get('published_at') as string | null;
         const imageFile = formData.get('imageFile') as File | null;
+        // --- NEW: Get the key_takeaways JSON string ---
+        const key_takeaways_json = formData.get('key_takeaways') as string | null;
+
 
         if (!title || !slug || !content) {
             return NextResponse.json({ message: 'Title, slug, and content are required.' }, { status: 400 });
@@ -58,6 +61,17 @@ export async function POST(req: NextRequest) {
             const { data: publicUrlData } = supabaseAdmin.storage.from(SUPABASE_ARTICLES_IMAGE_BUCKET).getPublicUrl(uploadedImagePathInStorage);
             uploadedImageUrl = publicUrlData.publicUrl;
         }
+
+        // --- NEW: Parse the key_takeaways JSON string ---
+        let key_takeaways = []; // Default to an empty array
+        if (key_takeaways_json) {
+            try {
+                key_takeaways = JSON.parse(key_takeaways_json);
+            } catch (error) {
+                console.error("Invalid JSON for key_takeaways:", key_takeaways_json);
+                return NextResponse.json({ message: 'The format for Key Takeaways is invalid. Please provide a valid JSON array.' }, { status: 400 });
+            }
+        }
         
         const articleToInsert: Omit<BlogPost, 'id' | 'created_at'> = {
             title,
@@ -68,10 +82,12 @@ export async function POST(req: NextRequest) {
             author_name: author_name || (session.user.name || 'Admin'),
             image_url: uploadedImageUrl,
             published_at: published_at_string ? new Date(published_at_string).toISOString() : new Date().toISOString(),
+            // --- NEW: Add the parsed takeaways to the insert object ---
+            key_takeaways,
         };
 
         const { data: insertedArticleData, error: insertError } = await supabaseAdmin
-            .from('articles')
+            .from('articles') // Ensure this table name matches your database
             .insert([articleToInsert])
             .select()
             .single();

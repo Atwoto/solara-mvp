@@ -11,6 +11,7 @@ export interface Product {
     category?: string | null; 
     description?: string | null;
     is_archived?: boolean; // --- THE FIX: Added this property ---
+    features?: string[] | { title: string; detail: string }[]; 
 }
 
 export const PRODUCT_CATEGORY_SLUGS = [
@@ -26,11 +27,19 @@ export interface CartItem extends Product {
 }
 
 // --- BLOG POST RELATED TYPES ---
-export interface BlogPost { 
-    id: string; created_at: string; title: string; slug: string; 
-    published_at?: string | null; category?: BlogPostCategory | string | null;
-    image_url?: string | null; excerpt?: string | null; content: string; 
-    author_name?: string | null; 
+export interface BlogPost {
+    id: string;
+    created_at: string;
+    title: string;
+    slug: string;
+    published_at?: string | null;
+    category?: BlogPostCategory | string | null;
+    image_url?: string | null;
+    excerpt?: string | null;
+    content: string;
+    author_name?: string | null;
+    // --- ADDED THIS LINE ---
+    key_takeaways?: string[] | { title: string; detail: string }[];
 }
 export const BLOG_POST_CATEGORIES = [
     "Solar Basics", "Industry News", "Product Reviews", "DIY Projects",
@@ -91,6 +100,8 @@ export interface Project {
     thumbnail_url?: string | null;
     display_order?: number;
     is_published?: boolean;
+    // Add the line below
+    highlights?: string[] | { title: string; detail: string }[];
 }
 
 

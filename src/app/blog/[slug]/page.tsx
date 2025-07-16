@@ -2,16 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-// import NextImage from 'next/image'; // No longer needed
 import Head from 'next/head';
 import { BlogPost } from '@/types';
 import PageHeader from '@/components/PageHeader';
 import Link from 'next/link';
-import { CalendarDaysIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import { CalendarDaysIcon, UserCircleIcon, CheckBadgeIcon } from '@heroicons/react/24/solid'; // Updated Icon Import
 import { motion, useScroll, useSpring } from 'framer-motion';
 import { FaFacebookF, FaTwitter, FaLinkedinIn } from 'react-icons/fa';
 
-// --- Reading Progress Bar Component ---
+// --- Reading Progress Bar Component (No changes) ---
 const ReadingProgressBar = () => {
     const { scrollYProgress } = useScroll();
     const scaleX = useSpring(scrollYProgress, {
@@ -69,6 +68,7 @@ const SingleArticlePage = () => {
     }, [slug]);
 
     if (isLoading) {
+        // Loading state UI (No changes)
         return (
             <div className="container mx-auto px-4 py-20 text-center">
                 <p className="text-gray-500 text-lg">Loading article...</p>
@@ -77,6 +77,7 @@ const SingleArticlePage = () => {
     }
 
     if (error || !article) {
+        // Error state UI (No changes)
         return (
             <>
                 <PageHeader title="Article Not Found" subtitle={error || "The article you are looking for does not exist or is not available."} />
@@ -104,9 +105,9 @@ const SingleArticlePage = () => {
 
             <article className="bg-white">
                 <header className="relative h-[60vh] min-h-[400px] w-full">
+                    {/* Header content (No changes) */}
                     <div className="absolute inset-0">
                         {article.image_url && (
-                            // --- THIS IS THE FIX ---
                             <img
                                 src={article.image_url}
                                 alt={article.title}
@@ -146,6 +147,37 @@ const SingleArticlePage = () => {
 
                 <div className="py-12 sm:py-16">
                     <div className="container mx-auto px-4 max-w-3xl">
+                        
+                        {/* --- NEW: KEY TAKEAWAYS SECTION --- */}
+                        {article.key_takeaways && article.key_takeaways.length > 0 && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5, delay: 0.1 }}
+                                className="bg-gray-50 border border-gray-200 rounded-2xl p-6 sm:p-8 mb-10"
+                            >
+                                <h2 className="text-xl font-bold text-deep-night mb-4">Key Takeaways</h2>
+                                <ul className="space-y-3">
+                                    {article.key_takeaways.map((takeaway, index) => (
+                                        <li key={index} className="flex items-start">
+                                            <CheckBadgeIcon className="h-6 w-6 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                                            <div>
+                                                {typeof takeaway === 'object' && takeaway.title ? (
+                                                    <>
+                                                        <span className="font-semibold text-gray-800">{takeaway.title}:</span>
+                                                        <span className="text-gray-600 ml-1.5">{takeaway.detail}</span>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-gray-600">{String(takeaway)}</span>
+                                                )}
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </motion.div>
+                        )}
+                        {/* --- END OF NEW SECTION --- */}
+
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -155,6 +187,7 @@ const SingleArticlePage = () => {
                         />
 
                         <div className="mt-12 border-t pt-8">
+                            {/* Share links and author box (No changes) */}
                             <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
                                 <div className="flex items-center gap-3">
                                     <span className="font-semibold text-sm text-gray-700">Share this article:</span>

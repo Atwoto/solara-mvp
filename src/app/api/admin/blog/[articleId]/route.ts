@@ -14,8 +14,7 @@ interface RouteParams {
 }
 
 /**
- * GET: Fetches a single blog article by its ID.
- * This is the missing piece that caused the "Unexpected end of JSON input" error.
+ * GET: Fetches a single blog article by its ID for the edit form.
  */
 export async function GET(req: NextRequest, { params }: RouteParams) {
     const session = await getServerSession(authOptions);
@@ -52,6 +51,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
 /**
  * PUT: Updates an existing blog article.
+ * --- MODIFIED TO HANDLE KEY TAKEAWAYS ---
  */
 export async function PUT(req: NextRequest, { params }: RouteParams) {
     const session = await getServerSession(authOptions);
@@ -64,28 +64,35 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 
     try {
         const formData = await req.formData();
-        const title = formData.get('title') as string;
-        const content = formData.get('content') as string;
-        const slug = formData.get('slug') as string;
-        const category = formData.get('category') as string | null;
-        const excerpt = formData.get('excerpt') as string | null;
-        const published_at = formData.get('published_at') as string | null;
-        const imageFile = formData.get('imageFile') as File | null;
-        const currentImageUrl = formData.get('currentImageUrl') as string | null;
-
-        if (!title || !content || !slug) {
-            return NextResponse.json({ message: 'Title, Slug, and Content are required.' }, { status: 400 });
-        }
-
+        
         const dataToUpdate: { [key: string]: any } = {
-            title,
-            content,
-            slug,
-            category,
-            excerpt,
-            published_at: published_at ? new Date(published_at).toISOString() : null,
+            title: formData.get('title') as string,
+            content: formData.get('content') as string,
+            slug: formData.get('slug') as string,
+            category: formData.get('category') as string | null,
+            excerpt: formData.get('excerpt') as string | null,
+            published_at: formData.get('published_at') ? new Date(formData.get('published_at') as string).toISOString() : null,
             updated_at: new Date().toISOString(),
         };
+
+        if (!dataToUpdate.title || !dataToUpdate.content || !dataToUpdate.slug) {
+            return NextResponse.json({ message: 'Title, Slug, and Content are required.' }, { status: 400 });
+        }
+        
+        // --- NEW: Handle key_takeaways JSON data ---
+        if (formData.has('key_takeaways')) {
+            const takeawaysJson = formData.get('key_takeaways') as string;
+            try {
+                dataToUpdate.key_takeaways = JSON.parse(takeawaysJson);
+            } catch (error) {
+                console.error("Invalid JSON for key_takeaways:", takeawaysJson);
+                return NextResponse.json({ message: 'The format for Key Takeaways is invalid. Please provide a valid JSON array.' }, { status: 400 });
+            }
+        }
+        // --- END OF NEW CODE ---
+
+        const imageFile = formData.get('imageFile') as File | null;
+        const currentImageUrl = formData.get('currentImageUrl') as string | null;
 
         if (imageFile && imageFile.size > 0) {
             const fileExt = imageFile.name.split('.').pop();

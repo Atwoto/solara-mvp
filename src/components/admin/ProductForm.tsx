@@ -8,8 +8,9 @@ import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import TipTapEditor from '@/components/admin/TipTapEditor';
 
-export type ProductFormData = Omit<Product, 'id' | 'created_at' | 'image_url'> & { 
+export type ProductFormData = Omit<Product, 'id' | 'created_at' | 'image_url' | 'features'> & { 
   category: ProductCategorySlug | ''; 
+  featuresJson: string;
   imageFiles: File[];
   currentImageUrls: string[];
 };
@@ -60,6 +61,7 @@ export const ProductForm = ({ initialData, onSubmitSuccess }: ProductFormProps) 
     wattage: initialData?.wattage || 0,
     category: (initialData?.category as ProductCategorySlug) || '',
     description: initialData?.description || '',
+    featuresJson: initialData?.features ? JSON.stringify(initialData.features, null, 2) : '[]',
     imageFiles: [],
     currentImageUrls: initialData?.image_url || [],
   }), [initialData]);
@@ -177,6 +179,22 @@ export const ProductForm = ({ initialData, onSubmitSuccess }: ProductFormProps) 
                     <SettingsCard title="Organization">
                         <div><label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">Category</label><select name="category" id="category" value={productData.category} onChange={handleInputChange} required className="block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm"><option value="" disabled>Select a category</option>{PRODUCT_CATEGORY_SLUGS.map(slug => (<option key={slug} value={slug}>{slug.split('-').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ')}</option>))}</select></div>
                     </SettingsCard>
+
+                    <SettingsCard title="Key Features">
+                        <div>
+                            <label htmlFor="featuresJson" className="block text-sm font-medium text-gray-700">Features (JSON Array)</label>
+                            <textarea 
+                                id="featuresJson" 
+                                name="featuresJson" 
+                                rows={5} 
+                                value={productData.featuresJson} 
+                                onChange={handleInputChange} 
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm font-mono" 
+                                placeholder='e.g., ["High Efficiency", "25-Year Warranty"]' 
+                            />
+                            <p className="mt-1 text-xs text-gray-500">Enter a valid JSON array of strings or objects.</p>
+                        </div>
+                    </SettingsCard>
                     
                     <SettingsCard title="Product Images">
                         <label htmlFor="imageFiles" className="relative cursor-pointer bg-white rounded-lg border-2 border-dashed border-slate-300 hover:border-solar-flare-start transition-colors w-full min-h-[12rem] flex flex-col items-center justify-center text-center p-4">
@@ -199,7 +217,6 @@ export const ProductForm = ({ initialData, onSubmitSuccess }: ProductFormProps) 
                 </motion.div>
             </div>
             
-            {/* The action bar is now inside the main motion.div wrapper */}
             <div className="sticky bottom-0 left-0 right-0 py-4 bg-white/70 backdrop-blur-lg border-t border-slate-200 mt-8">
                 <div className="container mx-auto px-4">
                     <div className="flex justify-end max-w-7xl mx-auto">
@@ -215,9 +232,7 @@ export const ProductForm = ({ initialData, onSubmitSuccess }: ProductFormProps) 
                     </div>
                 </div>
             </div>
-        </motion.div> {/* --- THIS IS THE FIX: Added the missing closing tag --- */}
+        </motion.div>
     </form>
   );
 };
-
-export default ProductForm;

@@ -1,10 +1,10 @@
+// src/app/projects/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import PageHeader from "@/components/PageHeader";
-// import NextImage from 'next/image'; // No longer needed
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { PhotoIcon, VideoCameraIcon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
+import { PhotoIcon, VideoCameraIcon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon, CheckBadgeIcon } from '@heroicons/react/24/solid';
 import { Project } from '@/types';
 
 // --- ANIMATION VARIANTS ---
@@ -48,7 +48,7 @@ const ProjectsPage = () => {
                 if (!response.ok) throw new Error('Failed to fetch projects.');
                 const data: Project[] = await response.json();
                 setAllProjects(data);
-            } catch (err: any) { // --- THIS IS THE FIX ---
+            } catch (err: any) {
                 setError(err.message);
             } finally {
                 setIsLoading(false);
@@ -227,12 +227,12 @@ const ProjectsPage = () => {
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.8, opacity: 0 }}
                             transition={{ duration: 0.3 }}
-                            className="relative w-full max-w-6xl max-h-[95vh] bg-deep-night/95 rounded-xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-sm"
+                            className="relative w-full max-w-6xl max-h-[95vh] bg-deep-night/95 rounded-xl shadow-2xl flex flex-col md:flex-row overflow-hidden backdrop-blur-sm"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <div className="relative flex-1 min-h-0 bg-black">
+                            <div className="relative md:w-2/3 flex-shrink-0 bg-black flex items-center justify-center">
                                 {selectedProject.type === 'video' ? (
-                                    <div className="w-full h-full min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]">
+                                    <div className="w-full aspect-video">
                                         <iframe
                                             key={`video-${selectedProject.id}`}
                                             src={getYouTubeEmbedUrl(selectedProject.media_url)}
@@ -244,36 +244,55 @@ const ProjectsPage = () => {
                                         />
                                     </div>
                                 ) : (
-                                    <div className="relative w-full h-full min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]">
-                                        <img
-                                            key={`image-${selectedProject.id}`}
-                                            src={selectedProject.media_url}
-                                            alt={selectedProject.title}
-                                            className="w-full h-full object-contain"
-                                        />
-                                    </div>
+                                    <img
+                                        key={`image-${selectedProject.id}`}
+                                        src={selectedProject.media_url}
+                                        alt={selectedProject.title}
+                                        className="max-w-full max-h-[60vh] md:max-h-[95vh] object-contain"
+                                    />
                                 )}
                             </div>
 
-                            <div className="w-full p-5 sm:p-6 bg-gray-900/90 backdrop-blur-sm text-white border-t border-gray-700/50">
-                                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                                    <div className="flex-1">
-                                        <p className="text-sm font-semibold text-solar-flare-start uppercase tracking-wider">
-                                            {selectedProject.category}
-                                        </p>
-                                        <h2 className="text-xl lg:text-2xl font-bold mt-1 mb-3 text-shadow-md">
-                                            {selectedProject.title}
-                                        </h2>
-                                        <p className="text-gray-300 leading-relaxed text-sm sm:text-base">
-                                            {selectedProject.description}
-                                        </p>
-                                    </div>
-                                    {filteredProjects.length > 1 && (
-                                        <div className="text-sm text-gray-400 shrink-0">
-                                            {filteredProjects.findIndex(p => p.id === selectedProject.id) + 1} of {filteredProjects.length}
+                            <div className="w-full md:w-1/3 p-5 sm:p-6 bg-gray-900/90 backdrop-blur-sm text-white border-t md:border-t-0 md:border-l border-gray-700/50 flex flex-col overflow-y-auto">
+                                <div className="flex-1">
+                                    <p className="text-sm font-semibold text-solar-flare-start uppercase tracking-wider">
+                                        {selectedProject.category}
+                                    </p>
+                                    <h2 className="text-xl lg:text-2xl font-bold mt-1 mb-3 text-shadow-md">
+                                        {selectedProject.title}
+                                    </h2>
+                                    <p className="text-gray-300 leading-relaxed text-sm sm:text-base">
+                                        {selectedProject.description}
+                                    </p>
+                                    
+                                    {selectedProject.highlights && selectedProject.highlights.length > 0 && (
+                                        <div className="mt-6 pt-6 border-t border-gray-700/50">
+                                            <h3 className="text-lg font-semibold mb-3">Project Highlights</h3>
+                                            <ul className="space-y-3">
+                                                {selectedProject.highlights.map((highlight, index) => (
+                                                    <li key={index} className="flex items-start">
+                                                        <CheckBadgeIcon className="h-5 w-5 text-green-400 mr-3 mt-0.5 flex-shrink-0" />
+                                                        <div>
+                                                            {typeof highlight === 'object' && highlight.title ? (
+                                                                <>
+                                                                    <span className="font-semibold text-gray-100">{highlight.title}:</span>
+                                                                    <span className="text-gray-300 ml-1.5">{highlight.detail}</span>
+                                                                </>
+                                                            ) : (
+                                                                <span className="text-gray-300">{String(highlight)}</span>
+                                                            )}
+                                                        </div>
+                                                    </li>
+                                                ))}
+                                            </ul>
                                         </div>
                                     )}
                                 </div>
+                                {filteredProjects.length > 1 && (
+                                    <div className="text-sm text-gray-400 shrink-0 mt-4 pt-4 border-t border-gray-700/50 text-center">
+                                        {filteredProjects.findIndex(p => p.id === selectedProject.id) + 1} of {filteredProjects.length}
+                                    </div>
+                                )}
                             </div>
                         </motion.div>
                     </motion.div>

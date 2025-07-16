@@ -1,46 +1,50 @@
 // src/app/admin/blog/new/page.tsx
 'use client';
 
-import { useState, FormEvent, useEffect, ChangeEvent, useCallback } from 'react';
+import { useState, FormEvent, useEffect, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { BLOG_POST_CATEGORIES, BlogPostCategory } from '@/types'; 
+import { BLOG_POST_CATEGORIES, BlogPostCategory } from '@/types';
 import Image from 'next/image';
-import TipTapEditor from '@/components/admin/TipTapEditor'; 
+import TipTapEditor from '@/components/admin/TipTapEditor';
 import PageHeader from '@/components/admin/PageHeader';
 import PageLoader from '@/components/PageLoader';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowPathIcon, PhotoIcon } from '@heroicons/react/24/solid';
 
-const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com'; 
+const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com';
 
+// Define the structure of our form data
 type ArticleFormData = {
   title: string;
   slug: string;
-  category: BlogPostCategory | ''; 
+  category: BlogPostCategory | '';
   excerpt: string;
-  content: string; 
+  content: string;
   author_name: string;
-  published_at_date: string; 
-  published_at_time: string; 
+  published_at_date: string;
+  published_at_time: string;
   imageFile: File | null;
+  // --- NEW: Add key_takeaways to the form data type ---
+  key_takeaways: string;
 };
 
+// Define the initial state for a new form
 const initialFormData: ArticleFormData = {
   title: '',
   slug: '',
-  category: '', 
+  category: '',
   excerpt: '',
-  content: '<h2>Start with a great headline...</h2><p>Then, write your amazing article here! You can use <strong>bold</strong>, <em>italics</em>, and more.</p>', 
-  author_name: '', 
-  published_at_date: '', 
+  content: '<h2>Start with a great headline...</h2><p>Then, write your amazing article here! You can use <strong>bold</strong>, <em>italics</em>, and more.</p>',
+  author_name: '',
+  published_at_date: '',
   published_at_time: '09:00',
   imageFile: null,
+  // --- NEW: Initialize key_takeaways as an empty JSON array string ---
+  key_takeaways: '[]',
 };
 
-// --- IMPRESSIVE NEW "ADD ARTICLE" PAGE ---
 const AddNewArticlePage = () => {
-    // All state and logic hooks remain the same
     const router = useRouter();
     const { data: session, status } = useSession();
     const [formData, setFormData] = useState<ArticleFormData>(initialFormData);
@@ -50,21 +54,24 @@ const AddNewArticlePage = () => {
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
 
+    // Effect to handle authentication and authorization
     useEffect(() => {
-        if (status === 'loading') return; 
+        if (status === 'loading') return;
         if (status === 'unauthenticated') {
             router.replace(`/login?callbackUrl=/admin/blog/new`);
         } else if (status === 'authenticated' && session?.user?.email !== ADMIN_EMAIL) {
-            router.replace('/'); 
+            router.replace('/');
         }
     }, [session, status, router]);
 
+    // Helper to convert a title string to a URL-friendly slug
     const titleToSlug = (titleString: string) => {
         return titleString
             .toLowerCase().trim()
-            .replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/--+/g, '-'); 
+            .replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/--+/g, '-');
     };
 
+    // Generic handler for most form input changes
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -73,18 +80,19 @@ const AddNewArticlePage = () => {
         }
     };
     
-    // Auto-generate slug from title, unless it's been manually edited
+    // Effect to auto-generate slug from title, if not manually edited
     useEffect(() => {
         if (!isSlugManuallyEdited) {
             setFormData(prev => ({ ...prev, slug: titleToSlug(prev.title) }));
         }
     }, [formData.title, isSlugManuallyEdited]);
 
-
+    // Specific handler for the rich text editor
     const handleContentChange = (richText: string) => {
         setFormData(prev => ({ ...prev, content: richText }));
     };
 
+    // Handler for the featured image file input
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -93,11 +101,11 @@ const AddNewArticlePage = () => {
                 setError('Invalid file type. Please upload a JPG, PNG, WEBP, or GIF image.');
                 e.target.value = ''; return;
             }
-            if (file.size > 5 * 1024 * 1024) { // 5MB
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
                 setError('File is too large. Maximum size is 5MB.');
                 e.target.value = ''; return;
             }
-            setError(null); 
+            setError(null);
             setFormData(prev => ({ ...prev, imageFile: file }));
             const reader = new FileReader();
             reader.onloadend = () => { setImagePreview(reader.result as string); };
@@ -108,6 +116,7 @@ const AddNewArticlePage = () => {
         }
     };
 
+    // Main submission handler
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!formData.title.trim() || !formData.slug.trim() || !formData.content.trim() || formData.content === '<p></p>') {
@@ -117,7 +126,7 @@ const AddNewArticlePage = () => {
 
         setIsSubmitting(true); setError(null); setSuccessMessage(null);
 
-        const dataToSubmit = new FormData(); 
+        const dataToSubmit = new FormData();
         dataToSubmit.append('title', formData.title.trim());
         dataToSubmit.append('slug', formData.slug.trim());
         dataToSubmit.append('category', formData.category);
@@ -125,6 +134,9 @@ const AddNewArticlePage = () => {
         dataToSubmit.append('content', formData.content);
         dataToSubmit.append('author_name', formData.author_name.trim() || (session?.user?.name || 'Admin'));
         
+        // --- NEW: Append the key_takeaways JSON string to the form data ---
+        dataToSubmit.append('key_takeaways', formData.key_takeaways);
+
         if (formData.published_at_date) {
             const dateTimeString = `${formData.published_at_date}T${formData.published_at_time || '00:00:00'}`;
             const localDate = new Date(dateTimeString);
@@ -152,7 +164,7 @@ const AddNewArticlePage = () => {
         return <div className="p-6"><PageLoader message="Loading page..." /></div>;
     }
     if (status !== 'authenticated' || session?.user?.email !== ADMIN_EMAIL) {
-        return <div className="p-6"><PageLoader message="Redirecting..." /></div>; 
+        return <div className="p-6"><PageLoader message="Redirecting..." /></div>;
     }
 
     return (
@@ -178,6 +190,20 @@ const AddNewArticlePage = () => {
                          <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200/80">
                             <label htmlFor="excerpt" className="block text-sm font-medium text-slate-700 mb-1">Excerpt (Optional)</label>
                             <textarea name="excerpt" id="excerpt" rows={3} value={formData.excerpt} onChange={handleInputChange} className="block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" placeholder="A brief summary for listings and SEO..."></textarea>
+                        </div>
+                        {/* --- NEW: Key Takeaways Input Section --- */}
+                        <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200/80">
+                            <label htmlFor="key_takeaways" className="block text-sm font-medium text-slate-700 mb-1">Key Takeaways (Optional, JSON format)</label>
+                            <textarea
+                                name="key_takeaways"
+                                id="key_takeaways"
+                                rows={5}
+                                value={formData.key_takeaways}
+                                onChange={handleInputChange}
+                                className="block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm font-mono"
+                                placeholder='e.g., ["First key point", "Second key point"]'
+                            />
+                            <p className="mt-1 text-xs text-slate-500">Enter a valid JSON array of strings or objects like {"{ \"title\": \"Topic\", \"detail\": \"Explanation\" }"}.</p>
                         </div>
                     </div>
 

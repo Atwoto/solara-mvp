@@ -17,12 +17,26 @@ export async function POST(req: NextRequest) {
     const wattage = formData.get('wattage') ? parseFloat(formData.get('wattage') as string) : null;
     const category = formData.get('category') as string;
     const description = formData.get('description') as string | null;
+    const featuresJson = formData.get('featuresJson') as string | null; // --- 1. GET THE JSON STRING ---
     
     const imageFiles = formData.getAll('imageFiles') as File[];
 
     if (!name || !price || !category || imageFiles.length === 0) {
       return NextResponse.json({ message: 'Missing required fields. Name, price, category, and at least one image are required.' }, { status: 400 });
     }
+    
+    // --- 2. PARSE THE JSON STRING ---
+    // Safely parse the features JSON. If it's empty or invalid, default to an empty array.
+    let features = [];
+    if (featuresJson) {
+        try {
+            features = JSON.parse(featuresJson);
+        } catch (error) {
+            console.error("Invalid JSON for features:", featuresJson);
+            return NextResponse.json({ message: 'The format for the features is invalid. Please provide a valid JSON.' }, { status: 400 });
+        }
+    }
+
 
     const uploadPromises = imageFiles.map(file => {
       const fileExt = file.name.split('.').pop();
@@ -32,10 +46,8 @@ export async function POST(req: NextRequest) {
 
     const uploadResults = await Promise.all(uploadPromises);
 
-    // --- THE GUARANTEED FIX ---
     for (const result of uploadResults) {
         if (result.error) {
-            // If an error occurred, attempt to clean up any files that did succeed.
             const successfulPaths = uploadResults
                 .filter(r => r.data?.path)
                 .map(r => r.data!.path);
@@ -50,6 +62,8 @@ export async function POST(req: NextRequest) {
         return supabaseAdmin.storage.from('product-images').getPublicUrl(result.data!.path).data.publicUrl;
     });
 
+    // --- 3. ADD FEATURES TO THE PRODUCT DATA ---
+    // The 'features' field is now included in the object to be inserted.
     const productToInsert: Omit<Product, 'id' | 'created_at'> = {
       name,
       price,
@@ -57,6 +71,7 @@ export async function POST(req: NextRequest) {
       image_url: imageUrls,
       category,
       description: description || null,
+      features, // Added the parsed features array here
     };
 
     const { data: insertedProductData, error: insertError } = await supabaseAdmin
@@ -72,6 +87,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Product added successfully!', product: insertedProductData }, { status: 201 });
 
   } catch (error: any) {
+    console.error('Error in POST /api/admin/products:', error);
     return NextResponse.json({ message: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

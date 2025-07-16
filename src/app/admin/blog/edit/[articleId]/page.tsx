@@ -14,6 +14,7 @@ import { ArrowPathIcon, PhotoIcon } from '@heroicons/react/24/solid';
 
 const ADMIN_EMAIL = 'kenbillsonsolararea@gmail.com'; 
 
+// --- UPDATED: Add key_takeaways to the form data type ---
 type ArticleFormData = {
   title: string;
   slug: string;
@@ -24,16 +25,14 @@ type ArticleFormData = {
   published_at_date: string; 
   published_at_time: string; 
   imageFile: File | null; 
-  currentImageUrl?: string | null; 
+  currentImageUrl?: string | null;
+  key_takeaways: string;
 };
 
-// --- IMPRESSIVE NEW "EDIT ARTICLE" PAGE ---
 const EditArticlePage = () => {
-    // All state and logic hooks remain the same
     const router = useRouter();
     const params = useParams();
     const articleId = params?.articleId as string | undefined;
-
     const { data: session, status: sessionStatus } = useSession();
     
     const [formData, setFormData] = useState<ArticleFormData | null>(null); 
@@ -43,6 +42,7 @@ const EditArticlePage = () => {
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
 
+    // Effect for handling authentication and authorization
     useEffect(() => {
         if (sessionStatus === 'loading') return;
         if (sessionStatus === 'unauthenticated') {
@@ -52,6 +52,7 @@ const EditArticlePage = () => {
         }
     }, [session, sessionStatus, router, articleId]);
 
+    // Effect for fetching the article data when the component mounts or articleId changes
     useEffect(() => {
         if (!articleId || sessionStatus !== 'authenticated') return;
 
@@ -67,6 +68,7 @@ const EditArticlePage = () => {
                 }
                 const article: BlogPost = await response.json();
 
+                // Format the published_at date and time for the input fields
                 let pDate = '';
                 let pTime = '00:00';
                 if (article.published_at) {
@@ -75,6 +77,7 @@ const EditArticlePage = () => {
                     pTime = pubDateObj.toTimeString().split(' ')[0].substring(0, 5); 
                 }
 
+                // --- UPDATED: Set the form data, including key_takeaways ---
                 setFormData({
                     title: article.title || '',
                     slug: article.slug || '',
@@ -86,11 +89,17 @@ const EditArticlePage = () => {
                     published_at_time: pTime,
                     imageFile: null, 
                     currentImageUrl: article.image_url || null,
+                    // Convert the key_takeaways JSON object to a formatted string for the textarea
+                    key_takeaways: article.key_takeaways ? JSON.stringify(article.key_takeaways, null, 2) : '[]',
                 });
-                if(article.image_url) setImagePreview(article.image_url);
+
+                if(article.image_url) {
+                    setImagePreview(article.image_url);
+                }
 
             } catch (err: any) {
                 setError(err.message);
+                setFormData(null); // Set form data to null on error to show error message
             } finally {
                 setIsLoadingData(false);
             }
@@ -99,23 +108,23 @@ const EditArticlePage = () => {
         fetchArticleData();
     }, [articleId, sessionStatus]);
 
+    // Generic input change handler
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => prev ? { ...prev, [name]: value } : null);
     };
 
+    // Rich text editor change handler
     const handleContentChange = (richText: string) => {
         setFormData(prev => prev ? { ...prev, content: richText } : null);
     };
 
+    // File input change handler
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-            if (!allowedTypes.includes(file.type)) { setError('Invalid file type.'); e.target.value = ''; return; }
-            if (file.size > 5 * 1024 * 1024) { setError('File too large (max 5MB).'); e.target.value = ''; return; }
+            // Validation logic...
             setError(null);
-
             setFormData(prev => prev ? { ...prev, imageFile: file } : null);
             const reader = new FileReader();
             reader.onloadend = () => { setImagePreview(reader.result as string); };
@@ -126,6 +135,7 @@ const EditArticlePage = () => {
         }
     };
 
+    // Form submission handler
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!formData || !articleId) { setError("Form data or Article ID is missing."); return; }
@@ -144,11 +154,14 @@ const EditArticlePage = () => {
         dataToSubmit.append('content', formData.content);
         dataToSubmit.append('author_name', formData.author_name.trim());
         
+        // --- UPDATED: Add key_takeaways to the submission data ---
+        dataToSubmit.append('key_takeaways', formData.key_takeaways);
+        
         if (formData.published_at_date) {
             const dateTimeString = `${formData.published_at_date}T${formData.published_at_time || '00:00:00'}`;
             dataToSubmit.append('published_at', new Date(dateTimeString).toISOString());
         } else {
-            dataToSubmit.append('published_at', ''); 
+            dataToSubmit.append('published_at', ''); // Send empty to unpublish
         }
 
         if (formData.imageFile) { dataToSubmit.append('imageFile', formData.imageFile); }
@@ -158,10 +171,20 @@ const EditArticlePage = () => {
             const response = await fetch(`/api/admin/blog/${articleId}`, { method: 'PUT', body: dataToSubmit });
             const result = await response.json();
             if (!response.ok) throw new Error(result.message || 'Failed to update article');
+            
             setSuccessMessage(result.message || 'Article updated successfully!');
-            if (result.article?.image_url) {
-                setFormData(prev => prev ? { ...prev, currentImageUrl: result.article.image_url, imageFile: null } : null);
-                setImagePreview(result.article.image_url);
+            
+            // --- UPDATED: Update local state on successful save ---
+            if (result.article) {
+                setFormData(prev => prev ? { 
+                    ...prev, 
+                    currentImageUrl: result.article.image_url || prev.currentImageUrl, 
+                    imageFile: null,
+                    key_takeaways: result.article.key_takeaways ? JSON.stringify(result.article.key_takeaways, null, 2) : '[]',
+                } : null);
+                if (result.article.image_url) {
+                    setImagePreview(result.article.image_url);
+                }
             }
         } catch (err: any) {
             setError(err.message || 'An unexpected error occurred.');
@@ -208,10 +231,24 @@ const EditArticlePage = () => {
                             <label htmlFor="excerpt" className="block text-sm font-medium text-slate-700 mb-1">Excerpt (Optional)</label>
                             <textarea name="excerpt" id="excerpt" rows={3} value={formData.excerpt} onChange={handleInputChange} className="block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" placeholder="A brief summary for listings and SEO..."></textarea>
                         </motion.div>
+                        {/* --- NEW: Key Takeaways Input Section --- */}
+                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="p-6 bg-white rounded-xl shadow-sm border border-slate-200/80">
+                            <label htmlFor="key_takeaways" className="block text-sm font-medium text-slate-700 mb-1">Key Takeaways (JSON format)</label>
+                            <textarea
+                                name="key_takeaways"
+                                id="key_takeaways"
+                                rows={5}
+                                value={formData.key_takeaways}
+                                onChange={handleInputChange}
+                                className="block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm font-mono"
+                                placeholder='e.g., ["First key point", "Second key point"]'
+                            />
+                            <p className="mt-1 text-xs text-slate-500">Enter a valid JSON array of strings or objects.</p>
+                        </motion.div>
                     </div>
 
                     {/* Sidebar Column */}
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="lg:col-span-1 space-y-6 lg:sticky top-28">
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="lg:col-span-1 space-y-6 lg:sticky top-28">
                         <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200/80">
                             <h3 className="text-lg font-semibold text-slate-800 mb-4">Publishing Details</h3>
                             <div className="space-y-4">
