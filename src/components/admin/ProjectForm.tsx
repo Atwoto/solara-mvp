@@ -48,7 +48,6 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     media_url: initialData?.media_url || '',
     is_published: initialData?.is_published ?? true,
     display_order: initialData?.display_order || 0,
-    // --- NEW: Add highlightsJson to the form state ---
     highlightsJson: initialData?.highlights ? JSON.stringify(initialData.highlights, null, 2) : '[]',
   });
   
@@ -85,7 +84,6 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     setError(null);
     setIsSubmitting(true);
     
-    // Use a temporary variable for iframe logic to avoid mutating state directly
     let finalMediaUrl = formData.media_url;
     if (formData.type === 'video' && formData.media_url) {
         const srcMatch = formData.media_url.match(/src="([^"]+)"/);
@@ -98,9 +96,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     }
     
     const dataToSubmit = new FormData();
-    // Append all form data, including the new highlightsJson
     Object.entries(formData).forEach(([key, value]) => {
-        // Handle the media_url separately
         if (key !== 'media_url') {
             dataToSubmit.append(key, String(value));
         }
@@ -151,13 +147,13 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                     <textarea id="description" value={formData.description || ''} onChange={(e) => setFormData({...formData, description: e.target.value})} rows={5} className="block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" placeholder="A brief summary of the project..."></textarea>
                 </motion.div>
 
-                {/* --- NEW: Highlights Section --- */}
                 <motion.div variants={itemVariants}>
                      <SettingsCard title="Project Highlights">
                         <div>
                             <label htmlFor="highlightsJson" className="block text-sm font-medium text-gray-700">Highlights (JSON Array)</label>
                             <textarea 
                                 id="highlightsJson"
+                                name="highlightsJson"
                                 rows={5} 
                                 value={formData.highlightsJson} 
                                 onChange={handleInputChange} 
@@ -171,7 +167,6 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
 
                 <motion.div variants={itemVariants} className="p-6 bg-white rounded-xl shadow-sm border border-slate-200/80">
                     <h3 className="text-lg font-semibold text-slate-800 mb-4">Project Media</h3>
-                    {/* ... (rest of the media section is unchanged) ... */}
                     <div className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Project Type</label>
@@ -187,7 +182,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                         {formData.type === 'video' ? (
                             <div>
                                 <label htmlFor="media_url" className="block text-sm font-medium text-gray-700">YouTube Embed Code</label>
-                                <textarea id="media_url" value={formData.media_url} onChange={(e) => setFormData({...formData, media_url: e.target.value})} placeholder='Paste the full <iframe ...> code from YouTube Share -> Embed' required rows={4} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm font-mono" />
+                                <textarea id="media_url" name="media_url" value={formData.media_url} onChange={handleInputChange} placeholder='Paste the full <iframe ...> code from YouTube Share -> Embed' required rows={4} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm font-mono" />
                                 <p className="mt-1 text-xs text-gray-500">We will automatically extract the correct URL for you.</p>
                             </div>
                         ) : (
@@ -199,7 +194,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                                     ) : (
                                         <div className="text-slate-500"><PhotoIcon className="mx-auto h-12 w-12" /><span className="mt-2 block text-sm font-semibold">Click to upload an image</span></div>
                                     )}
-                                    <input type="file" id="mediaFile" onChange={(e) => handleFileChange(e, 'media')} accept="image/*" className="sr-only"/>
+                                    <input type="file" id="mediaFile" name="mediaFile" onChange={(e) => handleFileChange(e, 'media')} accept="image/*" className="sr-only"/>
                                 </label>
                             </div>
                         )}
@@ -213,14 +208,14 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                     <div className="space-y-4">
                         <div>
                             <label htmlFor="is_published" className="block text-sm font-medium text-gray-700">Status</label>
-                            <select id="is_published" value={String(formData.is_published)} onChange={(e) => setFormData({...formData, is_published: e.target.value === 'true'})} className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm">
+                            <select id="is_published" name="is_published" value={String(formData.is_published)} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm">
                                 <option value="true">Published</option>
                                 <option value="false">Draft</option>
                             </select>
                         </div>
                         <div>
                             <label htmlFor="display_order" className="block text-sm font-medium text-gray-700">Display Order</label>
-                            <input type="number" id="display_order" value={formData.display_order} onChange={(e) => setFormData({...formData, display_order: parseInt(e.target.value, 10) || 0})} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm"/>
+                            <input type="number" id="display_order" name="display_order" value={formData.display_order} onChange={(e) => setFormData({...formData, display_order: parseInt(e.target.value, 10) || 0})} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm"/>
                         </div>
                     </div>
                 </SettingsCard>
@@ -228,21 +223,41 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                 <SettingsCard title="Organization">
                     <div>
                         <label htmlFor="category" className="block text-sm font-medium text-gray-700">Category</label>
-                        <select id="category" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value as ProjectCategory})} className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm">
+                        <select id="category" name="category" value={formData.category} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm">
                             {projectCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                         </select>
                     </div>
                 </SettingsCard>
                 
+                {/* --- THIS IS THE FIX --- */}
                 <SettingsCard title="Thumbnail Image" defaultOpen={false}>
-                     {/* ... (thumbnail section is unchanged) ... */}
+                    <p className="text-xs text-gray-500 mb-2">Required for videos. Optional override for images.</p>
+                    <label htmlFor="thumbnailFile" className="mt-2 relative cursor-pointer bg-white rounded-lg border-2 border-dashed border-slate-300 hover:border-solar-flare-start transition-colors w-full h-40 flex flex-col items-center justify-center text-center p-4">
+                        {thumbnailPreview ? (
+                            <Image src={thumbnailPreview} alt="Thumbnail preview" layout="fill" className="object-contain p-2" />
+                        ) : (
+                            <div className="text-slate-500"><PhotoIcon className="mx-auto h-10 w-10" /><span className="mt-2 block text-xs font-semibold">Click to upload thumbnail</span></div>
+                        )}
+                         <input type="file" id="thumbnailFile" name="thumbnailFile" onChange={(e) => handleFileChange(e, 'thumbnail')} accept="image/*" className="sr-only"/>
+                    </label>
                 </SettingsCard>
             </motion.div>
         </motion.div>
 
         {/* Sticky Footer Action Bar */}
         <div className="sticky bottom-0 left-0 right-0 py-4 bg-white/70 backdrop-blur-lg border-t border-slate-200 mt-8 -mx-8 px-8">
-            {/* ... (footer is unchanged) ... */}
+             <div className="container mx-auto px-4">
+                <div className="flex justify-end max-w-7xl mx-auto">
+                    <div className="flex-1 mr-4">
+                        <AnimatePresence>
+                            {error && <motion.div initial={{opacity: 0, y: 10}} animate={{opacity: 1, y: 0}} exit={{opacity: 0}} className="p-3 bg-red-100 text-red-700 border border-red-300 rounded-md text-sm" role="alert">{error}</motion.div>}
+                        </AnimatePresence>
+                    </div>
+                    <button type="submit" disabled={isSubmitting} className="w-full sm:w-auto flex justify-center py-3 px-6 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-deep-night hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-deep-night disabled:opacity-50 transition-opacity">
+                        {isSubmitting ? <><ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" /> Saving...</> : (initialData ? 'Update Project' : 'Create Project')}
+                    </button>
+                </div>
+             </div>
         </div>
     </form>
   );
