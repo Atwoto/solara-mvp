@@ -4,7 +4,7 @@
 import { useEffect } from 'react'; // Only useEffect might be needed for auth guard
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import ProductForm from '@/components/admin/ProductForm'; // Import the reusable form
+import { ProductForm } from '@/components/admin/ProductForm'; // Import the reusable form
 import PageHeader from '@/components/admin/PageHeader'; 
 import PageLoader from '@/components/PageLoader';
 
