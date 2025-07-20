@@ -1,20 +1,21 @@
 // src/app/api/service-categories/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { ServiceCategory } from '@/types';
 
-// Define the structure of the navigation items, including potential children
+// Add this to force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface NavCategory extends ServiceCategory {
   href: string;
   subcategories?: NavCategory[];
 }
 
-// --- THIS IS THE CORRECTED FUNCTION ---
-// This function now correctly builds a nested tree from a flat list of categories
 const buildCategoryTree = (categories: ServiceCategory[]): NavCategory[] => {
   const categoryMap = new Map<string, NavCategory>();
   
-  // First, map each category by its ID and add the href and an empty subcategories array
+  // First pass: Create all categories with href and empty subcategories
   categories.forEach(category => {
     categoryMap.set(category.id, {
       ...category,
@@ -25,48 +26,65 @@ const buildCategoryTree = (categories: ServiceCategory[]): NavCategory[] => {
 
   const tree: NavCategory[] = [];
 
-  // Now, iterate again to place each category under its parent
-  categoryMap.forEach(category => {
+  // Second pass: Build the tree structure
+  categories.forEach(category => {
+    const navCategory = categoryMap.get(category.id);
+    if (!navCategory) return;
+
     if (category.parent_id && categoryMap.has(category.parent_id)) {
-      // This is a sub-category, push it to its parent's subcategories array
+      // This is a sub-category
       const parent = categoryMap.get(category.parent_id);
-      parent?.subcategories?.push(category);
+      if (parent?.subcategories) {
+        parent.subcategories.push(navCategory);
+      }
     } else {
       // This is a top-level category
-      tree.push(category);
+      tree.push(navCategory);
     }
   });
 
-  // Sort children within each parent based on display_order
+  // Sort subcategories within each parent
   categoryMap.forEach(parent => {
     if (parent.subcategories && parent.subcategories.length > 0) {
-        parent.subcategories.sort((a, b) => a.display_order - b.display_order);
+      parent.subcategories.sort((a, b) => a.display_order - b.display_order);
     }
   });
 
-  // Finally, sort the top-level categories
-  tree.sort((a,b) => a.display_order - b.display_order);
+  // Sort top-level categories
+  tree.sort((a, b) => a.display_order - b.display_order);
 
+  console.log('Built category tree:', tree.length, 'top-level categories');
   return tree;
 };
 
-
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    console.log('Fetching service categories...');
+    
     const { data, error } = await supabaseAdmin
       .from('service_categories')
       .select('*')
-      // We don't need to order here anymore, the function handles it
-      .order('name', { ascending: true });
+      .order('display_order', { ascending: true });
 
     if (error) {
+      console.error('Supabase error:', error);
       throw error;
     }
 
+    console.log('Raw categories from DB:', data?.length || 0);
+    
     const categoryTree = buildCategoryTree(data || []);
-    return NextResponse.json(categoryTree);
+    
+    // Add cache-control headers to prevent caching
+    const response = NextResponse.json(categoryTree);
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    
+    return response;
 
   } catch (error: any) {
+    console.error('API error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -79,25 +79,55 @@ const MegaMenu = ({ categories, closeMenu, featuredItem }: { categories: NavCate
     </div>
 );
 
-// --- DESKTOP NAVIGATION ---
+// Key sections to replace in your Header.tsx
+
+// --- IMPROVED DESKTOP NAVIGATION WITH DEBUGGING ---
 const DesktopNav = ({ pathname }: { pathname: string }) => {
     const [activeMenu, setActiveMenu] = useState<'products' | 'services' | null>(null);
     const [dynamicServiceCategories, setDynamicServiceCategories] = useState<NavCategory[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchServiceCategories = async () => {
             try {
-                // --- THIS IS THE FIX ---
-                // Added { cache: 'no-store' } to ensure we always get fresh data
-                const response = await fetch('/api/service-categories', { cache: 'no-store' });
+                setLoading(true);
+                setError(null);
+                console.log('Fetching service categories...');
+                
+                // Add timestamp to prevent caching
+                const timestamp = new Date().getTime();
+                const response = await fetch(`/api/service-categories?t=${timestamp}`, { 
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
-                if (response.ok) {
+                console.log('Received categories:', data.length, data);
+                
+                if (Array.isArray(data)) {
                     setDynamicServiceCategories(data);
+                } else {
+                    console.error('Invalid data format:', data);
+                    setError('Invalid data format received');
                 }
             } catch (error) {
                 console.error("Failed to fetch service categories:", error);
+                setError(error instanceof Error ? error.message : 'Unknown error');
+            } finally {
+                setLoading(false);
             }
         };
+        
         fetchServiceCategories();
     }, []);
 
@@ -108,6 +138,14 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
 
     const featuredProduct = { name: "Complete 5kW Hybrid System", href: "/products/solar-kits/5kw-hybrid-system", image: "/images/featured-product.jpg", description: "Our bestselling all-in-one solution." };
     const featuredService = { name: "Commercial Solar Solutions", href: "/services/commercial-solar-solutions", image: "/images/featured-service1.jpg", description: "Power your business with solar." };
+
+    // Debug logging for service categories
+    console.log('DesktopNav render - Service categories:', {
+        count: dynamicServiceCategories.length,
+        loading,
+        error,
+        categories: dynamicServiceCategories
+    });
 
     return (
         <nav className="hidden lg:flex items-center space-x-1 xl:space-x-2 h-full" onMouseLeave={() => setActiveMenu(null)}>
@@ -135,7 +173,30 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
                         {activeMenu === 'products' ? (
                             <MegaMenu categories={productCategoriesData} closeMenu={() => setActiveMenu(null)} featuredItem={featuredProduct} />
                         ) : (
-                            <MegaMenu categories={dynamicServiceCategories} closeMenu={() => setActiveMenu(null)} featuredItem={featuredService} />
+                            <div>
+                                {loading ? (
+                                    <div className="p-6 text-center">
+                                        <div className="animate-spin h-6 w-6 border-2 border-solar-flare-end border-t-transparent rounded-full mx-auto"></div>
+                                        <p className="mt-2 text-sm text-gray-500">Loading services...</p>
+                                    </div>
+                                ) : error ? (
+                                    <div className="p-6 text-center">
+                                        <p className="text-sm text-red-500">Error: {error}</p>
+                                        <button 
+                                            onClick={() => window.location.reload()} 
+                                            className="mt-2 text-xs text-blue-500 hover:underline"
+                                        >
+                                            Reload page
+                                        </button>
+                                    </div>
+                                ) : dynamicServiceCategories.length === 0 ? (
+                                    <div className="p-6 text-center">
+                                        <p className="text-sm text-gray-500">No services available</p>
+                                    </div>
+                                ) : (
+                                    <MegaMenu categories={dynamicServiceCategories} closeMenu={() => setActiveMenu(null)} featuredItem={featuredService} />
+                                )}
+                            </div>
                         )}
                     </motion.div>
                 )}
