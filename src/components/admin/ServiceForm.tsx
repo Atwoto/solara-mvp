@@ -119,17 +119,76 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
     setImagePreviews([]);
   }, [initialData, getInitialFormState]);
 
+  // Cleanup function to properly handle image preview URLs
+  useEffect(() => {
+    // Cleanup function to revoke object URLs when component unmounts or images change
+    return () => {
+      imagePreviews.forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [imagePreviews]);
+
+  // Fixed handleFileChange function with proper validation and preview generation
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
-      setFormData(prev => ({ ...prev, imageFiles: [...prev.imageFiles, ...filesArray] }));
-      const newPreviews = filesArray.map(file => URL.createObjectURL(file));
-      setImagePreviews(prev => [...prev, ...newPreviews]);
+      
+      // Validate file types and sizes
+      const validFiles = filesArray.filter(file => {
+        const isValidType = file.type.startsWith('image/');
+        const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+        
+        if (!isValidType) {
+          console.warn(`File ${file.name} is not a valid image type`);
+          setError(`File ${file.name} is not a valid image type`);
+          return false;
+        }
+        if (!isValidSize) {
+          console.warn(`File ${file.name} is too large (max 5MB)`);
+          setError(`File ${file.name} is too large (max 5MB)`);
+          return false;
+        }
+        return true;
+      });
+
+      if (validFiles.length > 0) {
+        setFormData(prev => ({ 
+          ...prev, 
+          imageFiles: [...prev.imageFiles, ...validFiles] 
+        }));
+        
+        // Create preview URLs for valid files only
+        const newPreviews = validFiles.map(file => {
+          const url = URL.createObjectURL(file);
+          console.log('Created preview URL:', url, 'for file:', file.name);
+          return url;
+        });
+        setImagePreviews(prev => [...prev, ...newPreviews]);
+        
+        // Clear any previous errors if files are valid
+        if (error && error.includes('not a valid image type') || error && error.includes('too large')) {
+          setError(null);
+        }
+      }
     }
   };
 
+  // Fixed removeNewImage function with proper cleanup
   const removeNewImage = (index: number) => {
-    setFormData(prev => ({ ...prev, imageFiles: prev.imageFiles.filter((_, i) => i !== index) }));
+    // Get the URL to revoke before removing it
+    const urlToRevoke = imagePreviews[index];
+    if (urlToRevoke && urlToRevoke.startsWith('blob:')) {
+      URL.revokeObjectURL(urlToRevoke);
+      console.log('Revoked URL:', urlToRevoke);
+    }
+    
+    setFormData(prev => ({ 
+      ...prev, 
+      imageFiles: prev.imageFiles.filter((_, i) => i !== index) 
+    }));
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
   
@@ -232,21 +291,83 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
                 </SettingsCard>
                 
                 <SettingsCard title="Service Images">
-                     <label htmlFor="imageFiles" className="relative cursor-pointer bg-white rounded-lg border-2 border-dashed border-slate-300 hover:border-solar-flare-start transition-colors w-full min-h-[12rem] flex flex-col items-center justify-center text-center p-4">
+                    <label htmlFor="imageFiles" className="relative cursor-pointer bg-white rounded-lg border-2 border-dashed border-slate-300 hover:border-solar-flare-start transition-colors w-full min-h-[12rem] flex flex-col items-center justify-center text-center p-4">
                         <PhotoIcon className="mx-auto h-12 w-12 text-slate-400" />
                         <span className="mt-2 block text-sm font-semibold text-slate-600">Click to upload images</span>
                         <span className="block text-xs text-slate-500">PNG, JPG, GIF up to 5MB</span>
-                        <input id="imageFiles" name="imageFiles" type="file" className="sr-only" onChange={handleFileChange} multiple accept="image/*" />
+                        <input 
+                            id="imageFiles" 
+                            name="imageFiles" 
+                            type="file" 
+                            className="sr-only" 
+                            onChange={handleFileChange} 
+                            multiple 
+                            accept="image/*" 
+                        />
                     </label>
+                    
                     {(formData.currentImageUrls.length > 0 || imagePreviews.length > 0) && (
                         <div className="mt-4 grid grid-cols-3 gap-3">
-                            {formData.currentImageUrls.map((url) => (
-                                <div key={url} className="relative group aspect-square"><img src={url} alt="Existing image" className="absolute inset-0 w-full h-full object-cover rounded-md border" loading="lazy" /><button type="button" onClick={() => removeExistingImage(url)} className="absolute -top-2 -right-2 bg-white rounded-full transition-transform hover:scale-110"><XCircleIcon className="h-6 w-6 text-red-500 hover:text-red-700" /></button></div>
+                            {/* Existing images */}
+                            {formData.currentImageUrls.map((url, index) => (
+                                <div key={`existing-${index}`} className="relative group aspect-square">
+                                    <img 
+                                        src={url} 
+                                        alt={`Existing image ${index + 1}`}
+                                        className="absolute inset-0 w-full h-full object-cover rounded-md border"
+                                        loading="lazy"
+                                        onError={(e) => {
+                                            console.error('Failed to load existing image:', url);
+                                            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMyA1YTIgMiAwIDAgMSAyLTJoMTRhMiAyIDAgMCAxIDIgMnYxNGEyIDIgMCAwIDEtMiAySDE1di0yaDRWNUg1djE0aDR2Mkg1YTIgMiAwIDAgMS0yLTJWNVoiIGZpbGw9IiNjY2MiLz48L3N2Zz4=';
+                                        }}
+                                    />
+                                    <button 
+                                        type="button" 
+                                        onClick={() => removeExistingImage(url)}
+                                        className="absolute -top-2 -right-2 bg-white rounded-full shadow-lg transition-transform hover:scale-110"
+                                        title="Remove existing image"
+                                    >
+                                        <XCircleIcon className="h-6 w-6 text-red-500 hover:text-red-700" />
+                                    </button>
+                                </div>
                             ))}
+                            
+                            {/* New uploaded images preview */}
                             {imagePreviews.map((previewUrl, index) => (
-                                <div key={previewUrl} className="relative group aspect-square"><img src={previewUrl} alt="New preview" className="absolute inset-0 w-full h-full object-cover rounded-md border" loading="lazy" /><button type="button" onClick={() => removeNewImage(index)} className="absolute -top-2 -right-2 bg-white rounded-full transition-transform hover:scale-110"><XCircleIcon className="h-6 w-6 text-red-500 hover:text-red-700" /></button></div>
+                                <div key={`preview-${index}`} className="relative group aspect-square">
+                                    <img 
+                                        src={previewUrl} 
+                                        alt={`New upload preview ${index + 1}`}
+                                        className="absolute inset-0 w-full h-full object-cover rounded-md border-2 border-green-300"
+                                        loading="lazy"
+                                        onLoad={() => console.log('Preview image loaded successfully:', previewUrl)}
+                                        onError={(e) => {
+                                            console.error('Failed to load preview image:', previewUrl);
+                                            // Show a broken image placeholder
+                                            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJtMTIgMi01IDVINXY0aDJWOWgybDUtNSA1IDVoMnYyaDJWN2wtNS01WiIgZmlsbD0iI2ZmNTc1NyIvPjxwYXRoIGQ9Im0xMiAxOCA1LTVoMnYtNGgtMnY0aC0ybC01IDUtNS01SDN2NGgydjJoMmw1IDVaIiBmaWxsPSIjZmY1NzU3Ii8+PC9zdmc+';
+                                        }}
+                                    />
+                                    <button 
+                                        type="button" 
+                                        onClick={() => removeNewImage(index)}
+                                        className="absolute -top-2 -right-2 bg-white rounded-full shadow-lg transition-transform hover:scale-110"
+                                        title="Remove new image"
+                                    >
+                                        <XCircleIcon className="h-6 w-6 text-red-500 hover:text-red-700" />
+                                    </button>
+                                    <div className="absolute bottom-1 left-1 bg-green-600 text-white text-xs px-2 py-1 rounded">
+                                        New
+                                    </div>
+                                </div>
                             ))}
                         </div>
+                    )}
+                    
+                    {/* Show image count */}
+                    {(formData.currentImageUrls.length > 0 || imagePreviews.length > 0) && (
+                        <p className="mt-2 text-sm text-slate-600">
+                            {formData.currentImageUrls.length} existing, {imagePreviews.length} new images
+                        </p>
                     )}
                 </SettingsCard>
             </div>
