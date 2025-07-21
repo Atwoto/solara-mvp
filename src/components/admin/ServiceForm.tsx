@@ -48,7 +48,6 @@ const SettingsCard = ({ title, children }: { title: string, children: ReactNode 
     );
 };
 
-// --- THIS IS THE FIX ---
 // A new recursive helper function to render nested options for the dropdown
 const renderCategoryOptions = (categories: ServiceCategory[], allCategories: ServiceCategory[], level = 0) => {
     const prefix = '\u00A0\u00A0'.repeat(level) + (level > 0 ? '↳ ' : '');
@@ -92,7 +91,7 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<{ file: File; url: string }[]>([]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -116,6 +115,12 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
 
   useEffect(() => {
     setFormData(getInitialFormState());
+    // Clean up old previews
+    imagePreviews.forEach(preview => {
+      if (preview.url.startsWith('blob:')) {
+        URL.revokeObjectURL(preview.url);
+      }
+    });
     setImagePreviews([]);
   }, [initialData, getInitialFormState]);
 
@@ -123,9 +128,9 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
   useEffect(() => {
     // Cleanup function to revoke object URLs when component unmounts or images change
     return () => {
-      imagePreviews.forEach(url => {
-        if (url.startsWith('blob:')) {
-          URL.revokeObjectURL(url);
+      imagePreviews.forEach(preview => {
+        if (preview.url.startsWith('blob:')) {
+          URL.revokeObjectURL(preview.url);
         }
       });
     };
@@ -155,34 +160,39 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
       });
 
       if (validFiles.length > 0) {
+        // Update form data with new files
         setFormData(prev => ({ 
           ...prev, 
           imageFiles: [...prev.imageFiles, ...validFiles] 
         }));
         
-        // Create preview URLs for valid files only
+        // Create preview objects for valid files
         const newPreviews = validFiles.map(file => {
           const url = URL.createObjectURL(file);
           console.log('Created preview URL:', url, 'for file:', file.name);
-          return url;
+          return { file, url };
         });
+        
         setImagePreviews(prev => [...prev, ...newPreviews]);
         
         // Clear any previous errors if files are valid
-        if (error && error.includes('not a valid image type') || error && error.includes('too large')) {
+        if (error && (error.includes('not a valid image type') || error.includes('too large'))) {
           setError(null);
         }
       }
+
+      // Reset the input value to allow uploading the same file again if needed
+      e.target.value = '';
     }
   };
 
   // Fixed removeNewImage function with proper cleanup
   const removeNewImage = (index: number) => {
-    // Get the URL to revoke before removing it
-    const urlToRevoke = imagePreviews[index];
-    if (urlToRevoke && urlToRevoke.startsWith('blob:')) {
-      URL.revokeObjectURL(urlToRevoke);
-      console.log('Revoked URL:', urlToRevoke);
+    // Get the preview to revoke before removing it
+    const previewToRemove = imagePreviews[index];
+    if (previewToRemove && previewToRemove.url.startsWith('blob:')) {
+      URL.revokeObjectURL(previewToRemove.url);
+      console.log('Revoked URL:', previewToRemove.url);
     }
     
     setFormData(prev => ({ 
@@ -193,7 +203,10 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
   };
   
   const removeExistingImage = (urlToRemove: string) => {
-    setFormData(prev => ({ ...prev, currentImageUrls: prev.currentImageUrls.filter(url => url !== urlToRemove) }));
+    setFormData(prev => ({ 
+      ...prev, 
+      currentImageUrls: prev.currentImageUrls.filter(url => url !== urlToRemove) 
+    }));
   };
 
   const handleServiceSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -245,6 +258,12 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
       if (onSubmitSuccess) onSubmitSuccess();
 
       if (!initialData) {
+        // Clean up old previews before resetting
+        imagePreviews.forEach(preview => {
+          if (preview.url.startsWith('blob:')) {
+            URL.revokeObjectURL(preview.url);
+          }
+        });
         setFormData(getInitialFormState());
         setImagePreviews([]);
       }
@@ -263,7 +282,6 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
                     <label htmlFor="service-title-select" className="block text-sm font-medium text-slate-700 mb-1">Service Title <span className="text-red-500">*</span></label>
                     <select id="service-title-select" name="title" value={formData.slug} onChange={handleServiceSelectChange} required className="mt-1 block w-full px-3 py-2.5 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm">
                         <option value="" disabled>-- Select a service to pre-fill --</option>
-                        {/* --- THIS IS THE FIX --- */}
                         {renderCategoryOptions(categoryTree, serviceCategories)}
                     </select>
                 </div>
@@ -274,101 +292,176 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
             </div>
 
             <div className="lg:col-span-1 space-y-6 lg:sticky top-28">
-                 {/* The rest of the form remains unchanged... */}
-                 <SettingsCard title="Publishing">
+                <SettingsCard title="Publishing">
                     <div className="space-y-4">
-                        <div><label htmlFor="status" className="block text-sm font-medium text-gray-700">Status</label><select id="status" name="status" value={formData.status} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm">{statusOptions.map(option => <option key={option} value={option}>{option.charAt(0).toUpperCase() + option.slice(1)}</option>)}</select></div>
-                        <div><label htmlFor="display_order" className="block text-sm font-medium text-gray-700">Display Order</label><input type="number" name="display_order" id="display_order" value={formData.display_order || ''} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" /></div>
+                        <div>
+                            <label htmlFor="status" className="block text-sm font-medium text-gray-700">Status</label>
+                            <select id="status" name="status" value={formData.status} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm">
+                                {statusOptions.map(option => (
+                                    <option key={option} value={option}>
+                                        {option.charAt(0).toUpperCase() + option.slice(1)}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="display_order" className="block text-sm font-medium text-gray-700">Display Order</label>
+                            <input 
+                                type="number" 
+                                name="display_order" 
+                                id="display_order" 
+                                value={formData.display_order || ''} 
+                                onChange={handleInputChange} 
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" 
+                            />
+                        </div>
                     </div>
                 </SettingsCard>
 
                 <SettingsCard title="Details & Organization">
                     <div className="space-y-4">
-                         <div><label htmlFor="slug" className="block text-sm font-medium text-gray-700">Slug (URL) <span className="text-red-500">*</span></label><input type="text" name="slug" id="slug" value={formData.slug} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-600 focus:outline-none sm:text-sm" readOnly /></div>
-                         <div><label htmlFor="excerpt" className="block text-sm font-medium text-gray-700">Excerpt</label><textarea id="excerpt" name="excerpt" rows={3} value={formData.excerpt || ''} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" /></div>
-                         <div><label htmlFor="featuresJson" className="block text-sm font-medium text-gray-700">Features (JSON Array)</label><textarea id="featuresJson" name="featuresJson" rows={5} value={formData.featuresJson} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm font-mono" placeholder='e.g., ["Detail 1", "Detail 2"]' /><p className="mt-1 text-xs text-gray-500">Enter a valid JSON array of strings.</p></div>
+                        <div>
+                            <label htmlFor="slug" className="block text-sm font-medium text-gray-700">Slug (URL) <span className="text-red-500">*</span></label>
+                            <input 
+                                type="text" 
+                                name="slug" 
+                                id="slug" 
+                                value={formData.slug} 
+                                required 
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-600 focus:outline-none sm:text-sm" 
+                                readOnly 
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="excerpt" className="block text-sm font-medium text-gray-700">Excerpt</label>
+                            <textarea 
+                                id="excerpt" 
+                                name="excerpt" 
+                                rows={3} 
+                                value={formData.excerpt || ''} 
+                                onChange={handleInputChange} 
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm" 
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="featuresJson" className="block text-sm font-medium text-gray-700">Features (JSON Array)</label>
+                            <textarea 
+                                id="featuresJson" 
+                                name="featuresJson" 
+                                rows={5} 
+                                value={formData.featuresJson} 
+                                onChange={handleInputChange} 
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm font-mono" 
+                                placeholder='e.g., ["Detail 1", "Detail 2"]' 
+                            />
+                            <p className="mt-1 text-xs text-gray-500">Enter a valid JSON array of strings.</p>
+                        </div>
                     </div>
                 </SettingsCard>
                 
                 <SettingsCard title="Service Images">
-                    <label htmlFor="imageFiles" className="relative cursor-pointer bg-white rounded-lg border-2 border-dashed border-slate-300 hover:border-solar-flare-start transition-colors w-full min-h-[12rem] flex flex-col items-center justify-center text-center p-4">
-                        <PhotoIcon className="mx-auto h-12 w-12 text-slate-400" />
-                        <span className="mt-2 block text-sm font-semibold text-slate-600">Click to upload images</span>
-                        <span className="block text-xs text-slate-500">PNG, JPG, GIF up to 5MB</span>
-                        <input 
-                            id="imageFiles" 
-                            name="imageFiles" 
-                            type="file" 
-                            className="sr-only" 
-                            onChange={handleFileChange} 
-                            multiple 
-                            accept="image/*" 
-                        />
-                    </label>
-                    
-                    {(formData.currentImageUrls.length > 0 || imagePreviews.length > 0) && (
-                        <div className="mt-4 grid grid-cols-3 gap-3">
-                            {/* Existing images */}
-                            {formData.currentImageUrls.map((url, index) => (
-                                <div key={`existing-${index}`} className="relative group aspect-square">
-                                    <img 
-                                        src={url} 
-                                        alt={`Existing image ${index + 1}`}
-                                        className="absolute inset-0 w-full h-full object-cover rounded-md border"
-                                        loading="lazy"
-                                        onError={(e) => {
-                                            console.error('Failed to load existing image:', url);
-                                            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMyA1YTIgMiAwIDAgMSAyLTJoMTRhMiAyIDAgMCAxIDIgMnYxNGEyIDIgMCAwIDEtMiAySDE1di0yaDRWNUg1djE0aDR2Mkg1YTIgMiAwIDAgMS0yLTJWNVoiIGZpbGw9IiNjY2MiLz48L3N2Zz4=';
-                                        }}
-                                    />
-                                    <button 
-                                        type="button" 
-                                        onClick={() => removeExistingImage(url)}
-                                        className="absolute -top-2 -right-2 bg-white rounded-full shadow-lg transition-transform hover:scale-110"
-                                        title="Remove existing image"
-                                    >
-                                        <XCircleIcon className="h-6 w-6 text-red-500 hover:text-red-700" />
-                                    </button>
-                                </div>
-                            ))}
-                            
-                            {/* New uploaded images preview */}
-                            {imagePreviews.map((previewUrl, index) => (
-                                <div key={`preview-${index}`} className="relative group aspect-square">
-                                    <img 
-                                        src={previewUrl} 
-                                        alt={`New upload preview ${index + 1}`}
-                                        className="absolute inset-0 w-full h-full object-cover rounded-md border-2 border-green-300"
-                                        loading="lazy"
-                                        onLoad={() => console.log('Preview image loaded successfully:', previewUrl)}
-                                        onError={(e) => {
-                                            console.error('Failed to load preview image:', previewUrl);
-                                            // Show a broken image placeholder
-                                            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJtMTIgMi01IDVINXY0aDJWOWgybDUtNSA1IDVoMnYyaDJWN2wtNS01WiIgZmlsbD0iI2ZmNTc1NyIvPjxwYXRoIGQ9Im0xMiAxOCA1LTVoMnYtNGgtMnY0aC0ybC01IDUtNS01SDN2NGgydjJoMmw1IDVaIiBmaWxsPSIjZmY1NzU3Ii8+PC9zdmc+';
-                                        }}
-                                    />
-                                    <button 
-                                        type="button" 
-                                        onClick={() => removeNewImage(index)}
-                                        className="absolute -top-2 -right-2 bg-white rounded-full shadow-lg transition-transform hover:scale-110"
-                                        title="Remove new image"
-                                    >
-                                        <XCircleIcon className="h-6 w-6 text-red-500 hover:text-red-700" />
-                                    </button>
-                                    <div className="absolute bottom-1 left-1 bg-green-600 text-white text-xs px-2 py-1 rounded">
-                                        New
+                    <div className="space-y-4">
+                        <label htmlFor="imageFiles" className="relative cursor-pointer bg-white rounded-lg border-2 border-dashed border-slate-300 hover:border-solar-flare-start transition-colors w-full min-h-[12rem] flex flex-col items-center justify-center text-center p-4">
+                            <PhotoIcon className="mx-auto h-12 w-12 text-slate-400" />
+                            <span className="mt-2 block text-sm font-semibold text-slate-600">Click to upload images</span>
+                            <span className="block text-xs text-slate-500">PNG, JPG, GIF up to 5MB</span>
+                            <input 
+                                id="imageFiles" 
+                                name="imageFiles" 
+                                type="file" 
+                                className="sr-only" 
+                                onChange={handleFileChange} 
+                                multiple 
+                                accept="image/*" 
+                            />
+                        </label>
+                        
+                        {(formData.currentImageUrls.length > 0 || imagePreviews.length > 0) && (
+                            <div className="space-y-4">
+                                {/* Existing images */}
+                                {formData.currentImageUrls.length > 0 && (
+                                    <div>
+                                        <h4 className="text-sm font-medium text-gray-700 mb-2">Existing Images</h4>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {formData.currentImageUrls.map((url, index) => (
+                                                <div key={`existing-${index}`} className="relative group">
+                                                    <div className="aspect-square overflow-hidden rounded-lg border-2 border-slate-200">
+                                                        <img 
+                                                            src={url} 
+                                                            alt={`Existing image ${index + 1}`}
+                                                            className="w-full h-full object-cover"
+                                                            loading="lazy"
+                                                            onError={(e) => {
+                                                                console.error('Failed to load existing image:', url);
+                                                                const target = e.target as HTMLImageElement;
+                                                                target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMyA1YTIgMiAwIDAgMSAyLTJoMTRhMiAyIDAgMCAxIDIgMnYxNGEyIDIgMCAwIDEtMiAySDE1di0yaDRWNUg1djE0aDR2Mkg1YTIgMiAwIDAgMS0yLTJWNVoiIGZpbGw9IiNjY2MiLz48L3N2Zz4=';
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => removeExistingImage(url)}
+                                                        className="absolute -top-2 -right-2 bg-white rounded-full shadow-lg transition-transform hover:scale-110 z-10"
+                                                        title="Remove existing image"
+                                                    >
+                                                        <XCircleIcon className="h-6 w-6 text-red-500 hover:text-red-700" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                    
-                    {/* Show image count */}
-                    {(formData.currentImageUrls.length > 0 || imagePreviews.length > 0) && (
-                        <p className="mt-2 text-sm text-slate-600">
-                            {formData.currentImageUrls.length} existing, {imagePreviews.length} new images
-                        </p>
-                    )}
+                                )}
+                                
+                                {/* New uploaded images preview */}
+                                {imagePreviews.length > 0 && (
+                                    <div>
+                                        <h4 className="text-sm font-medium text-gray-700 mb-2">New Images to Upload</h4>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {imagePreviews.map((preview, index) => (
+                                                <div key={`preview-${index}-${preview.file.name}`} className="relative group">
+                                                    <div className="aspect-square overflow-hidden rounded-lg border-2 border-green-300">
+                                                        <img 
+                                                            src={preview.url} 
+                                                            alt={`New upload: ${preview.file.name}`}
+                                                            className="w-full h-full object-cover"
+                                                            loading="lazy"
+                                                            onLoad={() => console.log('Preview image loaded successfully:', preview.url)}
+                                                            onError={(e) => {
+                                                                console.error('Failed to load preview image:', preview.url);
+                                                                const target = e.target as HTMLImageElement;
+                                                                target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJtMTIgMi01IDVINXY0aDJWOWgybDUtNSA1IDVoMnYyaDJWN2wtNS01WiIgZmlsbD0iI2ZmNTc1NyIvPjxwYXRoIGQ9Im0xMiAxOCA1LTVoMnYtNGgtMnY0aC0ybC01IDUtNS01SDN2NGgydjJoMmw1IDVaIiBmaWxsPSIjZmY1NzU3Ii8+PC9zdmc+';
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => removeNewImage(index)}
+                                                        className="absolute -top-2 -right-2 bg-white rounded-full shadow-lg transition-transform hover:scale-110 z-10"
+                                                        title={`Remove ${preview.file.name}`}
+                                                    >
+                                                        <XCircleIcon className="h-6 w-6 text-red-500 hover:text-red-700" />
+                                                    </button>
+                                                    <div className="absolute bottom-1 left-1 bg-green-600 text-white text-xs px-2 py-1 rounded">
+                                                        New
+                                                    </div>
+                                                    <div className="absolute bottom-1 right-1 bg-black/75 text-white text-xs px-1 py-0.5 rounded max-w-[80px] truncate" title={preview.file.name}>
+                                                        {preview.file.name}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        
+                        {/* Show image count */}
+                        {(formData.currentImageUrls.length > 0 || imagePreviews.length > 0) && (
+                            <p className="text-sm text-slate-600 bg-slate-50 p-2 rounded">
+                                📷 {formData.currentImageUrls.length} existing, {imagePreviews.length} new images
+                            </p>
+                        )}
+                    </div>
                 </SettingsCard>
             </div>
         </div>
@@ -378,12 +471,43 @@ export default function ServiceForm({ initialData, onSubmitSuccess }: ServiceFor
                 <div className="flex justify-end max-w-5xl mx-auto">
                     <div className="flex-1 mr-4">
                         <AnimatePresence>
-                            {error && <motion.div initial={{opacity: 0, y: 10}} animate={{opacity: 1, y: 0}} exit={{opacity: 0}} className="p-3 bg-red-100 text-red-700 border border-red-300 rounded-md text-sm" role="alert">{error}</motion.div>}
-                            {successMessage && <motion.div initial={{opacity: 0, y: 10}} animate={{opacity: 1, y: 0}} exit={{opacity: 0}} className="p-3 bg-green-100 text-green-700 border border-green-300 rounded-md text-sm" role="alert">{successMessage}</motion.div>}
+                            {error && (
+                                <motion.div 
+                                    initial={{opacity: 0, y: 10}} 
+                                    animate={{opacity: 1, y: 0}} 
+                                    exit={{opacity: 0}} 
+                                    className="p-3 bg-red-100 text-red-700 border border-red-300 rounded-md text-sm" 
+                                    role="alert"
+                                >
+                                    {error}
+                                </motion.div>
+                            )}
+                            {successMessage && (
+                                <motion.div 
+                                    initial={{opacity: 0, y: 10}} 
+                                    animate={{opacity: 1, y: 0}} 
+                                    exit={{opacity: 0}} 
+                                    className="p-3 bg-green-100 text-green-700 border border-green-300 rounded-md text-sm" 
+                                    role="alert"
+                                >
+                                    {successMessage}
+                                </motion.div>
+                            )}
                         </AnimatePresence>
                     </div>
-                    <button type="submit" disabled={isSubmitting} className="w-full sm:w-auto flex justify-center py-3 px-6 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-deep-night hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-deep-night disabled:opacity-50 transition-opacity">
-                        {isSubmitting ? <><ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" /> Saving...</> : (initialData?.id ? 'Update Service' : 'Create Service')}
+                    <button 
+                        type="submit" 
+                        disabled={isSubmitting} 
+                        className="w-full sm:w-auto flex justify-center py-3 px-6 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-deep-night hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-deep-night disabled:opacity-50 transition-opacity"
+                    >
+                        {isSubmitting ? (
+                            <>
+                                <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" /> 
+                                Saving...
+                            </>
+                        ) : (
+                            initialData?.id ? 'Update Service' : 'Create Service'
+                        )}
                     </button>
                 </div>
              </div>
