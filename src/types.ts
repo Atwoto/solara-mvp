@@ -10,13 +10,15 @@ export interface Product {
     image_url: string[] | null;
     category?: string | null; 
     description?: string | null;
-    is_archived?: boolean; // --- THE FIX: Added this property ---
+    is_archived?: boolean;
     features?: string[] | { title: string; detail: string }[]; 
 }
 
+// --- THIS IS THE FIX ---
+// Added 'solar-lights' and the other missing slugs to this list.
 export const PRODUCT_CATEGORY_SLUGS = [
     "solar-panels", "off-grid-inverters", "hybrid-inverters", "grid-tied-inverters",
-    "vrla-battery", "lithium-ion-battery", "portable-power-station",
+    "vrla-battery", "lithium-ion-battery", "portable-power-station", "solar-lights",
     "residential", "commercial", "accessories",
 ] as const;
 export type ProductCategorySlug = typeof PRODUCT_CATEGORY_SLUGS[number];
@@ -38,7 +40,6 @@ export interface BlogPost {
     excerpt?: string | null;
     content: string;
     author_name?: string | null;
-    // --- ADDED THIS LINE ---
     key_takeaways?: string[] | { title: string; detail: string }[];
 }
 export const BLOG_POST_CATEGORIES = [
@@ -100,19 +101,17 @@ export interface Project {
     thumbnail_url?: string | null;
     display_order?: number;
     is_published?: boolean;
-    // Add the line below
     highlights?: string[] | { title: string; detail: string }[];
 }
 
-
-// --- SUBSCRIBER RELATED TYPES --- (ADD THIS SECTION)
+// --- SUBSCRIBER RELATED TYPES ---
 export interface Subscriber {
   id: string;
   email: string;
   created_at: string;
 }
 
-// --- NEW: COUNTY RESOURCE TYPES ---
+// --- COUNTY RESOURCE TYPES ---
 export interface CountyResource {
   id: string;
   created_at: string;
@@ -124,14 +123,13 @@ export interface CountyResource {
   is_published: boolean;
 }
 
-
-// --- NEW: DYNAMIC SERVICE CATEGORY TYPES ---
+// --- DYNAMIC SERVICE CATEGORY TYPES ---
 export interface ServiceCategory {
   id: string;
   created_at: string;
   name: string;
   slug: string;
   description?: string | null;
-  parent_id?: string | null; // Will link to the id of the parent category
+  parent_id?: string | null;
   display_order: number;
 }
