@@ -1,90 +1,74 @@
 // src/app/api/service-categories/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { ServiceCategory } from '@/types';
 
-// Add this to force dynamic rendering
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
+// Define the structure of the navigation items, including potential children
 interface NavCategory extends ServiceCategory {
   href: string;
   subcategories?: NavCategory[];
 }
 
+// --- THIS IS THE NEW, MORE ROBUST FUNCTION ---
+// It correctly builds a nested tree from a flat list of categories.
 const buildCategoryTree = (categories: ServiceCategory[]): NavCategory[] => {
-  const categoryMap = new Map<string, NavCategory>();
-  
-  // First pass: Create all categories with href and empty subcategories
-  categories.forEach(category => {
-    categoryMap.set(category.id, {
-      ...category,
-      href: `/services/${category.slug}`,
-      subcategories: [],
+  const nodeMap = new Map<string, NavCategory>();
+
+  // First pass: create a node for each category and add it to the map.
+  categories.forEach(cat => {
+    nodeMap.set(cat.id, {
+      ...cat,
+      href: `/services/${cat.slug}`,
+      subcategories: [], // Initialize children array
     });
   });
 
   const tree: NavCategory[] = [];
 
-  // Second pass: Build the tree structure
-  categories.forEach(category => {
-    const navCategory = categoryMap.get(category.id);
-    if (!navCategory) return;
-
-    if (category.parent_id && categoryMap.has(category.parent_id)) {
-      // This is a sub-category
-      const parent = categoryMap.get(category.parent_id);
-      if (parent?.subcategories) {
-        parent.subcategories.push(navCategory);
-      }
+  // Second pass: link children to their parents.
+  nodeMap.forEach(node => {
+    if (node.parent_id && nodeMap.has(node.parent_id)) {
+      // It's a sub-category, so find its parent and push it into the parent's 'subcategories' array.
+      const parentNode = nodeMap.get(node.parent_id)!;
+      parentNode.subcategories?.push(node);
     } else {
-      // This is a top-level category
-      tree.push(navCategory);
+      // It's a top-level category (no parent), so add it directly to the final tree.
+      tree.push(node);
     }
   });
+  
+  // Helper function to sort all levels of the tree by 'display_order'
+  const sortNodesRecursively = (nodes: NavCategory[]) => {
+    nodes.sort((a, b) => a.display_order - b.display_order);
+    nodes.forEach(node => {
+        if (node.subcategories && node.subcategories.length > 0) {
+            sortNodesRecursively(node.subcategories);
+        }
+    });
+  };
 
-  // Sort subcategories within each parent
-  categoryMap.forEach(parent => {
-    if (parent.subcategories && parent.subcategories.length > 0) {
-      parent.subcategories.sort((a, b) => a.display_order - b.display_order);
-    }
-  });
+  sortNodesRecursively(tree);
 
-  // Sort top-level categories
-  tree.sort((a, b) => a.display_order - b.display_order);
-
-  console.log('Built category tree:', tree.length, 'top-level categories');
   return tree;
 };
 
-export async function GET(request: NextRequest) {
+
+export async function GET() {
   try {
-    console.log('Fetching service categories...');
-    
+    // We can fetch all items and sort them reliably in our function.
     const { data, error } = await supabaseAdmin
       .from('service_categories')
-      .select('*')
-      .order('display_order', { ascending: true });
+      .select('*'); 
 
     if (error) {
-      console.error('Supabase error:', error);
+      console.error("Error fetching service categories from DB:", error.message);
       throw error;
     }
 
-    console.log('Raw categories from DB:', data?.length || 0);
-    
     const categoryTree = buildCategoryTree(data || []);
-    
-    // Add cache-control headers to prevent caching
-    const response = NextResponse.json(categoryTree);
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-    response.headers.set('Pragma', 'no-cache');
-    response.headers.set('Expires', '0');
-    
-    return response;
+    return NextResponse.json(categoryTree);
 
   } catch (error: any) {
-    console.error('API error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
