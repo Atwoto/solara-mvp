@@ -150,12 +150,12 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
     return (
         <nav className="hidden lg:flex items-center space-x-1 xl:space-x-2 h-full" onMouseLeave={() => setActiveMenu(null)}>
             <div className="relative h-full flex items-center" onMouseEnter={() => setActiveMenu('products')}>
-                <div className={`flex items-center px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-200 ease-in-out hover:text-solar-flare-end ${pathname.startsWith('/#products') || activeMenu === 'products' ? 'font-semibold text-solar-flare-end' : 'text-gray-700'}`}>
+                <div className={`flex items-center px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-200 ease-in-out hover:text-solar-flare-end ${pathname.startsWith('/products') || activeMenu === 'products' ? 'font-semibold text-solar-flare-end' : 'text-gray-700'}`}>
                     Products <ChevronDownIcon className={`ml-1 h-4 w-4 transition-transform duration-200 ${activeMenu === 'products' ? 'rotate-180' : ''}`} />
                 </div>
             </div>
             <div className="relative h-full flex items-center" onMouseEnter={() => setActiveMenu('services')}>
-                <div className={`flex items-center px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-200 ease-in-out hover:text-solar-flare-end ${pathname.startsWith('/#services') || activeMenu === 'services' ? 'font-semibold text-solar-flare-end' : 'text-gray-700'}`}>
+                <div className={`flex items-center px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-200 ease-in-out hover:text-solar-flare-end ${pathname.startsWith('/services') || activeMenu === 'services' ? 'font-semibold text-solar-flare-end' : 'text-gray-700'}`}>
                     Installation Services <ChevronDownIcon className={`ml-1 h-4 w-4 transition-transform duration-200 ${activeMenu === 'services' ? 'rotate-180' : ''}`} />
                 </div>
             </div>
@@ -322,8 +322,8 @@ const MobileMenu = ({ isOpen, closeMenu }: { isOpen: boolean; closeMenu: () => v
         }
     }, [isOpen]);
 
-    const featuredProduct = { name: "Complete 5kW Hybrid System", href: "/products/solar-kits/5kw-hybrid-system", image: "/images/featured-product.jpg", description: "Our bestselling all-in-one solution." };
-    const featuredService = { name: "Commercial Solar Solutions", href: "/services/commercial-solar-solutions", image: "/images/featured-service1.jpg", description: "Power your business with solar." };
+    const featuredProduct = { name: "All Products", href: "/products", image: "/images/featured-product.jpg", description: "Our bestselling all-in-one solution." };
+    const featuredService = { name: "Industrial solar system solutions", href: "/services/industrial-solar-system-solutions", image: "/images/featured-service1.jpg", description: "Power your business with solar." };
 
     return (
         <AnimatePresence>
