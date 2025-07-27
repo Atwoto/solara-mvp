@@ -150,12 +150,12 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
     return (
         <nav className="hidden lg:flex items-center space-x-1 xl:space-x-2 h-full" onMouseLeave={() => setActiveMenu(null)}>
             <div className="relative h-full flex items-center" onMouseEnter={() => setActiveMenu('products')}>
-                <div className={`flex items-center px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-200 ease-in-out hover:text-solar-flare-end ${pathname.startsWith('/products') || activeMenu === 'products' ? 'font-semibold text-solar-flare-end' : 'text-gray-700'}`}>
+                <div className={`flex items-center px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-200 ease-in-out hover:text-solar-flare-end ${pathname.startsWith('/#products') || activeMenu === 'products' ? 'font-semibold text-solar-flare-end' : 'text-gray-700'}`}>
                     Products <ChevronDownIcon className={`ml-1 h-4 w-4 transition-transform duration-200 ${activeMenu === 'products' ? 'rotate-180' : ''}`} />
                 </div>
             </div>
             <div className="relative h-full flex items-center" onMouseEnter={() => setActiveMenu('services')}>
-                <div className={`flex items-center px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-200 ease-in-out hover:text-solar-flare-end ${pathname.startsWith('/services') || activeMenu === 'services' ? 'font-semibold text-solar-flare-end' : 'text-gray-700'}`}>
+                <div className={`flex items-center px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-200 ease-in-out hover:text-solar-flare-end ${pathname.startsWith('/#services') || activeMenu === 'services' ? 'font-semibold text-solar-flare-end' : 'text-gray-700'}`}>
                     Installation Services <ChevronDownIcon className={`ml-1 h-4 w-4 transition-transform duration-200 ${activeMenu === 'services' ? 'rotate-180' : ''}`} />
                 </div>
             </div>
