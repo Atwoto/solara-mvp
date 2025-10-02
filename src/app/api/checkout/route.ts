@@ -81,50 +81,13 @@ export async function POST(req: NextRequest) {
     // Create order in Supabase
     console.log("Creating order in Supabase...");
 
-    // For guest orders, we need to handle the user_id constraint
-    let guestUserId = null;
-    if (!session && isGuestCheckout) {
-      // Create or get a special guest user ID
-      const { data: guestUser, error: guestError } = await supabaseAdmin
-        .from("users")
-        .select("id")
-        .eq("email", "guest@billsonsolar.com")
-        .single();
-
-      if (guestError && guestError.code === "PGRST116") {
-        // Guest user doesn't exist, create one
-        const { data: newGuestUser, error: createError } = await supabaseAdmin
-          .from("users")
-          .insert({
-            email: "guest@billsonsolar.com",
-            name: "Guest User",
-            is_guest: true,
-          })
-          .select("id")
-          .single();
-
-        if (createError) {
-          console.error("Failed to create guest user:", createError);
-          // Fallback: use a default UUID for guest orders
-          guestUserId = "00000000-0000-0000-0000-000000000000";
-        } else {
-          guestUserId = newGuestUser.id;
-        }
-      } else if (guestUser) {
-        guestUserId = guestUser.id;
-      } else {
-        // Fallback: use a default UUID for guest orders
-        guestUserId = "00000000-0000-0000-0000-000000000000";
-      }
-    }
-
     const newOrder: any = {
       total_amount: total,
       status: "pending_payment",
       shipping_address: shippingDetails,
       shipping_details: shippingDetails,
       paystack_reference: reference,
-      user_id: session ? session.user.id : guestUserId,
+      user_id: session ? session.user.id : null, // Use null for guest orders
     };
 
     // Add guest email to order for guest checkouts
