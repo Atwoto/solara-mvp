@@ -23,6 +23,9 @@ export async function POST(req: NextRequest) {
     sessionUserId: session?.user?.id,
     isGuestCheckout,
     shippingEmail: shippingDetails?.email,
+    shippingDetails: shippingDetails,
+    cartItemsCount: cartItems?.length,
+    total: total,
   });
 
   if (!session && !isGuestCheckout) {
