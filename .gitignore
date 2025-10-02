@@ -44,6 +44,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Kiro AI assistant files
+.kiro/
+
 # IDE and Editor files
 .vscode/
 .idea/
