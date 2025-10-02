@@ -24,7 +24,12 @@ export async function POST(req: NextRequest) {
 
     try {
         // Create a unique reference for the order
-        const reference = `billsonsolar_${isGuestCheckout ? 'guest' : session.user.id}_${Date.now()}`;
+        let reference: string;
+        if (session) {
+            reference = `billsonsolar_${session.user.id}_${Date.now()}`;
+        } else {
+            reference = `billsonsolar_guest_${Date.now()}`;
+        }
         
         const newOrder: any = {
             total_price: total,
