@@ -1,6 +1,6 @@
 // src/app/api/checkout/route.ts
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
@@ -12,15 +12,21 @@ if (!PAYSTACK_SECRET_KEY) {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = createRouteHandlerClient({ cookies });
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const session = await getServerSession(authOptions);
 
   const { cartItems, shippingDetails, total, isGuestCheckout } =
     await req.json();
 
+  // Debug logging
+  console.log("Checkout API Debug:", {
+    hasSession: !!session,
+    sessionUserId: session?.user?.id,
+    isGuestCheckout,
+    shippingEmail: shippingDetails?.email,
+  });
+
   if (!session && !isGuestCheckout) {
+    console.log("Authorization failed: No session and not guest checkout");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
