@@ -35,6 +35,8 @@ export async function POST(req: NextRequest) {
     const email = session ? session.user.email : shippingDetails.email;
     const amount = total * 100; // Convert to kobo/cents
 
+    console.log("Payment details:", { email, amount, reference, total });
+
     if (!email) {
       return NextResponse.json(
         { error: "Email is required for payment" },
@@ -43,6 +45,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Initialize Paystack transaction
+    console.log("Initializing Paystack transaction...");
     const paystackResponse = await fetch(
       "https://api.paystack.co/transaction/initialize",
       {
@@ -60,7 +63,9 @@ export async function POST(req: NextRequest) {
       }
     );
 
+    console.log("Paystack response status:", paystackResponse.status);
     const paystackData = await paystackResponse.json();
+    console.log("Paystack response data:", paystackData);
 
     if (!paystackResponse.ok || !paystackData.status) {
       console.error("Paystack API Error:", paystackData);
@@ -71,20 +76,22 @@ export async function POST(req: NextRequest) {
     }
 
     // Create order in Supabase
+    console.log("Creating order in Supabase...");
     const newOrder: any = {
-      total_price: total,
-      status: "Pending payment",
+      total_amount: total,
+      status: "pending_payment",
       shipping_address: shippingDetails,
-      order_items: cartItems,
-      shipping_cost: shippingDetails.shipping_cost || 0,
+      shipping_details: shippingDetails,
       paystack_reference: reference,
     };
 
     if (session) {
       newOrder.user_id = session.user.id;
-    } else if (isGuestCheckout) {
-      newOrder.user_email = shippingDetails.email;
     }
+    // Note: For guest checkout, we don't have a user_email column in orders table
+    // The email is stored in shipping_details/shipping_address
+
+    console.log("Order data to insert:", newOrder);
 
     const { data: orderData, error: orderError } = await supabaseAdmin
       .from("orders")
@@ -98,6 +105,29 @@ export async function POST(req: NextRequest) {
         { error: "Failed to save order after initializing payment." },
         { status: 500 }
       );
+    }
+
+    console.log("Order created successfully:", orderData);
+
+    // Now create order items in a separate table (if it exists)
+    if (cartItems && cartItems.length > 0) {
+      const orderItems = cartItems.map((item: any) => ({
+        order_id: orderData.id,
+        product_id: item.id,
+        quantity: item.quantity,
+        price: item.price,
+        product_name: item.name,
+      }));
+
+      const { error: itemsError } = await supabaseAdmin
+        .from("order_items")
+        .insert(orderItems);
+
+      if (itemsError) {
+        console.error("Order items insert error:", itemsError);
+        // Don't fail the entire order if items can't be inserted
+        // The main order is already created
+      }
     }
 
     return NextResponse.json({
