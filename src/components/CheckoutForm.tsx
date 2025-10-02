@@ -108,7 +108,7 @@ export default function CheckoutForm() {
                     cartItems,
                     shippingDetails: { ...formData, email: userEmail },
                     subtotal,
-                    shippingCost: "To be calculated",
+                    shippingCost,
                     total,
                     isGuestCheckout: !session, // Flag to indicate guest checkout
                 }),

@@ -100,8 +100,8 @@ const ContactPage: NextPage = () => {
                     <EnvelopeIcon className="h-6 w-6 text-solar-flare-start flex-shrink-0 mt-1" />
                     <div>
                       <h3 className="font-medium">Email Us</h3>
-                      <a href="mailto:onsolarbills@gmail.com" className="hover:text-solar-flare-end transition-colors">
-                        onsolarbills@gmail.com
+                      <a href="mailto:Info@billsonsolar.com" className="hover:text-solar-flare-end transition-colors">
+                        Info@billsonsolar.com
                       </a>
                     </div>
                   </div>

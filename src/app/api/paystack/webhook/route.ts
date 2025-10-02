@@ -3,13 +3,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import crypto from 'crypto';
 
-const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
+const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+
+if (!PAYSTACK_SECRET_KEY) {
+    console.error("FATAL: PAYSTACK_SECRET_KEY is not set!");
+}
 
 export async function POST(req: NextRequest) {
+    console.log("Paystack webhook received.");
+    if (!PAYSTACK_SECRET_KEY) {
+        console.error("Webhook Error: Paystack secret key is not configured.");
+        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     try {
-        // 1. Verify the request is from Paystack
         const signature = req.headers.get('x-paystack-signature');
-        const body = await req.text(); // Get the raw body as text
+        const body = await req.text();
+
+        if (!signature) {
+            console.error("Webhook Error: No x-paystack-signature header found.");
+            return NextResponse.json({ error: 'No signature provided' }, { status: 400 });
+        }
 
         const hash = crypto
             .createHmac('sha512', PAYSTACK_SECRET_KEY)
@@ -17,18 +31,22 @@ export async function POST(req: NextRequest) {
             .digest('hex');
 
         if (hash !== signature) {
-            console.error("Webhook Error: Invalid signature");
+            console.error("Webhook Error: Invalid signature.");
             return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
         }
 
-        // 2. Parse the event data
         const event = JSON.parse(body);
+        console.log("Paystack event:", JSON.stringify(event, null, 2));
 
-        // 3. Handle the 'charge.success' event
         if (event.event === 'charge.success') {
-            const { reference } = event.data;
+            console.log("Processing charge.success event.");
+            const { reference, status } = event.data;
 
-            // Find the order with the matching Paystack reference
+            if (status !== 'success') {
+                console.log(`Charge status is '${status}', not 'success'. No action taken.`);
+                return NextResponse.json({ received: true });
+            }
+
             const { data: order, error: findError } = await supabaseAdmin
                 .from('orders')
                 .select('*')
@@ -40,10 +58,17 @@ export async function POST(req: NextRequest) {
                 return NextResponse.json({ error: 'Order not found' }, { status: 404 });
             }
 
-            // Update the order status to 'Processing'
+            if (order.status === 'Processing' || order.status === 'Completed') {
+                console.log(`Order ${order.id} has already been processed. No action taken.`);
+                return NextResponse.json({ received: true });
+            }
+
             const { error: updateError } = await supabaseAdmin
                 .from('orders')
-                .update({ status: 'Processing' })
+                .update({ 
+                    status: 'Processing',
+                    payment_details: event.data // Save the full payment details
+                })
                 .eq('id', order.id);
 
             if (updateError) {
@@ -52,10 +77,11 @@ export async function POST(req: NextRequest) {
             }
 
             console.log(`Order ${order.id} successfully updated to 'Processing'.`);
+        } else {
+            console.log(`Received event '${event.event}', which is not 'charge.success'. No action taken.`);
         }
 
-        // 4. Acknowledge receipt of the event
-        return NextResponse.json({ received: true }, { status: 200 });
+        return NextResponse.json({ received: true });
 
     } catch (error: any) {
         console.error("Webhook processing failed:", error.message);

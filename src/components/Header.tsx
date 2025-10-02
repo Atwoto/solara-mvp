@@ -139,8 +139,8 @@ const DesktopNav = ({ pathname }: { pathname: string }) => {
         return <Link href={href} className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ease-in-out hover:text-solar-flare-end ${isActive ? 'font-semibold text-solar-flare-end' : 'text-gray-700'}`}>{children}</Link>;
     };
 
-    const featuredProduct = { name: "Complete 5kW Hybrid System", href: "/products/solar-kits/5kw-hybrid-system", image: "/images/featured-product.jpg", description: "Our bestselling all-in-one solution." };
-    const featuredService = { name: "Commercial Solar Solutions", href: "/services/commercial-solar-solutions", image: "/images/featured-service1.jpg", description: "Power your business with solar." };
+    const featuredProduct = { name: "Featured Products", href: "/products", image: "/images/featured-product.jpg", description: "Explore our range of solar solutions." };
+    const featuredService = { name: "Our Services", href: "/services", image: "/images/featured-service1.jpg", description: "Explore our full range of solar installation services." };
 
     // Debug logging for service categories
     console.log('DesktopNav render - Service categories:', {
@@ -333,8 +333,8 @@ const MobileMenu = ({ isOpen, closeMenu }: { isOpen: boolean; closeMenu: () => v
         }
     }, [isOpen]);
 
-    const featuredProduct = { name: "All Products", href: "/products", image: "/images/featured-product.jpg", description: "Our bestselling all-in-one solution." };
-    const featuredService = { name: "Industrial solar system solutions", href: "/services/industrial-solar-system-solutions", image: "/images/featured-service1.jpg", description: "Power your business with solar." };
+    const featuredProduct = { name: "All Products", href: "/products", image: "/images/featured-product.jpg", description: "Explore our entire range of solar solutions." };
+    const featuredService = { name: "Installation Services", href: "/services", image: "/images/featured-service1.jpg", description: "Discover our professional solar installation services." };
 
     return (
         <AnimatePresence>
@@ -360,7 +360,28 @@ const MobileMenu = ({ isOpen, closeMenu }: { isOpen: boolean; closeMenu: () => v
                                 <div className="pt-2 px-2">
                                     {mainNavLinks.map((link) => (<Link key={link.name} href={link.href} className="block py-3 px-2 text-md font-medium text-gray-800 hover:bg-gray-100 rounded-md" onClick={closeMenu}>{link.name}</Link>))}
                                 </div>
-                                 {sessionStatus === 'unauthenticated' && (
+                                 {sessionStatus === 'authenticated' ? (
+                                     <div className="px-4 pt-8">
+                                        <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                                            <div className="font-semibold text-gray-800 truncate">{session.user?.name || 'Account'}</div>
+                                            <div className="text-sm text-gray-600 truncate">{session.user?.email}</div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Link href="/account" onClick={closeMenu} className="block py-3 px-4 bg-white border border-gray-200 rounded-lg text-md font-medium text-gray-800 hover:bg-gray-50">
+                                                My Account
+                                            </Link>
+                                            <button 
+                                                onClick={() => { 
+                                                    signOut(); 
+                                                    closeMenu(); 
+                                                }} 
+                                                className="w-full py-3 px-4 bg-red-50 border border-red-200 rounded-lg text-md font-medium text-red-600 hover:bg-red-100"
+                                            >
+                                                Log Out
+                                            </button>
+                                        </div>
+                                     </div>
+                                 ) : (
                                      <div className="px-4 pt-8">
                                         <Link href="/login" onClick={closeMenu} className="w-full flex items-center justify-center bg-gradient-to-r from-solar-flare-start to-solar-flare-end py-3 text-md font-semibold text-deep-night rounded-full shadow-md hover:opacity-90 active:scale-[0.98] transition-all duration-300">
                                             Log In / Sign Up

@@ -99,7 +99,7 @@ const Footer = () => {
 
   const contactInfo: ContactInfoItem[] = [
     { icon: MapPinIcon, type: 'text', label: ' The Mirages Westlands' },
-    { icon: EnvelopeIcon, type: 'link', href: 'mailto:onsolarbills@gmail.com', label: 'onsolarbills@gmail.com' },
+    { icon: EnvelopeIcon, type: 'link', href: 'mailto:Info@billsonsolar.com', label: 'Info@billsonsolar.com' },
     { icon: PhoneIcon, type: 'link', href: 'tel:+254795857846', label: '+254 795 857 846' },
   ];
 

@@ -27,8 +27,8 @@ export const TopBar = () => {
     },
     { 
       icon: <EnvelopeIcon className="h-4 w-4" />, 
-      text: "onsolarbills@gmail.com", 
-      href: "mailto:onsolarbills@gmail.com" 
+      text: "Info@billsonsolar.com", 
+      href: "mailto:Info@billsonsolar.com" 
     },
     { 
       icon: <PhoneIcon className="h-4 w-4" />, 
