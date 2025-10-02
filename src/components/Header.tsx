@@ -7,6 +7,7 @@ import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useComparison } from '@/context/ComparisonContext';
 import { useSession, signOut } from 'next-auth/react';
+import Image from 'next/image';
 import {
     ShoppingCartIcon, Bars3Icon, XMarkIcon, HeartIcon,
     ArrowsRightLeftIcon, UserCircleIcon, ArrowLeftOnRectangleIcon,
@@ -63,10 +64,12 @@ const MegaMenu = ({ categories, closeMenu, featuredItem }: { categories: NavCate
         </div>
         <div className="col-span-4">
             <Link href={featuredItem.href} onClick={closeMenu} className="group block h-full w-full rounded-lg overflow-hidden relative bg-gray-100 p-6">
-                 <img
+                 <Image
                     src={featuredItem.image}
                     alt={featuredItem.name}
+                    fill
                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                  <div className="relative h-full flex flex-col justify-end text-white">
@@ -225,7 +228,13 @@ const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void;
                     <div className="relative">
                         <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}>
                            {session.user?.image ?
-                                <img src={session.user.image} alt="User" className="h-8 w-8 rounded-full ring-2 ring-offset-2 ring-transparent hover:ring-solar-flare-start transition-all" /> :
+                                <Image 
+                                    src={session.user.image} 
+                                    alt="User" 
+                                    width={32} 
+                                    height={32} 
+                                    className="h-8 w-8 rounded-full ring-2 ring-offset-2 ring-transparent hover:ring-solar-flare-start transition-all" 
+                                /> :
                                 <UserCircleIcon className="h-8 w-8 text-gray-500 hover:text-solar-flare-end transition-colors" />
                            }
                         </button>
@@ -261,10 +270,12 @@ const ActionIcons = ({ openComparisonModal }: { openComparisonModal: () => void;
 // --- MOBILE MENU ---
 const MobileFeaturedItem = ({ item, closeMenu }: { item: { name: string, href: string, image: string, description: string }, closeMenu: () => void }) => (
     <Link href={item.href} onClick={closeMenu} className="group block rounded-lg overflow-hidden relative bg-gray-100 p-4 my-2 mx-2">
-        <img
+        <Image
             src={item.image}
             alt={item.name}
+            fill
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
         <div className="relative h-full flex flex-col justify-end text-white">
@@ -398,7 +409,13 @@ const Header = () => {
                         <div className="flex-shrink-0">
                             <Link href="/" className="flex items-center group">
                                 <div className="relative h-10 w-10 sm:h-12 sm:w-12">
-                                    <img src="/images/logo.png" alt="Bills On Solar EA Limited Logo" className="h-full w-full object-contain" />
+                                    <Image 
+                                        src="/images/logo.png" 
+                                        alt="Bills On Solar EA Limited Logo" 
+                                        fill
+                                        className="h-full w-full object-contain" 
+                                        sizes="(max-width: 640px) 40px, (max-width: 768px) 48px, 48px"
+                                    />
                                 </div>
                                 <span className="hidden sm:block ml-3 text-xl font-bold text-gray-900 group-hover:text-solar-flare-end transition-colors">Bills On Solar</span>
                             </Link>

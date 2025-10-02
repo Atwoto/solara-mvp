@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useWishlist } from '@/context/WishlistContext';
 import { Product } from '@/types';
 import Link from 'next/link';
-// import NextImage from 'next/image'; // No longer needed
+import Image from 'next/image';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { HeartIcon as HeartSolidIcon, CheckIcon } from '@heroicons/react/24/solid';
 import { TrashIcon, ShoppingCartIcon } from '@heroicons/react/24/outline';
@@ -44,11 +44,12 @@ const WishlistItem = ({
             <div className="relative h-32 w-32 sm:h-24 sm:w-24 rounded-lg overflow-hidden border bg-gray-50 flex-shrink-0">
                 <Link href={`/products/${product.id}`} className="absolute inset-0 z-10" />
                 {product.image_url && product.image_url[0] && (
-                    // --- THIS IS THE FIX ---
-                    <img
+                    <Image
                         src={product.image_url[0]}
                         alt={product.name}
+                        fill
                         className="absolute inset-0 w-full h-full object-cover"
+                        sizes="(max-width: 768px) 128px, (max-width: 1200px) 96px, 96px"
                         loading="lazy"
                     />
                 )}

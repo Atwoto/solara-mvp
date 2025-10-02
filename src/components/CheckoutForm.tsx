@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useCart } from "@/context/CartContext";
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LockClosedIcon, ExclamationTriangleIcon, ShoppingBagIcon, UserIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, TruckIcon } from '@heroicons/react/24/outline';
+import { LockClosedIcon, ExclamationTriangleIcon, ShoppingBagIcon, UserIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, TruckIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import GuestCheckoutModal from './GuestCheckoutModal';
 
 declare global {
     interface Window {
@@ -57,9 +58,10 @@ export default function CheckoutForm() {
     const router = useRouter();
     const { cartItems, clearCart, isLoading: isCartLoading } = useCart();
 
-    const [formData, setFormData] = useState({ fullName: '', phone: '', address: '' });
+    const [formData, setFormData] = useState({ fullName: '', phone: '', address: '', guestEmail: '' });
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
     const [formError, setFormError] = useState('');
+    const [showGuestModal, setShowGuestModal] = useState(false);
 
     const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const shippingCost = 0; 
@@ -75,7 +77,8 @@ export default function CheckoutForm() {
 
     useEffect(() => {
         if (status === 'unauthenticated') {
-            router.push('/login?callbackUrl=/checkout');
+            // Show guest checkout modal instead of redirecting
+            setShowGuestModal(true);
         } else if (session?.user?.name) {
             setFormData(prev => ({ ...prev, fullName: session.user.name! }));
         }
@@ -95,15 +98,19 @@ export default function CheckoutForm() {
         setFormError('');
 
         try {
+            // Determine user email - either from session or from guest checkout
+            const userEmail = session?.user?.email || formData.guestEmail;
+            
             const checkoutResponse = await fetch('/api/checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     cartItems,
-                    shippingDetails: { ...formData, email: session?.user?.email },
+                    shippingDetails: { ...formData, email: userEmail },
                     subtotal,
                     shippingCost: "To be calculated",
                     total,
+                    isGuestCheckout: !session, // Flag to indicate guest checkout
                 }),
             });
             const checkoutData = await checkoutResponse.json();
@@ -113,7 +120,7 @@ export default function CheckoutForm() {
 
             const handler = window.PaystackPop.setup({
                 key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
-                email: session!.user!.email!,
+                email: userEmail!,
                 amount: Math.round(total * 100),
                 currency: 'KES',
                 ref: checkoutData.paystack.reference,
@@ -162,10 +169,22 @@ export default function CheckoutForm() {
                             transition={{ duration: 0.5, ease: 'easeOut' }}
                             className="lg:col-span-2 bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-200/80"
                         >
-                            <h2 className="text-2xl font-semibold text-graphite mb-6 border-b pb-4">Shipping Information</h2>
+                            <div className="flex items-center justify-between mb-6 border-b pb-4">
+                                <h2 className="text-2xl font-semibold text-graphite">Shipping Information</h2>
+                                {!session && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowGuestModal(true)}
+                                        className="flex items-center text-sm font-medium text-solar-flare-start hover:text-solar-flare-end transition-colors"
+                                    >
+                                        <UserCircleIcon className="h-5 w-5 mr-1" />
+                                        Guest Checkout
+                                    </button>
+                                )}
+                            </div>
                             <div className="space-y-6">
                                 <FormInput id="fullName" name="fullName" value={formData.fullName} onChange={handleInputChange} placeholder="Full Name" icon={<UserIcon className="h-5 w-5 text-gray-400" />} required />
-                                <FormInput id="email" name="email" type="email" value={session?.user?.email || ''} placeholder="Email Address" icon={<EnvelopeIcon className="h-5 w-5 text-gray-400" />} readOnly />
+                                <FormInput id="email" name="email" type="email" value={session?.user?.email || formData.guestEmail || ''} placeholder="Email Address" icon={<EnvelopeIcon className="h-5 w-5 text-gray-400" />} readOnly={!session} />
                                 <FormInput id="phone" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} placeholder="Phone Number" icon={<PhoneIcon className="h-5 w-5 text-gray-400" />} required />
                                 <div>
                                     <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1.5">Delivery Address <span className="text-red-500">*</span></label>
@@ -243,6 +262,20 @@ export default function CheckoutForm() {
                         </motion.div>
                     </div>
                 </form>
+                
+                {/* Guest Checkout Modal */}
+                <GuestCheckoutModal 
+                    isOpen={showGuestModal}
+                    onClose={() => setShowGuestModal(false)}
+                    onGuestContinue={(email) => {
+                        setFormData(prev => ({ ...prev, guestEmail: email }));
+                        setShowGuestModal(false);
+                    }}
+                    onSignInSuccess={() => {
+                        // Refresh the page to update session state
+                        window.location.reload();
+                    }}
+                />
             </div>
         </main>
     );

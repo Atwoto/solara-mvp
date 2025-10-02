@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
-// import NextImage from 'next/image'; // No longer needed
+import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { XMarkIcon, ShoppingBagIcon, PlusIcon, MinusIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -96,9 +96,14 @@ const CartSidebar = () => {
                                         {cartItems.map((item) => (
                                             <motion.li key={item.id} variants={itemVariants} exit="exit" layout className="flex items-start py-5 gap-4">
                                                 <div className="relative h-20 w-20 rounded-lg overflow-hidden border bg-gray-50 flex-shrink-0">
-                                                    {/* --- THIS IS THE FIX --- */}
-                                                    {/* Replaced NextImage with a standard img tag */}
-                                                    {item.image_url && item.image_url[0] && <img src={item.image_url[0]} alt={item.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />}
+                                                    {item.image_url && item.image_url[0] && <Image 
+                                                        src={item.image_url[0]} 
+                                                        alt={item.name} 
+                                                        fill
+                                                        className="absolute inset-0 w-full h-full object-cover" 
+                                                        sizes="(max-width: 768px) 80px, (max-width: 1200px) 80px, 80px"
+                                                        loading="lazy" 
+                                                    />}
                                                 </div>
                                                 <div className="flex-grow">
                                                     <Link href={`/products/${item.id}`} onClick={closeCart} className="text-sm font-medium text-graphite hover:text-solar-flare-start line-clamp-2">{item.name}</Link>

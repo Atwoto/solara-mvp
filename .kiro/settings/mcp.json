@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "n8n-workflows Docs": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://gitmcp.io/Zie619/n8n-workflows/tree/main"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "context7 Docs": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://gitmcp.io/upstash/context7"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "n8n-mcp Docs": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://gitmcp.io/czlonkowski/n8n-mcp"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
