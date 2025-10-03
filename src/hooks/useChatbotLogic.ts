@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useChat } from "ai/react";
-import type { UIMessage } from "ai";
+import { useChat, type Message } from "ai/react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { Product as ProductType } from "@/types";
 
-const createWelcomeMessage = (): UIMessage => ({
+const createWelcomeMessage = (): Message => ({
   id: `welcome-${Date.now()}`,
   role: "assistant",
   content:
@@ -170,10 +169,12 @@ export const useChatbotLogic = () => {
       })),
       wishlist: wishlistIds,
     },
-    onFinish: (message) => {
+    onFinish: (message: any) => {
       // --- THE FIX: Updated regex to handle actions with no second parameter (like openCart) ---
       const executeRegex = /EXECUTE_ACTION\[([^|]+)\|(.*?)\]/;
-      const match = message.content.match(executeRegex);
+      // Access message content - try different possible properties
+      const content = message.content || message.text || "";
+      const match = content.match(executeRegex);
       if (match) {
         const [, actionType, idOrMarker] = match;
         handleActionClick(actionType, idOrMarker);

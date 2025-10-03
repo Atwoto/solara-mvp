@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect } from "react";
-import type { UIMessage } from "ai";
+import type { Message } from "ai/react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { useChatbotLogic } from "@/hooks/useChatbotLogic";
 import { useRouter } from "next/navigation";
@@ -288,7 +288,7 @@ export default function Chatbot() {
                 <WelcomeScreen handleActionClick={handleActionClick} />
               )}
 
-              {displayMessages.map((m: UIMessage) => {
+              {displayMessages.map((m: Message) => {
                 const isUser = m.role === "user";
                 const actionButtonRegex =
                   /ACTION_BUTTON\[([^|]+)\|([^|]+)\|([^\]]+)\]/g;
