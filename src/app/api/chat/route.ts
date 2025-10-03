@@ -279,7 +279,7 @@ export async function POST(req: Request) {
 
   try {
     const response = await openai.chat.completions.create({
-      model: "openai/chatgpt-4o-latest", // OpenRouter format: provider/model
+      model: "openai/gpt-4.1", // OpenRouter format: provider/model
       stream: true,
       messages:
         openAIFormattedMessages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
