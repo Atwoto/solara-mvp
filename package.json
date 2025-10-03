@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.42",
     "@heroicons/react": "^2.2.0",
     "@next-auth/supabase-adapter": "^0.2.1",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
@@ -18,7 +19,7 @@
     "@tiptap/react": "^2.14.0",
     "@tiptap/starter-kit": "^2.14.0",
     "@types/bcryptjs": "^2.4.6",
-    "ai": "^3.0.0",
+    "ai": "^5.0.60",
     "bcryptjs": "^3.0.2",
     "framer-motion": "^12.19.1",
     "lucide-react": "^0.525.0",

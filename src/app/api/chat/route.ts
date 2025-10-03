@@ -1,22 +1,12 @@
 // /src/app/api/chat/route.ts
-import { OpenAIStream, StreamingTextResponse } from "ai";
 import OpenAI from "openai";
-import type { Message } from "ai";
+import type { CoreMessage } from "ai";
 
 import { supabaseAdmin } from "@/lib/supabase/server";
 
 if (!process.env.OPENROUTER_API_KEY) {
   throw new Error("Missing OpenRouter API key.");
 }
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: "https://openrouter.ai/api/v1",
-  defaultHeaders: {
-    "HTTP-Referer": process.env.NEXTAUTH_URL || "http://localhost:3000",
-    "X-Title": "Bills On Solar Assistant",
-  },
-});
 
 export const runtime = "edge";
 
@@ -36,7 +26,7 @@ export async function POST(req: Request) {
     isLoggedIn,
     userName,
   }: {
-    messages: Message[];
+    messages: CoreMessage[];
     cart: { id: string; name: string; quantity: number }[];
     wishlist: string[];
     isLoggedIn: boolean;
@@ -258,38 +248,75 @@ export async function POST(req: Request) {
   `;
 
   // No changes to the rest of the file
-  const finalMessages: Message[] =
+  const finalMessages: CoreMessage[] =
     messages.length > 0 && messages[0].role !== "system"
-      ? [
-          { role: "system", content: systemPrompt, id: "system-prompt" },
-          ...messages,
-        ]
-      : messages.map((m: Message, index: number) =>
+      ? [{ role: "system", content: systemPrompt }, ...messages]
+      : messages.map((m: CoreMessage, index: number) =>
           m.role === "system" && index === 0
             ? { ...m, content: systemPrompt }
             : m
         );
 
   const openAIFormattedMessages = finalMessages
-    .filter((m: Message) => m.content)
-    .map((m: Message) => ({
+    .filter((m: CoreMessage) => m.content)
+    .map((m: CoreMessage) => ({
       role: m.role,
       content: m.content,
     }));
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "openai/gpt-4.1", // OpenRouter format: provider/model
-      stream: true,
-      messages:
-        openAIFormattedMessages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-      temperature: 0.5,
+    const client = new OpenAI({
+      baseURL: "https://openrouter.ai/api/v1",
+      apiKey: process.env.OPENROUTER_API_KEY!,
     });
 
-    const stream = OpenAIStream(response as any);
-    return new StreamingTextResponse(stream);
+    const completion = await client.chat.completions.create(
+      {
+        model: "google/gemini-2.5-pro",
+        messages:
+          openAIFormattedMessages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+        temperature: 0.5,
+        stream: true,
+      },
+      {
+        headers: {
+          "HTTP-Referer": process.env.NEXTAUTH_URL || "http://localhost:3000",
+          "X-Title": "Bills On Solar Assistant",
+        },
+      }
+    );
+
+    // Create a readable stream for the response
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of completion) {
+            const content = chunk.choices[0]?.delta?.content || "";
+            if (content) {
+              controller.enqueue(
+                new TextEncoder().encode(
+                  `data: ${JSON.stringify({ content })}\n\n`
+                )
+              );
+            }
+          }
+          controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
+          controller.close();
+        } catch (error) {
+          controller.error(error);
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
   } catch (error: any) {
-    console.error("Chatbot API: DETAILED OPENAI ERROR:", error);
+    console.error("Chatbot API: DETAILED GEMINI ERROR:", error);
     return new Response(
       JSON.stringify({
         error: "An error occurred with the AI service.",
