@@ -286,32 +286,12 @@ export async function POST(req: Request) {
       }
     );
 
-    // Create a readable stream for the response in the format AI SDK expects
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of completion) {
-            const content = chunk.choices[0]?.delta?.content || "";
-            if (content) {
-              // Format for AI SDK 3.3.0
-              const formattedChunk = `0:"${content.replace(/"/g, '\\"')}"\n`;
-              controller.enqueue(new TextEncoder().encode(formattedChunk));
-            }
-          }
-          controller.close();
-        } catch (error) {
-          controller.error(error);
-        }
-      },
-    });
+    // Import OpenAIStream from ai package for proper streaming
+    const { OpenAIStream, StreamingTextResponse } = await import("ai");
 
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
-    });
+    // Use the OpenAI stream helper to format the response correctly
+    const stream = OpenAIStream(completion as any);
+    return new StreamingTextResponse(stream);
   } catch (error: any) {
     console.error("Chatbot API: DETAILED GEMINI ERROR:", error);
     return new Response(
