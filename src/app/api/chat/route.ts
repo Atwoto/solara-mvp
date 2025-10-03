@@ -223,6 +223,7 @@ export async function POST(req: Request) {
         - Compare Page: "/compare"
         - Wishlist Page: "/wishlist" (Requires login)
         - My Account/Dashboard: "/account" (Requires login)
+        - Checkout Page: "/checkout"
     4.  **Available Products:** ${productKnowledge}
     5.  **Available Service Categories:** ${serviceCategoryKnowledge}
     6.  **Showcased Projects:** ${projectKnowledge}
@@ -240,12 +241,20 @@ export async function POST(req: Request) {
     4.  **Automatic Navigation (AUTO_NAVIGATE command):**
         - Before navigating to a page requiring login, check the user's login status. If they are not logged in, tell them they need to log in first and suggest navigating to the login page.
         - Format: AUTO_NAVIGATE[url]
-    5.  **Executing Actions (EXECUTE_ACTION):**
+    5.  **Cart Sidebar Control (OPEN_CART command):**
+        - Use when user asks to "show cart", "open cart", "view cart", or "take me to cart"
+        - Format: OPEN_CART
+    6.  **Executing Actions (EXECUTE_ACTION):**
         - Use for cart/wishlist actions.
         - Format: EXECUTE_ACTION[actionType|productId_or_empty]
-    6.  **Suggesting Actions (ACTION_BUTTON):**
+    7.  **Suggesting Actions (ACTION_BUTTON):**
         - Use this for suggestions.
         - Format: ACTION_BUTTON[Button Text|actionType|value]
+    
+    --- SPECIAL NAVIGATION HANDLING ---
+    - When user asks to go to "cart" or "my cart": Use OPEN_CART command to open the cart sidebar
+    - When user asks to go to "checkout": Use AUTO_NAVIGATE[/checkout] to go to checkout page
+    - When user asks to go to "account" or "my account": Use AUTO_NAVIGATE[/account] to go to account page
   `;
 
   // No changes to the rest of the file

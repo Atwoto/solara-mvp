@@ -156,7 +156,7 @@ const GuestCheckoutModal = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
         onClick={onClose}
       >
         <motion.div
@@ -164,7 +164,7 @@ const GuestCheckoutModal = ({
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           transition={{ type: "spring", duration: 0.3 }}
-          className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden"
+          className="relative w-full max-w-md mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto sm:max-w-lg md:max-w-xl lg:max-w-md"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="relative bg-gradient-to-r from-solar-flare-start to-solar-flare-end p-6 text-center">
@@ -182,9 +182,9 @@ const GuestCheckoutModal = ({
             </p>
           </div>
 
-          <div className="p-6">
+          <div className="p-6 sm:p-8">
             {/* Button Layout - Similar to the image */}
-            <div className="space-y-3 mb-6">
+            <div className="space-y-3 mb-6 sm:space-y-4">
               <button
                 onClick={() => switchMode("signup")}
                 className={`w-full py-4 px-6 border-2 rounded-lg text-lg font-medium transition-all ${
