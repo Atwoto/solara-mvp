@@ -286,21 +286,18 @@ export async function POST(req: Request) {
       }
     );
 
-    // Create a readable stream for the response
+    // Create a readable stream for the response in the format AI SDK expects
     const stream = new ReadableStream({
       async start(controller) {
         try {
           for await (const chunk of completion) {
             const content = chunk.choices[0]?.delta?.content || "";
             if (content) {
-              controller.enqueue(
-                new TextEncoder().encode(
-                  `data: ${JSON.stringify({ content })}\n\n`
-                )
-              );
+              // Format for AI SDK 3.3.0
+              const formattedChunk = `0:"${content.replace(/"/g, '\\"')}"\n`;
+              controller.enqueue(new TextEncoder().encode(formattedChunk));
             }
           }
-          controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
           controller.close();
         } catch (error) {
           controller.error(error);
