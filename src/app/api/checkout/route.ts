@@ -119,8 +119,7 @@ export async function POST(req: NextRequest) {
         order_id: orderData.id,
         product_id: item.id,
         quantity: item.quantity,
-        price: item.price,
-        product_name: item.name,
+        price_at_purchase: item.price, // Use the correct column name from your schema
       }));
 
       const { error: itemsError } = await supabaseAdmin
