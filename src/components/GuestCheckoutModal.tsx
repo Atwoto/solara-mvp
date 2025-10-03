@@ -74,6 +74,12 @@ const GuestCheckoutModal = ({
     setIsLoading(true);
     setError("");
 
+    console.log("Modal signup attempt:", {
+      name: formData.name,
+      email: formData.email,
+      passwordLength: formData.password.length,
+    });
+
     try {
       const response = await fetch("/api/auth/signup", {
         method: "POST",
@@ -85,11 +91,15 @@ const GuestCheckoutModal = ({
         }),
       });
 
+      console.log("Signup response status:", response.status);
       const data = await response.json();
+      console.log("Signup response data:", data);
 
       if (!response.ok) {
         throw new Error(data.message || "Failed to create account");
       }
+
+      console.log("Account created successfully, attempting auto sign-in...");
 
       // Auto sign in after successful signup
       const signInResult = await signIn("credentials", {
@@ -98,15 +108,19 @@ const GuestCheckoutModal = ({
         redirect: false,
       });
 
+      console.log("Auto sign-in result:", signInResult);
+
       if (signInResult?.error) {
         setError(
           "Account created but failed to sign in. Please try signing in manually."
         );
       } else {
+        console.log("Signup and sign-in successful!");
         onSignInSuccess();
         onClose();
       }
     } catch (err: any) {
+      console.error("Modal signup error:", err);
       setError(err.message || "Failed to create account");
     } finally {
       setIsLoading(false);

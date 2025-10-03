@@ -4,7 +4,11 @@
 ALTER TABLE users 
 ADD COLUMN IF NOT EXISTS is_guest BOOLEAN DEFAULT FALSE;
 
--- 2. Add guest_email column to orders table  
+-- 2. Add password column to users table (for credentials authentication)
+ALTER TABLE users 
+ADD COLUMN IF NOT EXISTS password TEXT;
+
+-- 3. Add guest_email column to orders table  
 ALTER TABLE orders 
 ADD COLUMN IF NOT EXISTS guest_email TEXT;
 
