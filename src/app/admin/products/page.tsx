@@ -163,9 +163,9 @@ const AdminProductsPage = () => {
     }
     setActionMessage(null);
     try {
-      // We use an archive endpoint now instead of DELETE
-      const response = await fetch(`/api/admin/products/archive/${productId}`, {
-        method: "PUT",
+      // Use the correct DELETE endpoint
+      const response = await fetch(`/api/admin/products/${productId}`, {
+        method: "DELETE",
       });
       const result = await response.json();
       if (!response.ok)
