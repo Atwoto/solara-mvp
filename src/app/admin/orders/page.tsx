@@ -21,7 +21,7 @@ interface OrderItem {
     id: string;
     name: string;
     price: number;
-    image_url: string | null;
+    image_url: string[] | null;
     category: string;
     wattage: number | null;
   };
@@ -271,13 +271,14 @@ const AdminOrdersPage = () => {
                             key={index}
                             className="flex items-center gap-3 text-sm"
                           >
-                            {item.products.image_url && (
-                              <img
-                                src={item.products.image_url}
-                                alt={item.products.name}
-                                className="w-8 h-8 object-cover rounded"
-                              />
-                            )}
+                            {item.products.image_url &&
+                              item.products.image_url.length > 0 && (
+                                <img
+                                  src={item.products.image_url[0]}
+                                  alt={item.products.name}
+                                  className="w-8 h-8 object-cover rounded"
+                                />
+                              )}
                             <div className="flex-1">
                               <span className="font-medium text-slate-700">
                                 {item.products.name}

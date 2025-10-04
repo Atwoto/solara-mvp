@@ -114,9 +114,9 @@ export default function OrdersTab() {
                         key={index}
                         className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
                       >
-                        {item.image_url && (
+                        {item.image_url && item.image_url.length > 0 && (
                           <img
-                            src={item.image_url}
+                            src={item.image_url[0]}
                             alt={item.name}
                             className="w-12 h-12 object-cover rounded-md"
                           />
