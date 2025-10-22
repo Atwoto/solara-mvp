@@ -272,7 +272,7 @@ export async function POST(req: Request) {
 
     const completion = await client.chat.completions.create(
       {
-        model: "google/gemini-2.5-flash-preview-09-2025",
+        model: "qwen/qwen3-235b-a22b-2507",
         messages:
           openAIFormattedMessages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
         temperature: 0.5,
