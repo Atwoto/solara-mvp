@@ -24,9 +24,9 @@ const nextConfig = {
     return config;
   },
 
-  // These remote patterns are correct for allowing images from your Supabase storage
-  // and Google for OAuth profile pictures.
+  // Disable image optimization to avoid transformation limits
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
