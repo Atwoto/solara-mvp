@@ -12,6 +12,8 @@ export interface Product {
   description?: string | null;
   is_archived?: boolean;
   features?: string[] | { title: string; detail: string }[];
+  sold_count?: number | null;
+  rating?: number | null;
 }
 
 // --- THIS IS THE FIX ---

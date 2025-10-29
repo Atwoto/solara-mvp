@@ -28,6 +28,8 @@ export type ProductFormData = Omit<
   featuresJson: string;
   imageFiles: File[];
   currentImageUrls: string[];
+  sold_count: number | null;
+  rating: number | null;
 };
 
 interface ProductFormProps {
@@ -64,7 +66,9 @@ const SettingsCard = ({
       >
         <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
         <ChevronUpIcon
-          className={`h-5 w-5 text-slate-500 transition-transform duration-300 ${isOpen ? "" : "rotate-180"}`}
+          className={`h-5 w-5 text-slate-500 transition-transform duration-300 ${
+            isOpen ? "" : "rotate-180"
+          }`}
         />
       </button>
       <AnimatePresence>
@@ -99,12 +103,15 @@ export const ProductForm = ({
         : "[]",
       imageFiles: [],
       currentImageUrls: initialData?.image_url || [],
+      sold_count: initialData?.sold_count ?? null,
+      rating: initialData?.rating ?? null,
     }),
     [initialData]
   );
 
-  const [productData, setProductData] =
-    useState<ProductFormData>(getInitialFormData());
+  const [productData, setProductData] = useState<ProductFormData>(
+    getInitialFormData()
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -130,11 +137,23 @@ export const ProductForm = ({
     >
   ) => {
     const { name, value } = e.target;
-    setProductData((prev) => ({
-      ...prev,
-      [name]:
-        name === "price" || name === "wattage" ? parseFloat(value) || 0 : value,
-    }));
+
+    if (name === "sold_count" || name === "rating") {
+      // Handle nullable number fields
+      const numValue = value === "" ? null : parseFloat(value);
+      setProductData((prev) => ({
+        ...prev,
+        [name]: numValue,
+      }));
+    } else {
+      setProductData((prev) => ({
+        ...prev,
+        [name]:
+          name === "price" || name === "wattage"
+            ? parseFloat(value) || 0
+            : value,
+      }));
+    }
   };
 
   const handleDescriptionChange = (richText: string) => {
@@ -357,6 +376,57 @@ export const ProductForm = ({
                     className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm"
                     placeholder="e.g., 350"
                   />
+                </div>
+              </div>
+            </SettingsCard>
+
+            <SettingsCard title="Social Proof">
+              <div className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="sold_count"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Units Sold
+                  </label>
+                  <input
+                    type="number"
+                    name="sold_count"
+                    id="sold_count"
+                    value={productData.sold_count ?? ""}
+                    onChange={handleInputChange}
+                    min="0"
+                    step="1"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm"
+                    placeholder="e.g., 450"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Leave empty to hide. Shows as "450 sold" on product cards.
+                  </p>
+                </div>
+                <div>
+                  <label
+                    htmlFor="rating"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Rating (0-5)
+                  </label>
+                  <input
+                    type="number"
+                    name="rating"
+                    id="rating"
+                    value={productData.rating ?? ""}
+                    onChange={handleInputChange}
+                    min="0"
+                    max="5"
+                    step="0.1"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-solar-flare-start focus:border-solar-flare-start sm:text-sm"
+                    placeholder="e.g., 4.8"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Leave empty to show 5.0 by default. Enter value between 0.0
+                    and 5.0.
+                  </p>
                 </div>
               </div>
             </SettingsCard>
